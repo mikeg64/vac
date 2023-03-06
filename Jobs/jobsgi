@@ -1,0 +1,28 @@
+# This is a script to run VAC in the LSF batch of a SGI
+# Origin 3800 (like TERAS at SARA, Amsterdam)
+# Usage: bsub < jobsgi
+
+
+# Job parameters 
+# ==============
+
+#BSUB -W 0:30     # CPU time in hours:minutes
+#BSUB -M 1048576  # needs 1 Gigabyte
+#BSUB -J vacrun
+#BSUB -o stdout.%J
+#BSUB -n 1        # jobs runs on 1 CPUs
+
+cd $HOME/vac
+
+# Number of CPU-s 
+# (as above, compile with "-apo" to use more than 1 CPU-s)
+# ===============
+export OMP_NUM_THREADS=1
+
+# following needed on TERAS when running parallel in batch
+# sets system limit
+limit stacksize 1048576
+
+# Run
+# ===
+./vac_example < par/exampleA22

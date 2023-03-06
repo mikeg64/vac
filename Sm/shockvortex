@@ -1,0 +1,26 @@
+figure
+	inic hd
+	location 3500 31000 1500 29000
+	define Plotmode Surface
+	define Dix 1 define Diy 1
+	define Xmin 100 define Xmax 199
+	define Ymin 0 define Ymax 99
+	#define Zmin 0.00001 define Zmax 301
+	viewpoint 30 -70 0
+	data "data/nauta/vx.out"
+	erase
+	getpict 3 0
+	define Zmin 61221.3 define Zmax 180000
+	plot1 Ap 2 2 1 2 1. 1. "Pressure [Pa]" x
+	limits 0 1 0 1 relocate 0.35 1 putlabel 5 nt=$(it)
+	getpict 5 0
+	plot1 Ap 2 2 2 2 1. 1. "Pressure [Pa]" x
+	limits 0 1 0 1 relocate 0.35 1 putlabel 5 nt=$(it)
+	getpict 7 0
+	plot1 Ap 2 2 1 1 1. 1. "Pressure [Pa]" x
+	limits 0 1 0 1 relocate 0.35 1 putlabel 5 nt=$(it)
+	window 1 1 1 1
+	expand 1.5 lweight 3 RELOCATE (17600 32000)
+	putlabel 5 Shock-Vortex interaction; TVD-Harten on 100\times 100 grid
+	expand 1.0001 lweight 1
+	location 3500 31000 3500 31000

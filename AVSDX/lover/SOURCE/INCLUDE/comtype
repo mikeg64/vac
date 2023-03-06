@@ -1,0 +1,13 @@
+*COMDECK COMTYPE
+C@(#)comtype	2.1
+      CHARACTER VISTYPEBYT*(*), VISTYPECHA*(*), VISTYPESHO*(*), 
+     A          VISTYPEINT*(*), VISTYPEFLO*(*), VISTYPEDOU*(*)
+      PARAMETER (
+     1     VISTYPEBYT = 'byte', 
+     2     VISTYPECHA = 'char', 
+     3     VISTYPESHO = 'short',
+     4     VISTYPEINT = 'int',
+     5     VISTYPEFLO = 'float',
+     6     VISTYPEDOU = 'double'
+     7)
+C

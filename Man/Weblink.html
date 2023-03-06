@@ -1,0 +1,164 @@
+<HTML>
+<HEAD>
+<TITLE>VAC USER INTERFACE</TITLE>
+</HEAD>
+<BODY>
+<h1><IMG SRC="vaclogosmall.gif" ALT="">USER INTERFACE</h1>
+
+This manual describes how the web based user interface for VAC may be used.
+A demo version can be viewed through my 
+<A HREF=http://hermes.elte.hu/~gtoth>homepage</A>.
+<p>
+The <b>WEBLINK</b> server was developed by Jozsef Hollosi.
+Read the copyright notice at the top of the 
+<b>weblink.pl</b> Perl script. 
+<hr>
+This page:
+ [<A HREF="#Installation">Installation</A>]
+ [<A HREF="#Running">Running</A>]
+ [<A HREF="#General">General</A>]
+ [<A HREF="#Specific">Specific</A>]
+<hr>
+<H2><A NAME="Installation">Installation of the Interface</A></h2>
+
+The interface requires three pieces of software on your machine: 
+<ul>
+<li>the VAC User Interface software package
+<li>the Perl interpreter
+<li>a web browser such as Netscape or Mozilla
+</ul>
+You may use a script to call the browser with some flags, e.g. the
+<b>my_netscape</b> file in the main <b>vac</b> directory contains the 
+following single line
+<pre>
+netscape -install $1
+</pre>
+The file was made executable by typing <kbd>chmod +x my_netscape</b>. If you
+set the default browser to <b>my_netscape</b> in the <b>Customization</b>
+page of the interface, or set <kbd>$browser='my_netscape'</kbd> in the 
+<b>Weblink/default</b> file. This particular script will start netscape with
+the -install flag which makes netscape use its private color table.
+
+<H2><A NAME="Running">Running WEBLINK</A></h2>
+
+To start the VAC User Interface simply type
+<pre>
+weblink.pl &amp;
+</pre>
+in the main <b>vac</b> directory. It will attempt to use <b>netscape</b> 
+if present, otherwise <b>mozilla</b>. You may force a certain browser by 
+adding a switch, e.g.
+<pre>
+weblink.pl -browser=mozilla &amp;
+</pre>
+however it is better to change the <b>Weblink/default</b> file either directly
+or preferably through the <b>Customization</b> menu of the interface as
+described above.
+<p>
+<b>You should always use the EXIT button to exit from the User Interface.
+Do not try to suspend it.</b> Using CTRL-Z will close the browser 
+window, but the weblink server remains in the background.
+If this occured by accident, find the PROCESS ID by typing
+<pre>
+ps aux | grep weblink
+</pre>
+and kill the process with <b>kill -9 PROCESSID</b>. On some operating
+systems you can simply use the 
+<pre>
+killall weblink.pl
+</pre>
+command.
+
+<H2><A NAME="General">General use of the Interface</A></h2>
+
+The interface appears with
+two frames containing the main menu on the left, and the actual page
+on the right, which is the cover page initially. Resize the whole window 
+and/or move the vertical separating line between the two frames with the 
+mouse according to your needs.
+By clicking on different menu points on the left you may switch between pages. 
+Though you can go back within a frame by using the right button of the mouse, 
+it is counter-advised, since it does not allow <b>weblink</b> to update
+information in that page. 
+<p>
+In the different pages you can provide information to and execute commands
+via the interface by clicking on checkboxes and by selecting items with the 
+mouse, and by filling in textfields, e.g.
+<FORM>
+Should this be on: <INPUT TYPE=checkbox><br>
+Please select from:
+   <SELECT><OPTION SELECTED>This<OPTION>That<OPTION>Else</SELECT><br>
+Or tell me what: <INPUT SIZE=15><br>
+</FORM>
+The information will be sent to weblink only when you click on one of the
+submit buttons. The browser may warn about unsafe submission, simply ask for
+no more warnings, and click on the OK button. 
+<p>
+The length of selection menus is limited to 20 items, which may be 
+insufficient to include all your data or parameter files. By setting the
+<b>PROBLEM</b> parameter, see below, the appropriate part of the file list
+will be selected.
+<p>
+You will often see the following three icons:
+<p>
+<IMG SRC="caution.gif" ALIGN=ABSMIDDLE>
+   dangerous option, e.g. deleting files
+<p>
+<IMG SRC="bluehorn.gif" ALIGN=ABSMIDDLE>
+   announcement, e.g. the command executed, or a warning
+<p>
+<A HREF=#General><IMG SRC="question.gif" ALIGN=ABSMIDDLE></A>
+   link to an appropriate manual page
+
+<H2><A NAME="Specific">Specific Issues</A></h2>
+
+At the top of some of the menus you will find a text field with a submit 
+button:
+<FORM>
+<INPUT TYPE="submit" VALUE="SET PROBLEM">
+<INPUT NAME="problem" VALUE="example" SIZE=15>
+</FORM>
+Fill in an appropriate name for the problem you are investigating and
+press RETURN or click on the button. This will help the interface to make an 
+intelligent guess for the desired VACUSR module, parameter files, and data 
+files.
+<p>
+In the MAKE VAC and MAKE VACINI pages
+the interface automatically renames the compiled codes to <b>vac</b> and 
+<b>vacini</b> irrespective of the makefile target (e.g. vac77) chosen.
+After the compilation is done the interface suggests to add an extension to 
+the name of the executable code which refers to the current configuration, 
+e.g. <b>vac_mhd12</b> or <b>vac_myproblem</b>. This is very useful if more
+than one configurations of VAC are used in turns.
+<p>
+Since the browser cannot display real-time information, output from 
+slowly running processes, such as making and running VAC or VACINI,
+are displayed in an external X window, and you should check there whether
+the compilation or execution of a program has already finished or not. 
+Use the <b>Customization menu</b> to choose the type of this 
+XTERMINAL FOR STDOUT. 
+<p>
+Other applications, like IDL or Emacs, also start in the background. 
+You can use them parallel with the interface, or close and open them again
+and again. On startup both IDL and SM receive the name of the selected data 
+file.
+<p>
+When you exit <b>weblink</b> by clicking at the EXIT button, all applications 
+and jobs which were started from <b>weblink</b> and are running in the 
+background will be killed except of the running VAC simulation(s). 
+Those can only be killed by the shell <kbd>kill -9 process_number</kbd> 
+command.
+<p>
+Occasionally <b>weblink</b> creates lots of idling processes which may result 
+in <b>alert statements</b> of the shell. The reason for this is 
+not known, it is 
+probably some faulty interaction of <b>weblink</b> and the operating system. 
+If this occured, simply exit <b>weblink</b> by clicking at the EXIT button, 
+which will kill all the idling processes too, and then you can restart 
+the user interface again.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29 1999
+</ADDRESS>
+</BODY>
+</HTML>

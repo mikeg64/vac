@@ -1,0 +1,36 @@
+ &testlist /
+
+ &filelist
+	filenameini='data/exampleD22.ini',
+	typefileini='ascii'
+	filename=   'data/example22.log',
+		    'data/example22.out'
+	typefileout='binary'
+	typefilelog='special'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=10,75
+ /
+
+ &stoplist
+	itmax=1500
+ /
+
+ &methodlist
+	wnames=         'rho m1 m2'
+	typefull=	3*'tvd'
+	typelimiter=	3*'woodward'
+ /
+
+ &boundlist
+	typeB=	3*'periodic'
+		3*'periodic'
+		3*'fixed'
+		3*'fixed'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

@@ -1,0 +1,5 @@
+#!/usr/bin/perl -pi~
+# Convert tabs to 6 spaces (CM5 does not like TAB characters)
+#
+
+s/\t/      /g;

@@ -1,0 +1,39 @@
+#!/bin/sh
+# This is a shell script to run VAC in the batch on an IBM SP2
+# Usage: llsubmit jobsp2
+#
+#@ job_type = parallel
+#@ output = $(Cluster).$(Process).out
+#@ error  = $(Cluster).$(Process).err
+#@ requirements = Adapter == "hps_user"
+#
+# Set the maximum time needed for the job (this is for ll-easy)
+#
+#@ wall_clock_limit=0:15:10
+#  wall_clock_limit=265
+#
+# Select the appropriate class (type "llclass" for info on job classes)
+#
+#@ class = p-express
+# class = p-15m
+# class = ...
+#
+
+# Set the number of processors, use the same numbers for min and max
+#
+#@ min_processors = 2
+#@ max_processors = 2
+#@ queue
+
+# This setting improves communication performance. 
+# =====
+set -x
+export MP_EUILIB=us
+
+# Print list of processors selected by the Loadleveler
+# =====
+echo Loadleveler processor list: $LOADL_PROCESSOR_LIST
+
+# Run the code through the Parallel Operating Environment
+# ===
+poe $HOME/vac/vac_example < par/exampleA22

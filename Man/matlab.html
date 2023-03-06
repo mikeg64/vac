@@ -1,0 +1,527 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on MATLAB Visualization Macros </TITLE>
+</HEAD>
+<BODY>
+<h1>MATLAB VISUALIZATION MACROS</h1>
+
+This document briefly describes the use of MATLAB for plotting results from 
+VAC. MATLAB is not a free software, it is distributed by The Maths Works Inc.
+<p>
+The MATLAB macros provided for VAC are all in the <b>Matlab</b> directory.
+<p>
+<em>Hans De Sterck is acknowledged for providing the Matlab macros 
+developed for his Emma_D code, which were based on an early version of the VAC 
+IDL procedures.</em>
+<hr>
+This page:
+ [<A HREF="#Startup">Install</A>]
+ [<A HREF="#Running">Running</A>]
+ [<A HREF="#Getpict">getpict</A>]
+ [<A HREF="#Generalized">Transform</A>]
+ [<A HREF="#Plotfunc">plotfunc</A>]
+ [<A HREF="#Plot more">Plot more</A>]
+ [<A HREF="#Animate">animate</A>]
+ [<A HREF="#Get_func">get_func</A>]
+ [<A HREF="#Logfile">getlog</A>]
+<hr>
+
+<H2><A NAME="Startup">Installation</A></H2>
+
+   To let MATLAB know where the macros are, put 
+<pre>
+setenv MATLABPATH $HOME/vac/Matlab
+</pre>
+   into your ~/.login or ~/.cshrc file if your UNIX shell is csh or tcsh,
+   and put
+<pre>
+MATLABPATH=$HOME/vac/Matlab
+export MATLABPATH
+</pre>
+   in the <b>.profile</b> file if you use a different UNIX shell.
+   Also type this on the command line if this is the first time that you
+   want to use the Matlab macros (thus .login, .cshrc, or .profile has not 
+   been executed yet). Read the MATLAB manual if your operating system is 
+   not UNIX.
+<p>
+<H2><A NAME="Running">Running</A> MATLAB</H2>
+
+   To start MATLAB type 
+<pre>
+matlab
+</pre>
+   in the main VAC directory. The <b>Matlab/startup.m</b> file is executed
+   which shows some basic information and also runs <b>Matlab/defaults.m</b>
+   to initialize some global variables. You may get help on any functions
+   or scripts by typing help and the name, e.g.
+<pre>
+help get_func
+</pre>
+   To exit MATLAB type <kbd>quit</kbd> or
+<pre>
+exit
+</pre>
+<H2><A NAME="Getpict">Reading</A> a Snapshot with getpict</H2>
+
+   To read a single snapshot from a file, type at the <b>&gt;&gt;</b>
+   prompt of MATLAB
+<pre>
+getpict
+</pre>
+   The procedure will prompt you for the value of <b>filename</b>, 
+   and it determines the file type (ASCII or binary), the size of the 
+   file <b>filesize</b>, and the size of one snapshot <b>pictsize</b>
+   (both in bytes) automatically. 
+   From the two sizes the number of snapshots in the file <b>npictinfile</b> 
+   is calculated and displayed. Then the user is asked for the frame-number 
+   <b>npict</b> (1,2,..) of the snapshot to be read from the file:
+<pre>
+filename(s)  ? 'data/exampleA22.ini'
+asciifile(s) =1
+
+npictinfile(s)              =1
+npict(s) (eg. 2 or [3 4 5])? 1
+</pre>
+   The header of the file is read and echoed on the screen, and the
+   type of equation <b>physics</b> is determined <em>if</em> it is 
+   defined in the headline of the file, e.g. here <b>ExampleA_hdadiab22</b> 
+   (you can also set <kbd>physics='hdadiab22'</kbd> explicitly). From
+   <b>physics</b> two further variables are derived: <b>phys</b> from which
+   the 2 numbers at the the end are chopped off and the number of vector 
+   components <b>ndir</b> which is the last character of <b>physics</b>.
+<pre>
+headline='ExampleA'
+physics ='hdadiab22'
+it=0 time=0.000000 ndim=2 neqpar=3 nw=3
+eqpar=[2 1 0]
+nx   =[50 50]
+Reading:x y h m1 m2   gamma ghalf coriolis
+</pre>
+   The coordinates, the conservative variables, and the equation parameters
+   are read from the file, and they are defined as Matlab matrices with 
+   names listed in the 4-th line of the file header as defined in the 
+   inipar file. The original data, as read from the file, is contained
+   in the <b>X, w</b>, and <b>eqpar</b> arrays.
+<p>
+   You can read snapshots from more than one files for purposes of
+   comparison. Simply give the filenames separated by spaces, and the 
+   frame-numbers (if they differ) as a matlab array, e.g.
+<pre>
+defaults
+getpict
+filename(s) ? 'data/exampleA22.ini data/example22.out'
+asciifile(s) =[1 0]
+
+npictinfile(s)              =[1 21]
+npict(s) (eg. 2 or [3 4 5])? [1 4]
+</pre>
+   The coordinates, conservative variables and equation parameters
+   will be put into variables named as before, except that <b>_1, _2, ...</b> 
+   are appended to the names to distinguish between the data read from 
+   different files.
+   The header information, which is printed for each files onto the screen, 
+   will be overwritten by the last file read, in this case it will belong to
+   <b>data/example22.out</b>. The non-suffixed <b>x, y, h, ..., gamma, ...</b> 
+   matrices will also be set by the data read from the last file, and this is 
+   what <A HREF=#Plotfunc>plotfunc</A> uses to produce the plots.
+<p>
+   It is worthwhile to note that MATLAB can read binary data files faster
+   than formatted ASCII files. Set <b>typefileout='binary'</b> in your 
+   <A HREF="par.html#Filelist">par/PROBLEM</A> file to produce binary output
+   files. Use the <b>typefileout</b> action in the 
+   <A HREF="inipar.html#Filetype">inipar/PROBLEM</A> parameter file to produce
+   binary initial data by VACINI. 
+<p>
+   If the file contained data on a Cartesian grid, you get the 
+   prompt back and you can do whatever you want with 
+   <b>h, h_1, h_2, m1, m1_1, m1_2, ...</b> and all the other variables 
+   <b>headline, it, time, gencoord, ndim, neqpar, nw, nx</b>
+   defined by the file header. 
+<p>
+   You can use the <A HREF=#Plotfunc>plotfunc</A> script to get some 
+   sophisticated plots or you can use any of the MATLAB procedures directly, 
+   e.g.
+<pre>
+plot(h(:,25))
+surf(h_2-h_1)
+contour(h)
+quiver(m1./h,m2./h)
+</pre>
+   The functions <b>gradx</b> and <b>grady</b> are provided for taking spatial
+   derivatives of variables represented on a 2D Cartesian mesh. 
+   To calculate and plot the curl of the velocity field you could type
+<pre>
+curl_v=gradx(m1./h,x)-grady(m2./h,y);
+contour(curl_v)
+</pre>
+   You can also use <b>gradx</b> and <b>grady</b> in the 
+   <b>Matlab/get_func.m</b> script to define functions plotted by 
+   <b>plotfunc</b> and <b>animate</b>. The <b>grad4x, grad4y</b> 
+   functions calculate fourth order derivatives on a uniform Cartesian
+   grid.
+
+<H2><A NAME="Generalized">Transformation</A> from Generalized Coordinates</H2>
+
+   If the file contains generalized coordinates, which is signaled by a 
+   negative <b>ndim</b> in the file, and by the variable <b>gencoord=1</b> 
+   in MATLAB, the <b>getpict</b> macro will ask if you want optional 
+   transformation of the coordinates and conservative variables.
+
+<ol><h4><li>Transformation to regular Cartesian grid</h4>
+<pre>
+Transform (regular/polar/none)? 'regular'
+</pre>
+   The above choice <b>regular</b> will interpolate the irregular grid onto a 
+   regular one using the <b>triangulate</b> and <b>interpolate</b> functions.
+   The size of the regular grid is asked now
+<pre>
+nxreg (eg. 100 or [50 60])? 100
+Reading:x y rho m1 m2 e
+Triangulate...
+</pre>
+   The coordinates and the conservative variables are read, and they
+   are transformed onto a 100 x 100 Cartesian grid. The triangulation
+   is a quite sophisticated algorithm to determine the nearest neghbours and 
+   weights for the interpolation, and it may require a few seconds to complete.
+   If the same grid is used later, the triangulation is not repeated, 
+   only interpolation is done, which is a very fast and simple function. 
+   The interpolated variables replace the originals, and they have size 
+   <b>nxreg</b>.
+
+<h4><li>Transformation to polargrid</h4>
+
+   You may choose to do a polargrid transformation if the simulation
+   was done on a general grid that represents a polar grid, and you want 
+   to see the result in polar coordinates:
+<pre>
+Transform (regular/polar/none)? 'polar'
+</pre>
+   The vector variables are transformed to polar components. In 2D MHD, 
+   for example, the momenta and the magnetic field components are the two
+   vectors, thus:
+<pre>
+Radial and phi component(s) of vector variables among
+wnames                           =rho m1 m2 e b1 b2
+polar_r(s)   (eg. mr br     ...)? 'm1 b1'
+polar_phi(s) (eg. mphi bphi ...)? 'm2 b2'
+</pre>
+   Now the coordinates and the conservative variables are read and transformed
+   to polar coordinates and the vector variables to polar vector components.
+</ol>
+<H2><A NAME="Plotfunc">Plotting</A> the Data</H2>
+
+   Once the data is read by <A HREF=#Getpict>getpict</A> or 
+   <A HREF=#Animate>animate</A> you can plot functions of the conservative
+   variables by
+<pre>
+plotfunc
+</pre>
+   You will see the name of the variables and asked for the functions to be
+   plotted
+<pre>
+Variables= x y h m1 m2
+func(s) (rho m1;m2 ...)        = 'h'
+</pre>
+   Functions that you can plot are any expression of the conserved variables,
+   or function names which are defined in Matlab/get_func.m, namely
+<pre>
+v1, v2, v3, pth, T, csound, mach, divb, divb4, divb_rz, divb_rp, j, j_rz, j_rp,
+A, A_r, AA, AA_r
+</pre>
+   meaning the velocity components, thermal pressure, temperature, sound speed,
+   mach number, divergence B with a second or fourth order formula 
+   in slab or cylindrical symmetry or polar coordinates,
+   current in slab or cylindrical symmetry or polar coordinates, and
+   vector potential in slab or cylindrical symmetry integrated from bottom
+   or left, respectively. The contours of the vector potential are useful to
+   draw magnetic field lines.
+   You can easily add new function definitions in the 
+   Matlab/<A HREF=#Get_func>get_func</A>.m script.
+
+   More than one components of a function can be given by separating them
+   with semicolons. The functions themselves are separated by spaces, e.g.
+<pre>
+func(s) (rho m1;m2 ...)       ? 'h m1./h;m2./h'
+autorange(s) (1/0 or [1 0 1]) ? 1
+plotmode(s)                   ? 'pcolor quiver'
+</pre>
+   will plot height and two components of the velocity. Some plotmodes can use
+   three components, e.g. you can plot a colormap for height together with 
+   the velociy field by typing
+<pre>
+func='h;m1./h;m2./h'
+plotmode='pcolor_quiver'
+plotfunc
+</pre>
+   You can choose a different plotmode for all the functions. If the number
+   of plotmodes given is smaller than the number of functions <b>nfunc</b>,
+   the last plotmode will be used for the rest of the functions.
+   This padding rule is used for all the arrays entered.
+   The choice of plotmodes is shown for the appropriate number of dimensions:
+<pre>
+1D plotmodes: plot/loglog/semilogx/semilogy
+
+2D plotmodes for 1 variable : mesh/surf/surfc/surfl/contour/pcolor/pcolorc
+             for 2 variables: quiver/pcolor_contour
+             for 3 variables: contour_quiver/pcolor_quiver
+</pre>
+   The default 1D and 2D plotmodes are <b>plot</b> and <b>mesh</b>, 
+   respectively. Note that <b>surfl</b> and any plotmode involving 
+   <b>contour</b> lines can only be used for (interpolated) Cartesian grids, 
+   but all the other plotmodes work for generalized coordinates without any 
+   transformation needed.
+<p>
+   The <b>autorange</b> array determines whether the <b>fmin</b> and 
+   <b>fmax</b> arrays are calculated from the data, or if they are given 
+   by the user. As usual in Matlab, 1 means true, and 0 means false. Thus
+<pre>
+autorange(s) (1/0 or [1 0 1])  = 1
+</pre>
+   will calculate the function ranges for all functions automatically, while
+<pre>
+autorange=0
+fmin=[0 -1]
+fmax=[1 1]
+</pre>
+   sets the ranges 0 to 1 and -1 to 1 for two functions, respectively.   
+<p>
+   There are a few more plotting parameters which have reasonable default 
+   values, but, of course, they can be modified:
+<pre>
+plottitle(s) (e.g. 'B [G];J')  = 'default' 
+Shading(s) flat/faceted/interp = 'flat' 
+Colorbar(s) (1/0 or [1 0 1])   = 0
+View=[-37.5 30] Contourlevel=30 Contourstyle='g-' Quiverscale=1
+multiplot=[] Bottomline=2 Headerline=2
+</pre>
+   The <b>plottitle</b> parameter is usually set to <b>default</b> which
+   means that the function name is used for the title, but you can set it
+   explicitly, e.g. <kbd>plottitle='Height;Velocity'</kbd>. Here the 
+   separator character is a semicolon, thus the titles may contain spaces.
+   No titles will be displayed if <kbd>plottitle=' '</kbd> is set.
+   The meaning of the parameters <b>Shading, Colorbar</b>, and <b>View</b> 
+   is rather obvious, the first two can be defined for each function 
+   separately. The number of contour levels and the line style of contour lines
+   are given by <b>Contourlevel</b> and <b>Contourstyle</b>, while 
+   the length of the arrows is scaled with <b>Quiverscale</b>.
+<p>
+   The number of subplots is usually determined automatically from 
+   <b>nfunc</b>, but you can override this by setting e.g.
+   <b>multiplot=[2,3,0]</b>, which gives 2 by 3 subplots filled in row-wise.
+   If the third element is 1, the subplots are filled in column-wise.
+   <em>The number of subplots cannot be smaller than the number of functions!
+   </em> Setting <b>multiplot=[]</b> gives the default behaviour.
+   The variables <b>bottomline</b> and <b>headerline</b> control how many
+   values are shown from <b>time, it, nx</b> at the bottom and from 
+   <b>headline, nx</b> at the top, respectively.
+<p>
+   To cut out part of the computational domain, or to decrease the number of 
+   points plotted (e.g. for quiver), you can define the <b>cut</b> string 
+   to describe any valid Matlab array sections. E.g. in 1D
+<pre>
+cut='3:10'
+cut='1:4:200'
+</pre>
+   or in 2D
+<pre>
+cut='1:2:nx1,1:2:nx2'
+cut='3,:'
+cut=':,2:10'
+</pre>
+   The effect on the function is simply the evaluation of 
+   <kbd>f=f(</kbd><em>cut</em><kbd>)</kbd> in the
+   <A HREF=#Get_func>get_func</A> script <em>after</em> any grid 
+   transformation and <em>after</em> the functions are calculated so 
+   that derivatives can be properly taken. 
+   To plot the full domain again (which is the default) simply set
+   <kbd>cut=''</kbd>.
+
+<H2><A NAME="Plot more">Plotting</A> another Snapshot</H2>
+
+   If you type
+<pre>
+getpict
+plotfunc
+</pre>
+   again, the data will be read and plotted again without any questions asked,
+   since MATLAB remembers the previous settings. This can be useful if the 
+   data changed in the file due to running VAC or VACINI with new parameters, 
+   for example.
+<p>
+   If you want to read another frame, say the second, from the same file, type
+<pre>
+npict=2
+getpict
+</pre>
+   You can change the <b>func</b> and <b>plotmode</b> variables the same way:
+<pre>
+func='rho pth'
+plotmode='contour'
+plotfunc
+</pre>
+   Note that we did not need to reread the data.
+   Other variables, all listed in <b>Matlab/defaults</b>, can be set similarly.
+   If you set
+<pre>
+Doask=1
+<p></pre>
+   the macros will ask for all the parameters to be confirmed by a simple
+   RETURN, or to be changed by typing a new value. Set <kbd>Doask=0</kbd> to
+   get the default behaviour, which is no confirmation asked.
+   You can return to the default settings for all parameters by running
+<pre>
+defaults
+</pre>
+
+<H2><A NAME="Animate">Plotting and Animation with animate and playmovie
+</A></H2>
+   This general procedure can plot, save into file(s), print, or animate 
+   (using MATLAB's <kbd>movie</kbd>) different functions of data 
+   read from one or more files. If a single snapshot is read the
+   plot is drawn without animation. In essence <b>animate</b> combines
+   <b>getpict</b> and <b>plotfunc</b> for any number of files and any number 
+   of snapshots. The <b>Movie</b> variable created by <b>animate</b> can be 
+   replayed afterwards by the <b>playmovie</b> script.
+<pre>
+animate
+</pre>
+   will first prompt you for <kbd>filename(s)</kbd> unless already given. 
+   Animating more than one input files in parallel is
+   most useful for comparing simulations with the same or very similar physics
+   using different methods or grid resolution. It is a good idea to save 
+   snapshots at the same <em>physical</em> time into the data files, so
+   use <b>dtsave</b> and <b>tsave</b> or fixed time steps <b>dtpar</b> in the 
+   parameter file for VAC. The headlines and the grid sizes will be shown in 
+   the headerline for each file separately above the corresponding plots.
+<p>
+   The animation runs from the <b>firstpict(s)</b>th snapshot(s), 
+   every <b>dpict(s)</b>th snapshots are plotted, and the total number of 
+   snapshots read is at most <b>npictmax</b>.
+   Both <b>firstpict</b> and <b>dpict</b> can be arrays with their elements
+   corresponding to the files listed in the <b>filename</b> string.
+   Since MATLAB needs a long time to save a movie, you can set 
+   <b>doanimate=0</b>, in which case the plots are shown only once
+   with a pause in between, and the <b>Movie</b> array is not filled up.
+   You can also save the frames into a series of PostScript files 
+   <b>Movie/matlab1.ps, matlab2.ps,...</b> by setting <b>dohardplot</b>, e.g.
+<pre>
+dohardplot=1
+animate
+...
+Printfile (printer/FILENAME)  = 'Movie/matlab' 
+Device (ps/psc/eps/epsc/gif8...) = 'ps' 
+Orient (tall/landscape/portrait) = 'landscape' 
+Execute: print -dps Movie/matlab0 ?
+Hit RETURN to print, enter 0 to skip, -1 to quit:
+...
+</pre>
+   Other options, like GIF files, or directing the output to a printer can
+   be selected by setting the parameters <b>Printfile, Device</b> and 
+   <b>Orient</b>. The choices are shown above.
+   GIF files can be put together into a movie by some program like
+   <b>mpeg_encode</b>, but that is not provided as part of VAC.
+<p>
+   The function(s) to be animated and the plotmode(s) for the functions 
+   are determined by the same <b>func</b> and <b>plotmode</b> 
+   strings as for <A HREF=#Plotfunc>plotfunc</A>. If any of the 
+   <b>autorange(s)</b> is set to <b>1</b>,
+   the data file(s) will be read twice: first for setting the common range(s) 
+   for all the snapshots and the second time for plotting.
+   If <b>autorange=0</b> for all the functions, the file is read only once,
+   the function ranges has to correctly given by <b>fmin</b> and <b>fmax</b>.
+<p>
+   Besides changing the arrangements of subplots, as explained for 
+   <A HREF=#Plotfunc>plotfunc</A>, the <b>multiplot</b> array can also be 
+   used to produce <b>time series</b> with <b>animate</b>, i.e. 
+   several snapshots can be put next to each other. For example
+<pre>
+filename='data/example22.out'
+func='h'
+plotmode='mesh'
+npictmax=6
+multiplot=[3,2,0]
+Bottomline=1
+animate
+</pre>
+   will show the first 6 snapshots of height in a single plot. 
+   Now the time is shown for each plot individually, and setting
+   <b>Bottomline=1</b> limits the time stamp to the most essential
+   information, time. If <b>npict*nfile*nfunc</b> is greater than the number 
+   of subplots defined by <b>multiplot</b>, an animation is done, or
+   with <b>dohardplot=1</b>, several hardcopies can be produced,
+   each containing a few snapshots, which is convenient for printing an 
+   animation.
+<pre>
+multiplot=[]
+</pre>
+   will return to the default behavior, which is one snapshot per plot.
+
+<H2><A NAME="Get_func">Function Definitions in get_func</A></H2>
+
+   Any function of the conservative variables, the coordinates, and the 
+   equation parameters can be defined in the <b>Matlab/get_func</b> file. 
+   Extra information is provided by the equation type <b>physics</b> and the 
+   number of vector components <b>ndir</b>. 
+   The function is identified by the string <b>fun</b>. The user can easily 
+   define new functions for a specific application by adding a new 
+   <b>elseif</b> construct.
+
+   For convenience a few frequently used functions are defined in a rather 
+   general way, they work for all the appropriate equations and number of 
+   dimensions as long as the standard variable names 
+   <b>rho, m1, m2, m3, e, b1, b2, b3</b> are used, and <b>physics</b> is known.
+   Currently the following functions are defined
+<pre>
+Function name	Variables used		Meaning
+------------------------------------------------------------
+v1		m1,rho			velocity in 1st direction
+v2		m2,rho			velocity in 2nd direction
+v3		m3,rho			velocity in 3rd direction
+pth		rho,m1..,e,b1..,gamma	thermal pressure
+T		rho,m1..,e,b1..,gamma	temperature
+csound		rho,m1..,e,b1..,gamma	soundspeed
+mach 		rho,m1..,e,b1..,gamma	mach number
+j		b1,b2			current for slab symmetry
+j_rz		b1,b2			current for cylindrical symmetry
+j_rp		b1,b2			current for polar coordinates
+divb		b1,b2			div B for slab symmetry
+divb4		b1,b2			4th order div B for uniform Cartesian
+divb_rz		b1,b2			div B for for cylindrical symmetry
+divb_rp		b1,b2			div B for for polar coordinates
+A               b1,b2                   Vector potential
+AA              b1,b2                   Same as A but integrated rowwise
+A_r             b1,b2                   Vector potential for cylindrical symm.
+AA_r            b1,b2                   Same as A_r but integrated rowwise
+</pre>
+   Note that the derivatives are not accurate at the edges. The <b>cut</b>
+   string can be used to cut off the outermost cells for plotting.
+
+<H2><A NAME="Logfile">Reading the Logfile with getlog</A></H2>
+
+   The logfile can be read by the <b>getlog</b> script, which reads data 
+   from the file given by the <b>logfilename</b> parameter,
+   and puts it into matrices named as in the 3rd line of the logfile, 
+   which is (partially) defined by the <b>wnames</b> parameter in the 
+   <b>methodlist</b> of the VAC parameter file. A simple example is 
+<pre>
+getlog
+logfilename ? 'data/example22.log'
+headline     =ExampleA
+Reading the wlog matrix...
+Number of rows in wlog: 20
+Extracting columns of wlog into arrays:
+ it   t   dt   h         m1      m2
+
+plot(t,h)
+xlabel('t')
+ylabel('h_mean')
+</pre>
+which checks the global mass conservation for exampleA.
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

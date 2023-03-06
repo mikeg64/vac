@@ -1,0 +1,77 @@
+!##############################################################################
+! module vacphys0 - nul
+
+! This module contains interfaces for subroutines called from VACINI and VAC.
+! Typically a VACPHYS0 module contains further subroutines that are called
+! inside the module (e.g. getpthermal, getcsound2, etc).
+! Subroutines that require grid information should be in the VACPHYS module.
+
+!=============================================================================
+subroutine conserve(ix^L,w)
+
+! Transform primitive variables into conservative ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+call die('Conserve is undefined')
+
+return
+end
+
+!=============================================================================
+subroutine primitive(ix^L,w)
+
+! Transform conservative variables into primitive ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+call die('Primitive is undefined')
+
+return
+end
+
+!=============================================================================
+subroutine getv(w,ix^L,idim,v)
+
+! Calculate v_idim within ix^L
+
+include 'vacdef.f'
+
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),v(ixG^T)
+!-----------------------------------------------------------------------------
+
+call die('Getv is undefined')
+
+return 
+end
+
+!=============================================================================
+subroutine getcmax(new_cmax,w,ix^L,idim,cmax)
+
+! Calculate cmax_idim within ix^L. When new_cmax=.false. only idim changed
+! relative to the previous call, so parts of the calculation can be saved.
+
+include 'vacdef.f'
+
+logical:: new_cmax
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),cmax(ixG^T)
+!-----------------------------------------------------------------------------
+
+call die('Getcmax is undefined')
+
+return 
+end
+
+!=============================================================================
+! end module vacphys0 - nul
+!##############################################################################

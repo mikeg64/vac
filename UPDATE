@@ -1,0 +1,22 @@
+# Copy the PAR,INIPAR,VACUSR and move the DATA files from vac_old
+#
+# Usage: UPDATE
+#
+echo Copy PAR files, do not overwrite anything
+mv par/DEFAULT par/DEFAULT_SAFE
+cp -i ../vac_old/par/* par
+mv par/DEFAULT par/DEFAULT_OLD
+mv par/DEFAULT_SAFE par/DEFAULT
+#
+echo Copy INIPAR files, do not overwrite anything
+cp -i ../vac_old/inipar/* inipar
+#
+echo Copy VACUSR files, do not overwrite anything
+cp -i ../vac_old/src/vacusr.t.* src
+cp -i ../vac_old/src/vacusrpar.t.* src
+#
+echo Move DATA files
+rmdir data
+mv ../vac_old/data data
+#
+echo Remember to edit the src/Makefile

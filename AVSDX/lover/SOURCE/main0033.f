@@ -1,0 +1,72 @@
+C
+*DECK VISDIMVAR
+      SUBROUTINE VISDIMVAR(VISNV, VISNI, VISNJ, VISNK, VISNT,VISVECTLEN,
+     A                     VISRESINIT,   VISRESFINA,   VISSUBNAME)
+C     ******************************************************************
+C     * CHECKING VARIABLES                                             *
+C     ******************************************************************
+C
+C#include "comcoor"
+C#include "cominou"
+C#include "comerrn"
+
+	INCLUDE 'INCLUDE/comcoor'
+	INCLUDE 'INCLUDE/cominou'
+	INCLUDE 'INCLUDE/comerrn'
+
+
+C
+      INTEGER VISNV, VISNI, VISNJ, VISNK, VISNT, VISVECTLEN,
+     A        VISRESINIT(*), VISRESFINA(*)
+      CHARACTER*(*) VISSUBNAME
+C
+      IF (VISNV.LT.VISVECTLEN) THEN
+          WRITE(VISSTDERRO,1) 16,VISSUBNAME, VISNV
+          STOP
+      ENDIF
+      IF (VISNI.LT.VISRESINIT(VISCOORRAD)) THEN
+          WRITE(VISSTDERRO,2) 17,VISSUBNAME, VISNI
+          STOP
+      ENDIF
+      IF (VISNJ.LT.VISRESINIT(VISCOORPOL)) THEN
+          WRITE(VISSTDERRO,3) 18,VISSUBNAME, VISNJ
+          STOP
+      ENDIF
+      IF (VISNK.LT.VISRESINIT(VISCOORTOR)) THEN
+          WRITE(VISSTDERRO,4) 19,VISSUBNAME, VISNK
+          STOP
+      ENDIF
+      IF (VISNT.LT.VISRESINIT(VISCOORTIM)) THEN
+          WRITE(VISSTDERRO,5) 20,VISSUBNAME, VISNT
+          STOP
+      ENDIF
+C
+      IF (VISNI.LT.VISRESFINA(VISCOORRAD)) THEN
+          WRITE(VISSTDERRO,6) 17,VISSUBNAME, VISNI
+          STOP
+      ENDIF
+      IF (VISNJ.LT.VISRESFINA(VISCOORPOL)) THEN
+          WRITE(VISSTDERRO,7) 18,VISSUBNAME, VISNJ
+          STOP
+      ENDIF
+      IF (VISNK.LT.VISRESFINA(VISCOORTOR)) THEN
+          WRITE(VISSTDERRO,8) 19,VISSUBNAME, VISNK
+          STOP
+      ENDIF
+      IF (VISNT.LT.VISRESFINA(VISCOORTIM)) THEN
+          WRITE(VISSTDERRO,9) 20,VISSUBNAME, VISNT
+          STOP
+      ENDIF
+C
+C     * FORMATS
+    1 FORMAT(//I2,1X,'***',A,'*ERROR: NUMBER OF DATA ELEMENTS PER NODE',
+     A                   ' SHOULD SATISFY VISVECTLEN <= ',I1)
+    2 FORMAT(//I2,1X,'***',A,'*ERROR: VISRES(1) SHOULD BE <= ',I2)
+    3 FORMAT(//I2,1X,'***',A,'*ERROR: VISRES(2) SHOULD BE <= ',I2)
+    4 FORMAT(//I2,1X,'***',A,'*ERROR: VISRES(3) SHOULD BE <= ',I2)
+    5 FORMAT(//I2,1X,'***',A,'*ERROR: VISRES(4) SHOULD BE <= ',I2)
+    6 FORMAT(//I2,1X,'***',A,'*ERROR: VISRESFINA(1) SHOULD BE <= ',I2)
+    7 FORMAT(//I2,1X,'***',A,'*ERROR: VISRESFINA(2) SHOULD BE <= ',I2)
+    8 FORMAT(//I2,1X,'***',A,'*ERROR: VISRESFINA(3) SHOULD BE <= ',I2)
+    9 FORMAT(//I2,1X,'***',A,'*ERROR: VISRESFINA(4) SHOULD BE <= ',I2)
+      END

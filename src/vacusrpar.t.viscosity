@@ -1,0 +1,8 @@
+!##############################################################################
+! include vacusrpar - viscosity
+
+INTEGER,PARAMETER:: nu_=neqpar+1, nspecialpar=1
+CHARACTER*2 ,PARAMETER:: specialparname='nu'
+
+! end include vacusrpar - viscosity
+!##############################################################################

@@ -1,0 +1,39 @@
+ &testlist 
+	teststr='readparameters PROJECTB POISSON PRINTITER GETDIVB'
+	ixtest1=27
+	ixtest2=27
+ /
+
+ &filelist
+	filenameini='data/peak22_np0201.ini',
+	typefileini='ascii'
+	filename=   'data/peak22proj.log',
+		    'data/peak22proj.out'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=1,1
+ /
+
+ &stoplist
+	itmax=5
+ /
+
+ &methodlist
+	wnames=		'rho m1 m2 e b1 b2'
+	typefull=          6*'tvd'
+	typelimiter=	6*'woodward'
+	dimsplit    =	T
+	sourcesplit=	T
+        nproc=1,0,0,1
+ /
+
+ &boundlist
+	typeB= 6*'cont',6*'cont',6*'cont'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

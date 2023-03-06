@@ -1,0 +1,7 @@
+$showmessage=1;
+$showcurrent=1;
+$manwindow=1;
+$browser='netscape';
+$stdout='original';
+$xterm ='xterm -T APPLICATION';
+$editor='web';

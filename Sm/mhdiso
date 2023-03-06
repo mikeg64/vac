@@ -1,0 +1,14 @@
+geteqpar
+	set gamma=eqpar[0] set cs2=eqpar[1] set eta=eqpar[2]
+extraarr
+	geteqpar
+	define Extra_Var " "
+	do idir=1,ndir{
+	    set Av$idir=Am$idir/Arho
+	    define Extra_Var "$!Extra_Var v$!idir" 
+	}
+extravar
+	geteqpar
+	do idim=1,ndir{
+	    set v$idim=m$idim/rho
+	}

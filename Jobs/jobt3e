@@ -1,0 +1,26 @@
+#! /bin/sh
+# This is a shell script to run VAC in the batch on the T3E
+# Usage: qsub jobt3e
+# For runs longer than an hour the 
+#        qsub -a date-time jobt3e
+# is recommended at Delft
+
+# Job parameters (limits for CPU time (1 hour) and number of processors)
+# ==============
+#QSUB -l p_mpp_t=3600
+#QSUB -l mpp_p=8
+#QSUB
+
+# Working directory    
+# =================
+cd $HOME/vac/
+
+# Run
+# ===
+
+# Use Unix-style Fortran binary files
+# assign -F f77 g:su
+
+# Run vac
+mpprun -n8 vac_example -pghpf -stat cpus < par/exampleA22
+

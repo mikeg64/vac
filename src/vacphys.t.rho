@@ -1,0 +1,165 @@
+!##############################################################################
+! module vacphys - rho
+
+INCLUDE:vacnul.addsource.t
+INCLUDE:vacnul.process.t
+
+!=============================================================================
+subroutine physini
+
+! There are no vector variables in the transport equation
+! This equation is not Galilean invariant to rotations
+
+include 'vacdef.f'
+!-----------------------------------------------------------------------------
+
+if(gencoord .and. index(typefull1,'tvd')>=1)call die(&
+   'Transport eq. in gen.coord. cannot be solved by TVD-type methods')
+
+return
+end
+
+!=============================================================================
+subroutine getdt(w,ix^L)
+
+! If the Courant condition did not constrain dt, set it to one.
+
+include 'vacdef.f'
+
+double precision:: w(ixG^T,nw)
+integer:: ix^L
+!-----------------------------------------------------------------------------
+
+if(dt>=bigdouble) dt=one
+
+return 
+end
+
+!=============================================================================
+subroutine getflux(w,ix^L,iw,idim,f,transport)
+
+! There is nothing to add to the transport flux in the transport equation
+
+include 'vacdef.f'
+
+integer::          ix^L,iws(niw_),idim,iw
+double precision:: w(ixG^T,nw),f(ixG^T)
+logical::          transport
+!-----------------------------------------------------------------------------
+
+f(ix^S)=zero
+transport=.true.
+
+return
+end
+
+!=============================================================================
+subroutine addgeometry(qdt,ix^L,iws,w,wnew)
+
+! There are no geometrical source terms in the transport equation
+
+include 'vacdef.f'
+
+integer::          ix^L,iws(niw_)
+double precision:: qdt,w(ixG^T,nw),wnew(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+return
+end
+
+!=============================================================================
+INCLUDE:vacproc.positive.t
+
+subroutine keeppositive(ix^L,w)
+
+! Keep density positive (following D.Ryu)
+
+include 'vacdef.f'
+
+integer::          ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+if(vacuumrho<zero)then
+   ! Keep density positive
+   call keeppositive_rho(ix^L,w)
+else
+   ! Where rho is small use vacuum state: rho=vacuumrho
+   where(w(ix^S,rho_)<smallrho)w(ix^S,rho_)=vacuumrho
+endif
+
+return
+end
+!=============================================================================
+
+subroutine average(wL,wR,ix^L,iws,idim,wroe)
+
+! Calculate the algebraic mean of primitive variables, assignment:
+! rho -> rho
+
+include 'vacdef.f'
+
+integer:: ix^L,idim,iws(niw_)
+double precision, dimension(ixG^T,nw):: wL,wR,wroe
+!-----------------------------------------------------------------------------
+
+wroe(ix^S,rho_)=half*(wL(ix^S,rho_)+wR(ix^S,rho_))
+
+return
+end
+
+!=============================================================================
+
+subroutine geteigenjump(wL,wR,wC,ix^L,il,idim,smalla,a,jump)
+
+! Calculate the characteristic speed a and the jump in the
+! characteristic variable in the idim direction within ixL.
+! For a scalar equation the characteristic and conservative variables coincide
+! The characteristic speed is just the velocity, but it should be averaged
+! for the cell interfaces
+
+include 'vacdef.f'
+
+integer:: ix^L,jx^L,ixC^L,il,idim
+double precision, dimension(ixG^T,nw):: wL,wR,wC
+double precision, dimension(ixG^T)   :: smalla,a,jump,v
+!-----------------------------------------------------------------------------
+
+!SHIFT
+jx^L=ix^L+kr(idim,^D);
+ixCmin^D=ixmin^D; ixCmax^D=jxmax^D;
+
+! No entropy fix
+smalla(ix^S)= -one
+! The velocity is independent of w in the transport equation, 
+! but it may depend on the location
+call getv(wL,ixC^L,idim,v)
+!SHIFT BEGIN
+a(ix^S)=(v(jx^S)+v(ix^S))/2
+!SHIFT END
+jump(ix^S)=wR(ix^S,rho_)-wL(ix^S,rho_)
+
+return
+end
+
+!=============================================================================
+subroutine rtimes(q,w,ix^L,iw,il,idim,rq)
+
+! Multiply q by R(il,iw), where R is the right eigenvalue matrix at wC.
+! For a scalar equation the R matrix is unity
+
+include 'vacdef.f'
+
+integer::          ix^L,iw,il,idim
+double precision:: w(ixG^T,nw),q(ixG^T),rq(ixG^T)
+!-----------------------------------------------------------------------------
+
+rq(ix^S)=q(ix^S)
+
+return
+end
+
+!=============================================================================
+! end module vacphys - rho
+!##############################################################################
+

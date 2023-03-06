@@ -1,0 +1,10 @@
+*COMDECK COMMACH
+C@(#)commach	2.1
+      INTEGER CRAY, IBM, SGI, SUN, HP
+      PARAMETER (
+     1     CRAY = 1,
+     2     IBM  = 2,
+     3     SGI  = 3,
+     4     SUN  = 4,
+     5     HP   = 5
+     6)

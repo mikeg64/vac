@@ -1,0 +1,21 @@
+#! /bin/sh
+# This is a shell script to run VAC in the PBS batch of a Cray C90 
+# Usage: qsub jobc90.pbs
+
+# Job parameters (limit for memory and CPU time and hostname)
+# ==============
+#PBS -l mem =20mw
+#PBS -l cput=1000
+#PBS -l host=MACHINE
+
+# Working directory    
+# =================
+cd $HOME/vac/
+
+# Set Unix Fortran binary format
+# ==============================
+assign -F f77 -N ieee_dp g:su
+
+# Run
+# ===
+./vac_example < par/exampleA22

@@ -1,0 +1,27 @@
+ &testlist
+ /
+
+ &filelist
+	filenameini='data/PROBLEM_NDIM_NDIR.ini',
+	filename=   'data/PROBLEM_NDIM_NDIR.log',
+		    'data/PROBLEM_NDIM_NDIR.out'
+ /
+
+ &savelist
+ /
+
+ &stoplist
+	???
+ /
+
+ &methodlist
+	wnames=		'VAR1 VAR2 ...'
+	typefull=	???
+ /
+
+ &boundlist
+	typeB=	???
+ /
+
+ &paramlist
+ /

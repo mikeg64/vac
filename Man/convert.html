@@ -1,0 +1,341 @@
+<HTML>
+<HEAD>
+<TITLE> VAC MANUAL ON DATA FILE CONVERSION </TITLE>
+</HEAD>
+<BODY>
+<h1>DATA FILE CONVERSION PROGRAMS</h1>
+
+This document describes the use of the <b>convertdata, src/vacusr.real4io.t,
+src/vacusr.t.real4io, Fix/endian, dec2ieee</b>, and  <b>ieee2dec</b>, 
+to convert data files for 
+different purposes, such as conversion between VAC ASCII, binary and real*4
+formats, between binary formats for different machines, to produce data files
+readable by DX and AVS for visualization, to extract an arbitrary
+set of snapshots from a data file, and to convert them in a user defined way.
+<hr>
+This page:
+ [<A HREF="#Convertdata">convertdata</A>]
+ [<A HREF="#Real4">single precision</A>]
+ [<A HREF="#Endian">endianness and INTEGER*8</A>]
+ [<A HREF="#Dec2ieee">dec2ieee</A>]
+<hr>
+
+<H2><A NAME="Convertdata">Convertdata</A></H2>
+
+The <b>convertdata</b> program can convert between binary and ASCII 
+formats of VAC data files, and it can convert to AVS and DX ascii or
+binary data formats using the LOVER library. The LOVER library is a
+product of <A HREF="mailto:belien@rijnh.nl">A.J.C. Beli&euml;n</A>, 
+please contact him with problems specific to the library.
+The program can select an arbitrary set of snapshots, which should be read 
+from the input file, in a fairly simple fashion. 
+The user can define an arbitrary manipulation of data and an arbitrary file
+format in the <b>savespecial</b> subroutine of the <b>src/convertusr.f</b> 
+file.
+
+<h3>Installation of the LOVER library</h3>
+
+If conversion to AVS and/or Data Explorer (DX) file formats is desired,
+first you need to install the LOVER library. Go into <b>src/AVSDX</b>
+and execute
+<pre>
+sh lover.uu
+</pre>
+Select the type of workstation, and reply to the questions about the
+top, library, and include directories by
+<pre>
+.
+./lib
+./include
+</pre>
+After a successful installation you may remove the <b>AVSDX/lover/</b>
+directory, and some other files
+<pre>
+rm lover.tar install.lover
+rm -rf lover
+</pre>
+If you do not want to use AVS or DX, but you want to use the <b>convertdata</b>
+program for file conversion, you will need to edit the <b>src/Makefile</b> and
+select the <em>No AVS/DX</em> options before compiling.
+
+<h3>User Defined Transformation and File Format</h3>
+
+An arbitrary data transformation and file format can be put into
+the <b>savespecial</b> subroutine of <b>src/convertusr.f</b>.
+You can start by copying the <b>src/convertusr.f.nul</b> file into
+<b>src/convertusr.f.MINE</b>, then modify it according to your needs, 
+and finally link it as
+<pre>
+ln -s convertusr.f.MINE convertusr.f  
+</pre>
+or simply copy it to convertusr.f, and compile
+<pre>
+make convertdata
+</pre>
+When the 'savespecial' subroutine is called, 
+the file header information and the <b>x</b> and <b>w</b>
+arrays have already been read from the actual snapshot of the input file. 
+It is the responsibility of the user to save the desired information into
+the output file. Simple examples are saving only some of the
+variables, or transforming the conservative variables to primitive
+variables, or transforming a polar grid to Cartesian coordinates, etc. etc.
+The <b>src/convertusr.f.cut</b> file is a good example which can 
+actually be useful. It can cut out a part of the computational domain
+as described <A HREF=#CUT>below</A>.
+The 'savespecial' subroutine is called only if 'special' is given as the 
+output file format, otherwise it is not used.
+
+<h3>Compilation and Usage of convertdata</h3>
+
+The program is compiled by a Fortran 77 compiler
+<pre>
+cd src
+make convertdata
+cd ..
+</pre>
+This has to be done only once, since <b>convertdata</b> can read any VAC
+data file irrespective of the number of dimensions or number of variables.
+There are restrictions on the total size of the data in a single snapshot,
+and the number of snapshots in a file. The default values are quite large,
+but you can always change the value of <b>worksize, npictmax</b>, and 
+<b>verbose</b> parameters in <b>src/convertdef.f</b> and recompile 
+<b>convertdata</b> if necessary. 
+<p>
+To convert a data file, just run the code and reply to the questions. 
+E.g. to convert an ASCII data file to a binary file type
+<pre>
+convertdata
+Input file name:
+data/example22.out
+ ...
+ BINARY FILE
+ snapshot size =      100286 bytes
+
+Which snapshots should be read?
+ example string: 1,3,4,6:10:2,13:100
+ hit RETURN for the whole file
+1,4:7,10:20:2
+Output file format
+(ascii/binary/real4/AVSbin/AVSxdr/DXbin/DXasc/special):
+binary
+Output file name (different from input file name):
+data/exampleA22bin.ini
+ Converting snapshot    1
+ Converting snapshot    4
+ Converting snapshot    5
+ Converting snapshot    6
+ Converting snapshot    7
+ Converting snapshot   10
+ Converting snapshot   12
+ Converting snapshot   14
+ Converting snapshot   16
+ Converting snapshot   18
+ Converting snapshot   20
+Data conversion finished.
+</pre>
+The type of the input file is determined automatically. If that failed
+(e.g. on a Cray), you can still give the input file type explicitly.
+The size of one snapshot can help in determining the number of snapshots in 
+the file. If the file contains more than one snapshot, by default (when you 
+hit return) all snapshots are read and converted. You can select some of the 
+snapshots by answering the question with a string containing <em>segments</em>
+which are separated by commas. The example above contains all the three 
+types of segments: single frame defined by a number, a range of frames
+defined by two numbers separated with a colon, and a range of frames 
+with a stride, defined by three numbers separated by colons.
+You may list as many segments as you wish, their order is arbitrary.
+The output file will always contain the selected snapshots in their original 
+order. References to nonexistent snapshots are ignored.
+<p>
+To produce a binary file for AVS or DX, you could type
+<pre>
+data/example22.out
+ ...
+Which snapshots should be read?
+ ...
+1:21
+Output file format
+(ascii/binary/real4/AVSbin/AVSxdr/DXbin/DXasc/special):
+AVSbin
+Output file name (without the .dx or .fld extension):
+data/example22
+ physics = hdadiab
+ nx1= 100 nx2= 100 nx3=   1 ndim=2 ndir=2
+Format for output (ascii/binary/xdr FOR AVS ON CRAY):
+binary
+ ...
+ Converting snapshot    1
+ Converting snapshot    2
+ ...
+ Converting snapshot   21
+Data conversion finished.
+</pre>
+The result is in <b>data/example22.fld</b>, and if you chose <b>DX</b>
+as the output format it would be in <b>data/example22.dx</b>.
+<p>
+<em>Note that the XDR format should only be used when AVS is run on a Cray
+and the output file is to be used on a work station.  
+The ASCII format is available for DX only.</em>
+<p>
+The variable names in the output files, <b>rho, M, e</b>, and <b>B</b> for DX 
+and <b>rho, M1, M2, M3, e</b>, and <b>B1, B2, B3</b> for AVS, are fixed.
+According to the manual for LOVER, the files can be read into DX by the
+<b>Import</b> module, while into AVS by the <b>Read Field</b> module
+and <b>extract scalar</b> or <b>extract vector</b> should be used.
+<p>
+<A NAME=CUT>As</A> a final example, the usage of the 
+<b>src/convertusr.f.cut</b> file is described. 
+First of all, the file should be linked and convertdata recompiled:
+<pre>
+cd src
+ln -s convertusr.f.cut convertusr.f
+make convertcdata
+cd ..
+</pre>
+Suppose that you wish to cut out the middle plane orthogonal to the Y axis from
+the first 3 snapshots of a 3D hydrodynamic simulation, which was done on a 
+50 x 50 x 100 grid and the result is stored in <b>data/big33.out</b>. 
+Then type
+<pre>
+convertdata
+Input file name:
+data/big33.out
+ headline      =Big_hd33                
+ it, t         = 15000  814.279651
+ ndim,neqpar,nw= 3 1 5
+ nx            = 50 50 100
+ eqpar         =  1.4
+ varnames      =x y z rho m1 m2 m3 e   gamma        
+ ...
+Which snapshots should be read?
+1:3
+Output file format
+(ascii/binary/real4/AVSbin/AVSxdr/DXbin/DXasc/special):
+special
+Output file name (different from input file name):
+data/cut23
+ Converting snapshot    1
+ Give ixcutmin,ixcutmax for each dimensions:
+1 50 25 25 1 100
+ ncutdim, icutdim: 2 1 3
+ fileheadout = Big_hd23
+ varnamesout = x z rho m1 m2 m3 e   gamma
+ Converting snapshot    2
+ Converting snapshot    3
+Data conversion finished.
+</pre>
+Here <b>ncutdim=2</b> means that the cut is two dimensional parallel with
+the <b>icutdim=1 3</b> axes since <b>ixcutmin=ixcutmax=25</b> 
+was entered for the second dimension. 
+The lower dimensionality (ndim=2) and the new grid size (nx=50 100) 
+are reflected in the output file header. The 1st and 5th lines are also
+changed: <b>fileheadout</b> contains '_hd23' instead of '_hd33',
+and <b>varnamesout</b> contains the coordinate names 'x z'
+instead of 'x y z'. Of course, the output file contains only the 1st and 3rd
+coordinates from the original 3D file.
+
+<H2><A NAME="Real4">Single Precision Data Files</A></H2>
+
+VAC and VACINI can read and write single precision data files directly, without
+the need of using <A HREF=#Convertdata>convertdata</A>. During the 
+calculations the reals are always represented with 8 bytes, so using 
+4 byte data files loses some of the precision. This is tolerable if the
+output data files are meant for visualization, and not for a restart. 
+The REAL*4 format approximately halfens the file sizes.
+<p>
+Before compiling VAC and VACINI, use
+<pre>
+setvac -u=real4io
+</pre>
+to select the VACUSR file <b>src/vacusr.t.real4io</b> which simply includes
+the library subroutines in <b>src/vacusr.real4io.t</b> whith an INCLUDE:
+statement. If you are already using your own VACUSR module (e.g. for 
+the source terms, initial or boundary conditions) then just replace
+the line 'INCLUDE:vacnul.specialio.t' by
+<pre>
+INCLUDE:vacusr.real4io.t
+</pre>
+in your src/vacusr.t.PROBLEM file. 
+<p>
+In either case, a single precision input file can be read or written by the
+recompiled VAC and VACINI executables if <b>typefileini</b> and/or 
+<b>typefileout</b> are set to the value <b>'special'</b>. 
+See Man/<A HREF=inipar.html#Filetype>inipar</A> and 
+Man/<A HREF=par.html#Filelist>par</A>.
+
+<H2><A NAME="Endian">Fix/endian</A></H2>
+
+The <b>Fix/endian</b> Perl script solves many of the problems of 
+transporting binary VAC data files between different platforms.
+The script can tell whether a machine is a big endian or little
+endian (these differ in the ordering of bytes for integers and reals),
+and it can test and convert the endianness of VAC binary data files,
+both in double and single precisions. As an additional benefit,
+the 8-byte integers used by Cray can be converted to 4 byte integers
+and vice-versa.
+<p>
+Note that the 'assign -F f77 g:su' or 'assign -F f77 u=12' command has to be 
+used on the Cray before running VAC, so that the output file is in Fortran 77 
+format. Then the file should be FTP-d to a workstation/PC, and the 
+Fix/endian script should be executed there. The script does not work on
+the Cray, because even the Perl interpreter is non-standard on a Cray.
+<p>
+Tpye <b>Fix/endian</b> without any parameters to see the syntax of usage.
+An example of usage is to check the content of a data file with the
+<b>-t</b> flag (test):
+<pre>
+Fix/endian -t data/example22.out
+
+This is a little endian machine.
+
+data/example22.out is a little endian double precision file.
+
+headline=Kelvin-Helmholtz-instability_hdadiab22                                
+it=0 t=0 ndim=2 neqpar=3 nw=3
+nx=100,100
+eqpar=2,7.5,0
+names=x y rho m1 m2   gamma adiab   coriolis                                
+
+file=8406006 bytes / snapshot=400286 bytes = 21 snapshot(s)
+</pre>
+
+<H2><A NAME="Dec2ieee">dec2ieee and ieee2dec</A></H2>
+
+<i>Fix/endian is more versatile than dec2ieee and ieee2dec</i>
+<p>
+The DEC workstations and IBM compatible personal computers (PC) 
+tend to use little-endian integers, while other 
+workstations or the Cray C90 use big-endian integers. This annoying little
+difference can be cured by the two codes compiled by a DEC Fortran 90 
+compiler that has the <b>-convert</b> flag:
+<pre>
+cd src
+make dec2ieee
+make ieee2dec
+cd ..
+</pre>
+The executables <b>dec2ieee</b> and <b>ieee2dec</b> 
+(they would be better named <i>little2big</i> and <i>big2little</i>,
+but it would be difficult to remember which is which) will be in the main
+directory. They can read any binary VAC data files, irrespective of number 
+of dimensions, number of variables, or even size. To convert a binary file 
+produced on a DEC workstation to a file which can be read on another 
+workstation or the Cray, just type
+<pre>
+dec2ieee &lt; data/DECDATAFILE &gt; data/NEWDATAFILE
+</pre>
+Conversion backwards is equally simple
+<pre>
+ieee2dec &lt; data/OLDDATAFILE &gt; data/DECDATAFILE
+</pre>
+Remember that the Cray does not use IEEE and UNIX file format as a default.
+Read Man/<A HREF=USAGE.html#Cray>Usage</A> about the <b>assign</b> commands.
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th,
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>
+

@@ -1,0 +1,4 @@
+../testcont2.out
+415
+ascii
+../testascmod_415.out

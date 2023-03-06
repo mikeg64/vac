@@ -1,0 +1,203 @@
+<HTML>
+<HEAD>
+<TITLE>VAC Manual on Physics Modules</TITLE>
+</HEAD>
+<BODY>
+<h1>VACPHYS MODULES</h1>
+
+This document describes the equations implemented in the <b>src/vacphys.t.*</b>
+and <b>src/vacpar.t.*</b> files, and gives tips on how a new module can be 
+created. Information about LIBRARY and USER defined source terms are in
+Man/<A HREF=vacusr.html>vacusr</A>.
+<hr>
+This page:<br>
+ [<A HREF="#RHO">RHO</A>]
+ [<A HREF="#HD">HD</A>]
+ [<A HREF="#HDADIAB">HDADIAB</A>]
+ [<A HREF="#MHDISO">MHDISO</A>]
+ [<A HREF="#MHD">MHD</A>]
+ [<A HREF="#New">New</A>]
+<hr>
+<H2><A NAME="RHO">Transport</A> Equation: vacphys.t.rho</h2>
+
+<IMG SRC="eq.rho.gif" WIDTH=143 HEIGHT=31>
+<p>
+The transport equation describes the transport of a scalar field, 
+here the density <b>rho</b> by a prescribed velocity field. 
+This equation is used for test purposes.
+<p>
+The <b>eqpar(v1_), eqpar(v2_), ...</b>
+equation parameters define the components of the uniform velocity field.
+As a special case, in 2D a solid rotation <b>v1=-x2, v2=x1</b> is taken
+if <b>eqpar(v1_)=12345</b> is set.
+<p>
+For a linear scalar equation the Riemann solver is trivial, thus the TVD type 
+methods give identical results.
+
+
+<H2><A NAME="HDADIAB">Adiabatic</A> Hydrodynamics: vacphys.t.hdadiab<br>
+Includes the Shallow Water equations</h2>
+
+<IMG SRC="eq.hdadiab.gif" WIDTH=230 HEIGHT=90>
+<p>
+The system of adiabatic hydrodynamical equations are solved for the density
+<b>rho</b> and the momentum density <b>m=rho*v</b>. 
+The pressure is a function of
+density only since an isentropic initial condition is assumed. There are two
+equation parameters, the adiabatic index <b>eqpar(gamma_)</b> and the adiabatic
+constant <b>eqpar(adiab_)</b>. Note that the adiabatic hydrodynamical equations
+cannot handle discontinuities physically correctly, since in reality the
+adiabatic constant becomes different in different regions. For modeling
+a flow with discontinuities the full set of Euler equations have to be solved.
+<p>
+The system of <b>shallow water equations</b> is a special case with the following
+identifications: <b>rho=h</b> represents the height of the water column, 
+<b>eqpar(gamma_)=2</b> and the adiabatic coefficient is half of the gravitational 
+acceleration <b>eqpar(adiab_)=g/2</b>.
+<p>
+There is a Roe-type Riemann solver implemented using arithmetic averaging.
+
+<H2><A NAME="HD">Hydrodynamics</A>: vacphys.t.hd</h2>
+
+<IMG SRC="eq.hd.gif" WIDTH=233 HEIGHT=115>
+<p>
+The Euler equations are solved for density <b>rho</b>, the momentum density 
+<b>m=rho*v</b> and the total energy density <b>e</b>. The pressure is a 
+derived quantity which is calculated from the conservative variables. 
+This may lead to an unphysical negative pressure, which is replaced by the 
+<b>smallp</b> and <b>smallpcoeff</b> parameters in the <A HREF="par.html#Methodlist">par/PROBLEM file</A>.
+<p>
+There is a single equation parameter, the adiabatic index <b>eqpar(gamma_)</b>.
+The Riemann solver uses the Roe-average.
+
+<H2><A NAME="MHDISO">Isothermal</A> and Polytropic Magnetohydrodynamics: <br>
+vacphys.t.mhdiso</h2>
+
+<IMG SRC="eq.mhdiso.gif" WIDTH=458 HEIGHT=182>
+<p>
+The <em>isothermal</em> MHD equations are an approximation to a highly 
+radiative or conducting plasma which does not change its temperature. 
+This corresponds to <b>eqpar(gamma_)=1</b> and the thermal pressure depends 
+on the square of the sound speed <b>eqpar(csound2_)</b>. Alternatively,
+for some analytic MHD models a <em>polytropic</em> equation of state 
+can be assumed and <b>eqpar(gamma_)&gt;1</b>. In this case the 
+the second equation parameter is interpreted as the 
+adiabatic coefficient <b>eqpar(adiab_)</b>
+(adiab_ is an alternative index name instead of csound2_).
+In both cases, the energy equation is not needed and the conservative 
+variables are density  <b>rho</b>, momentum density <b>m=rho*v</b>, and the 
+magnetic field <b>B</b>. 
+The magnetic field is measured in units for which the magnetic 
+permeability is 1.
+The total, magnetic and thermal pressures are derived from the 
+conservative variables either based on the isothermal or the polytropic
+assumption.
+<p>
+The source terms proportional to <b>div B</b> are 
+<A HREF="methods.html#Powell's">Powell's fix</A> for the numerical
+problems related to the divergence of the magnetic field. They are used only
+in more than 1D when <b>divbfix=T</b> is set in the <A HREF="par.html#Methodlist">parameter file</A>. 
+Alternatively the <A HREF="methods.html#Projection">projection scheme</A> 
+or the Constrained Transport / Central Difference (CT/CD)
+<A HREF="methods.html#Constrain">schemes</A> can be used.
+<p>
+The remaining source term with <b>eta</b> in it is the resistive term,
+controlled by the third equation parameter <b>eqpar(eta_)</b>. 
+Ideal MHD corresponds to <b>eqpar(eta_)=0</b>, positive values give a uniform 
+resistivity, while a negative value calls <b>subroutine specialeta</b> in
+the <A HREF=vacusr.html#Specialsource>VACUSR module</A> to determine the 
+resistivity as a function of the coordinates, of the conservative variables,
+and/or of the current density. This subroutine is to be completed by the user.
+For <i>ideal</i> isothermal/polytropic MHD problems the resistivity
+module is not needed. Using 'setvac -off=resist' will save some memory
+and compilation time.
+<p>
+There is a Roe-type Riemann solver implemented using arithmetic averaging.
+
+<H2><A NAME="MHD">Magnetohydrodynamics</A>: vacphys.t.mhd</h2>
+
+<IMG SRC="eq.mhd.gif" WIDTH=514 HEIGHT=171>
+<p>
+This is the full system of the MHD equations, with the following conservative 
+variables: density <b>rho</b>, momentum density <b>m=rho*v</b>, total energy 
+density <b>e</b> and the magnetic field <b>B</b>. 
+The magnetic field is measured in units for which the magnetic 
+permeability is 1. The thermal pressure can become negative
+numerically, then it is replaced by the <b>smallp</b> parameter defined in the
+<A HREF="par.html#Methodlist">par/PROBLEM file</A>.
+<p>
+There are two types of source terms on the right hand side. The ones with
+<b>eta</b> in them are the resistive terms, evaluated as source terms, the
+other terms proportional to <b>div B</b> are 
+<A HREF="methods.html#Powell's">Powell's fix</A> for the numerical
+problems related to the divergence of the magnetic field. They are used only
+in more than 1D when <b>divbfix=T</b> is set in the <A HREF="par.html#Methodlist">parameter file</A>. 
+Alternatively the <A HREF="methods.html#Projection">projection scheme</A> 
+or the Constrained Transport / Central Difference (CT/CD)
+<A HREF="methods.html#Constrain">schemes</A> can be used.
+<p>
+There are two equation parameters: the adiabatic index <b>eqpar(gamma_)</b>, 
+and the resistivity <b>eqpar(eta_)</b>. Ideal MHD corresponds to 
+<b>eqpar(eta_)=0</b>,
+positive values give a uniform resistivity, while a negative value calls the 
+<b>specialeta</b> procedure in the <A HREF=vacusr.html#Specialsource>
+VACUSR module</A> to determine the resistivity as a function of the 
+coordinates, of the conservative variables, and/or of the current density.
+This subroutine is to be completed by the user.
+For <i>ideal</i> MHD problems the resistivity module is not needed. 
+Using 'setvac -off=resist' will save some memory and compilation time.
+<p>
+The source file contains comments on how a non-ideal equation of state
+can be implemented. These subroutines are called if <b>eqpar(gamma_)</b>
+is negative.
+<p>
+There is a Roe-type Riemann solver implemented using arithmetic averaging.
+
+<H2><A NAME="New">Creating</A> a New VACPHYS Module</H2>
+
+A new physics module should be created when the equations to be solved differ
+significantly from the equations already implemented. If the difference can be
+described by source terms (e.g. heat conduction, viscosity, radiative cooling,
+external gravitational field etc.), the 
+<A HREF="vacusr.html#Specialsource">specialsource</A> subroutine of
+the VACUSR module should be used instead of writing a new VACPHYS module.
+<p>
+A new VACPHYS module may be created gradually. The first step is to create 
+three new files <b>src/vacphys0.t.NEWEQ, src/vacphys.t.NEWEQ</b>, and
+<b>src/vacpar.t.NEWEQ</b>.
+You may start from scratch, i.e. from the <b>src/vacphys0.t.nul, 
+src/vacphys.t.nul</b>, and <b>src/vacpar.t.nul</b> files, 
+or you may copy and edit a VACPHYS module similar to the new one. 
+<p>
+The minimum requirement is to write the following two subroutines:
+<b>getv</b> calculating a velocity from the conservative variables, and
+<b>getflux</b> defining the fluxes. This will allow you to use the MacCormack
+and FCT schemes with fixed time step on a Cartesian grid with slab symmetry. 
+<p>
+Next you could easily specify the <b>physini</b> subroutine that tells VAC
+which variables are transformed as vectors (this is needed for generalized
+coordinates), and the maximum propagation speed in <b>getcmax</b>, which is 
+used by the TVDLF scheme and the <b>getdtcourant</b> subroutine allowing a 
+dynamical time step. The <b>conserve</b> and <b>primitive</b> subroutines
+can be used by VACINI, and the TVDLF and TVD-MUSCL schemes.
+If your equations contain more restrictions on the time step 
+than the CFL condition, the <b>getdt</b> subroutine could be written. 
+For axial symmetry <b>addgeometry</b> should provide the <em>geometrical</em> 
+source terms, while other source terms may be given in <b>addsource</b>.
+<p>
+At this point you can use all the non-characteristic based methods, like
+the TVDLF, FCT and MacCormack schemes, without any constraint. To make the
+other TVD type schemes work the subroutines in the <b>vacnul.roe.t</b> file
+should be specified, and this is not a trivial task. It is probably best to
+study the existing Riemann solvers to get an idea what is required.
+<p>
+If you think that your new VACPHYS module is of general interest, please send 
+it to me with some description so that it can be included in the future
+versions of the Versatile Advection Code.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+April 5 1999
+</ADDRESS>
+</BODY>
+</HTML>

@@ -1,0 +1,7 @@
+*COMDECK COMCONS
+C@(#)comcons	2.1
+      REAL    PI
+      PARAMETER (
+     1   PI         = 3.1415926535898
+     2)
+C

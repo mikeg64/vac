@@ -1,0 +1,188 @@
+!##############################################################################
+! module vacusr - EXAMPLE ! setvac -d=22 -g=104,104 -p=hdadiab -u=example 
+
+! INCLUDE:vacnul.specialini.t
+! INCLUDE:vacnul.specialbound.t
+! INCLUDE:vacnul.specialsource.t
+! INCLUDE:vacnul.specialio.t
+
+!=============================================================================
+subroutine specialini(ix^L,w)
+
+! This subroutine initializes w to have a high density blob in it
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+
+double precision:: rhoin,xcent^D,radius
+!-----------------------------------------------------------------------------
+
+write(*,*)'DENSITY BLOB'
+write(*,*)'Density inside blob:'
+read(*,*) rhoin
+write(*,*)'Radius and center coordinates:'
+read(*,*) radius,xcent^D
+
+where(radius**2 > ^D&(x(ix^S,^D)-xcent^D)**2+ )
+   w(ix^S,rho_)=rhoin
+endwhere
+
+return
+end
+
+!=============================================================================
+subroutine specialbound(qt,ix^L,iw,iB,w)
+
+! qt is the time, the iB-th boundary region is in the ix^L region,
+! and the subroutine should provide the values for w(ix^S,iw).
+
+! Normal velocity and density are driven at the left boundary by a 
+! rho=rho0+drho*sin(omega*t); v=dv*sin(omega*t) perturbation.
+
+include 'vacdef.f'
+
+integer:: ix^L,iw,iB
+double precision:: qt,w(ixG^T,nw),drho
+
+double precision, parameter:: rho0=1.D0, dv=0.01D0, omega=20.D0
+!-----------------------------------------------------------------------------
+
+drho=dv/sqrt(eqpar(adiab_)*eqpar(gamma_)/rho0)
+
+select case(iB)
+case(1)
+   select case(iw)
+   case(rho_)
+      w(ix^S,rho_)= rho0 + drho*sin(qt*omega)
+   case(m1_)
+      w(ix^S,m1_) = rho0 *   dv*sin(qt*omega)
+   case default
+      call die('Special boundary is not defined for iw=m2_')
+   end select
+case default
+   call die('Special boundary is defined for iB=1 region only')
+end select
+
+return
+end
+
+!=============================================================================
+subroutine specialsource(qdt,ixI^L,ixO^L,iws,qtC,wCT,qt,w)
+
+! Coriolis forces: SOURCE(m1)=f*m2; SOURCE(m2)=-f*m1 where f=eqpar(coriolis_)
+! This is a second order point-implicit trapezoidal scheme meant for split
+! source terms (sourcesplit=T) when wCT==w at input.
+
+include 'vacdef.f'
+
+integer:: ixI^L,ixO^L,iws(niw_)
+double precision:: qdt,qtC,qt,wCT(ixG^T,nw),w(ixG^T,nw)
+double precision:: fdt,fdthalf2
+
+integer:: iw,iiw
+!-----------------------------------------------------------------------------
+
+if(eqpar(coriolis_)==zero)return
+
+if(.not.sourcesplit)&
+   call die('Coriolis SpecialSource is designed for sourcesplit=T')
+
+if(it==itmin)write(*,*)'Coriolis forces are added'
+
+fdt     = eqpar(coriolis_)*qdt
+fdthalf2=(fdt*half)**2
+
+do iiw=1,iws(niw_); iw=iws(iiw)
+   select case(iw)
+   case(m1_)
+       w(ixO^S,m1_)=((1-fdthalf2)*wCT(ixO^S,m1_)+fdt*wCT(ixO^S,m2_))&
+                    /(1+fdthalf2)
+   case(m2_)
+       w(ixO^S,m2_)=((1-fdthalf2)*wCT(ixO^S,m2_)-fdt*wCT(ixO^S,m1_))&
+                    /(1+fdthalf2)
+   end select
+end do
+
+return
+end
+
+!=============================================================================
+subroutine getdt_special(w,ix^L)
+
+! If the Coriolis force is made very strong it may require time step limiting,
+! but this is not implemented here.
+
+include 'vacdef.f'
+double precision:: w(ixG^T,nw)
+integer:: ix^L
+!-----------------------------------------------------------------------------
+return
+end
+
+!=============================================================================
+subroutine readfileini_special(w)
+include 'vacdef.f'
+double precision:: w(ixG^T,nw)
+call die('Special readfileini is not defined')
+end
+!=============================================================================
+subroutine savefileout_special(qunit,w,ix^L)
+include 'vacdef.f'
+integer:: qunit,ix^L
+double precision:: w(ixG^T,nw)
+call die('Special savefileout is not defined')
+end
+!=============================================================================
+subroutine savefilelog_special(qunit,w,ix^L)
+
+! The average potential enstrophy (1/V)*Integral dV*(curl v)**2/rho and
+! the average ABSOLUTE transverse momentum (1/V)*Integral dV*|m2| 
+! are calculated and saved.
+
+include 'vacdef.f'
+
+integer:: qunit,ix^L,jx1^L,jx2^L,hx1^L,hx2^L
+double precision:: w(ixG^T,nw),denstrophy(ixG^T),enstrophy,meanabsm2
+logical:: fileopen
+!-----------------------------------------------------------------------------
+
+if(gencoord.or.ndim/=2)call die('Enstrophy for 2D Cartesian grid only')
+
+if(ipe==0)then^IFMPI
+inquire(qunit,opened=fileopen)
+if(.not.fileopen)then
+    open(qunit,file=filename(filelog_),status='unknown')
+    write(qunit,'(a)')fileheadout
+    write(qunit,'(a)')'it   t    dt     enstrophy      abs_m2'
+endif
+endif^IFMPI
+
+! Shift indices and calculate curl v = dv2/dx1-dv1/dx2, velocity=momentum/rho
+jx1^L=ix^L+kr(^D,1);jx2^L=ix^L+kr(^D,2);
+hx1^L=ix^L-kr(^D,1);hx2^L=ix^L-kr(^D,2);
+denstrophy(ix^S)=half*(&
+  (w(jx1^S,m2_)/w(jx1^S,rho_)-w(hx1^S,m2_)/w(hx1^S,rho_))/dx(ix^S,1)-&
+  (w(jx2^S,m1_)/w(jx2^S,rho_)-w(hx2^S,m1_)/w(hx2^S,rho_))/dx(ix^S,2))
+
+! Calculate local potential enstrophy density
+denstrophy(ix^S)=denstrophy(ix^S)**2/w(ix^S,rho_)
+
+! Average potential enstrophy over the volume
+enstrophy=sum(dvolume(ix^S)*denstrophy(ix^S))/volume
+{^IFMPI call mpireduce(enstrophy,MPI_SUM)}
+
+! Calculate average absolute value of m2
+meanabsm2=sum(dvolume(ix^S)*abs(w(ix^S,m2_)))/volume
+{^IFMPI call mpireduce(meanabsm2,MPI_SUM)}
+
+if(ipe==0)^IFMPI write(qunit,'(i7,4(1pe13.5))')it,t,dt,enstrophy,meanabsm2
+
+if(ipe==0)^IFMPI call flushunit(qunit)
+
+return
+end
+!=============================================================================
+! end module vacusr - EXAMPLE
+!##############################################################################

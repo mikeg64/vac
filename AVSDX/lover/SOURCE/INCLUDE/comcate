@@ -1,0 +1,8 @@
+*COMDECK COMCATE
+C@(#)comcate	2.1
+      CHARACTER VISCATREAL*(*), VISCATCOMP*(*)
+      PARAMETER (
+     1   VISCATREAL='real',
+     2   VISCATCOMP='complex'
+     3)
+C

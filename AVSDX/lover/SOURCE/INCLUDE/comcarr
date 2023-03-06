@@ -1,0 +1,11 @@
+*COMDECK COMCARR
+C@(#)comcarr	2.1
+      INTEGER CR
+      PARAMETER(
+C#ifdef CR
+C     1     CR       = 1
+C#else
+     1     CR       = 0
+C#endif
+     2)
+C

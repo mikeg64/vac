@@ -1,0 +1,1077 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on IDL Visualization Macros </TITLE>
+</HEAD>
+<BODY>
+<h1>IDL VISUALIZATION MACROS</h1>
+
+This document describes the use of the IDL macros for plotting results
+obtained with VAC. Some new improvements were added for visualizing
+output from the BATSRUS space physics code. Aaron Ridley (University
+of Michigan) has contributed significantly to the development of
+the visualization macros. All the IDL macros provided for VAC are in the 
+<b>Idl</b> directory.
+<hr>
+This page:
+ [<A HREF="#Startup">Startup</A>]
+ [<A HREF="#Running">Running</A>]
+ [<A HREF="#Getpict">getpict</A>]
+ [<A HREF="#Generalized">Transform</A>]
+ [<A HREF="#Comparison">Comparison</A>]
+ [<A HREF="#Plotfunc">plotfunc</A>]
+ [<A HREF="#Plot more">Plot more</A>]
+ [<A HREF="#Animate">animate</A>]
+ [<A HREF="#Funcdef">funcdef</A>]
+ [<A HREF="#Slice">slice</A>]
+ [<A HREF="#Logfile">getlog</A>]
+ [<A HREF="#Print">Postscript</A>]
+ [<A HREF="#Scripts">Scripts</A>]
+<hr>
+
+<H2><A NAME="Startup">IDL</A> Path and Startup File</H2>
+
+   It is necessary to let IDL know about the existence of the macros in the 
+   Idl directory.  You can define the search path for IDL, for example
+<pre>
+setenv IDL_PATH /home/myusername/vac/Idl:/usr/local/rsi/idl/lib:\
+/usr/local/rsi/idl/lib/obsolete:/usr/local/rsi/idl/lib/utilities
+</pre>
+   (type this as a single line without the backslash!)
+   for the csh or tcsh shell. Modify the above setting for
+   your IDL libraries as needed. You can also make IDL to read 
+   the <b>Idl/idlrc</b> file automatically upon start up with
+<pre>
+setenv IDL_STARTUP idlrc
+</pre>
+   These environment settings can be put into your ~/.login or ~/.cshrc 
+   files. The above is valid for the csh and tcsh UNIX shells. 
+   For other UNIX shells (bash, ksh), use
+<pre>
+IDL_PATH=/home/myusername/vac/Idl:/usr/local/rsi/idl/lib:\
+/usr/local/rsi/idl/lib/obsolete:/usr/local/rsi/idl/lib/utilities
+export IDL_PATH
+IDL_STARTUP=idlrc
+export IDL_STARTUP
+</pre>
+   in the ~/.profile file. Type the IDL_PATH definition as a single line 
+   without the backslash.
+
+<H2><A NAME="Running">Running</A> IDL</H2>
+
+   If the IDL_PATH and the IDL_STARTUP variables are set, simply 
+   start IDL from the directory where the <b>*.out</b> IDL plot files
+   and the <b>*.log</b> logfiles are, e.g.
+<pre>
+cd data
+idl
+</pre>
+   If IDL_STARTUP is not set, type
+<pre>
+@idlrc
+</pre>
+   at the IDL&gt; prompt, so that the commands in the <b>idlrc</b> file are
+   executed: 
+   the procedures in <b>Idl/procedures.pro, Idl/funcdef.pro</b> and 
+   <b>Idl/vector.pro</b> are compiled and 
+   the script <b>Idl/defaults</b> is executed to set some
+   global variables to their default values. You can customize the startup
+   of IDL by editing <b>Idl/idlrc</b> and <b>Idl/defaults</b>, e.g. you can
+   compile your own IDL subroutines. These subroutines could be put into an 
+   <b>Idl_mine/</b> directory which should be then listed in the 
+   IDL_PATH search path.
+<p>
+   If you get trapped by an error inside some IDL routine,
+<pre>
+retall
+</pre>
+   will return to the main level. To exit IDL type
+<pre>
+exit
+</pre>
+   The alternative 'quit' command is also defined for convenience.
+
+<H2><A NAME="Getpict">Reading</A> a Snapshot with getpict</H2>
+
+   To read a single frame from a file, type at the "IDL&gt;" prompt of IDL
+<pre>
+.r getpict
+</pre>
+   The procedure will prompt you for the <b>filename</b>, 
+   and it determines the <b>filetype</b> and <b>npictinfiles</b>
+   (the number of snapshots in the file) automatically. Then it asks for
+   the frame-number <b>npict</b> (1, 2,... npictinfiles) 
+   of the snapshot to be read from the file. When <b>npictinfiles=1</b>,
+   the frame number is set to 1 automatically:
+<pre>
+filename(s)   ? exampleA22.ini
+filetype(s)   = ascii
+npictinfile(s)=      1
+npict=       1
+</pre>
+   The header of the file is read and echoed on the screen. The
+   type of equation is given by <b>physics</b> (e.g. 'hdadiab22') 
+   which is normally read from the headline of the file <b>ExampleA22_hdadiab22</b>.
+   A typical result:
+<pre>
+headline  =ExampleA
+ndim      = 2, neqpar= 3, nw= 3
+nx        =    50   50
+eqpar     =       2.0000000       1.0000000       0.0000000
+variables = x y h m1 m2 gamma ghalf coriolis
+physics (eg. mhd12)=hdadiab22
+it      =           0, time=       0.0000000
+Read x and w
+GRID            INT       = Array(50, 50)
+</pre>
+   At the end, the <b>x</b> and <b>w</b> variables (containing the coordinates 
+   and the plot variables respectively) are read from the file. 
+   Note that IDL, unlike FORTRAN, starts indexing from 0 instead of 1. 
+   The <b>GRID</b> index array is useful for defining
+   cuts of the computational domain for plotting, see details 
+   in section <A HREF="#Plotpart">Plot part</A>. 
+   If your file contained data on a structured grid, you get the "IDL&gt;"
+   prompt back, and you can do whatever you want with <b>x</b>, <b>w</b>, 
+   and all the other variables 
+   <b>headline, it, time, gencoord, ndim, neqpar, nw, nx, eqpar, variables</b>
+   defined by the header. 
+<p>
+   You can use the <A HREF=#Plotfunc><b>plotfunc</b></A> script to get some 
+   sophisticated plots or you can use any of the IDL procedures directly, e.g.
+<pre>
+print,time,it
+print,nx
+print,variables
+plot,w(*,10,0)
+surface,w1(*,*,2)-w0(*,*,2)
+contour,w(*,*,1)
+vector,w(*,*,1),w(*,*,2)
+plot,x(*,*,0),x(*,*,1),psym=1
+</pre>
+   The last command will show the grid points. Another way to plot the
+   grid points is to use the <b>plotgrid</b> procedures as
+<pre>
+plotgrid,x
+</pre>
+   For structured 2D grid, you can plot the grid lines connecting
+   the grid points with 
+<pre>
+plotgrid,x,/lines
+</pre>
+   The functions <b>diff2, diff3</b>, and <b>diff4</b> are provided for taking 
+   spatial derivatives of variables represented on 2D Cartesian mesh. 
+   To calculate the curl of the velocity field you could type
+<pre>
+vx=w(*,*,1)/w(*,*,0)
+vy=w(*,*,2)/w(*,*,0)
+xx=x(*,*,0)
+yy=x(*,*,1)
+curl_v=diff2(1,vy,xx)-diff2(2,vx,yy)
+</pre>
+   The difference between diff2 and diff3 is minor: diff2 uses centered 
+   differences, while diff3 relies on IDL built-in procedures. <b>diff4</b>
+   is a fourth order accurate centered difference formula. You can use
+   these functions in the <b>Idl/funcdef.pro</b> file to define functions
+   plotted by <b>plotfunc</b> and <b>animate</b>, for example the function
+   'divb4' uses the diff4 function. 
+   <p>
+   For non-Cartesian 2D grids the functions <b>grad, div, curl</b>
+   and <b>grad_rz, div_rz, curl_rz</b> are provided, which use contour
+   integrals to estimate the cell averaged gradient, divergence, and curl. 
+   The subscripts <b>_rz</b> refer to cylindrical symmetry in the ignored PHI 
+   direction. All these
+   functions are described in detail in <b>Idl/procedures.pro</b>, and
+   some examples for their use can be found in <b>Idl/funcdef.pro</b>.
+   For example, 'curlv' is defined with the <b>curl</b> function.
+
+<H2><A NAME="Generalized">Transformation</A> from Generalized Coordinates</H2>
+
+   The file may contain data on a generalized 2D grid.
+   This is signaled by a negative <b>ndim</b> in the plotfile 
+   and by the variable <b>gencoord=1</b> in IDL.
+   A <b>generalized grid</b> has the same topology as a regular grid
+   but the coordinates are not Cartesian. It is a <i>continuous</i>
+   distortion of the original grid. 
+   The <b>getpict</b> macro will ask if you want a
+   transformation of the <b>x</b> and <b>w</b> variables.
+   The default behaviour is no transformation (just hit the "Enter" key).
+   This choice saves the time of transformation, and uses the original grid 
+   and variables, but some of the plot modes (tv, surface, shade, velovect)
+   are not available.
+<p>
+   Alternatively, you can transform the data onto a regular grid, 
+   which makes all the plotmodes fully available. 
+   To achieve that select 'regular' transformation with
+<pre>
+transform (r=regular/p=polar/u=unpolar/n=none)=none ? r
+</pre>
+   Now the code will interpolate the irregular grid onto a 
+   regular one using IDL's <b>triangulate</b> and <b>trigrid</b> procedures.  
+   The size of the regular grid is asked now
+<pre>
+Generalized coordinates, dimensions for regular grid
+nxreg(0) (use negative sign to limit x)=      100
+nxreg(1) (use negative sign to limit y)=      100
+</pre>
+   With these settings the original <b>w</b> array is interpolated to 
+   a 100x100 <b>wreg</b> array and the
+   coordinates for the regular grid <b>xreg</b> are also determined. 
+   You can plot the first variable, usually density, in <b>wreg</b> the 
+   same way as before
+<pre>
+surface,wreg(*,*,0)
+</pre>
+   It is possible to restrict the transformation to a rectangular
+   part of the original 2D data by using a negative sign for nxreg(0) and/or
+   nxreg(1), e.g.
+<pre>
+nxreg(0) (use negative sign to limit x)? -100
+xreglimits(0) (xmin)? -15.
+xreglimits(2) (xmax)? 30.5
+nxreg(1) (use negative sign to limit y)? -50
+xreglimits(1) (ymin)? -10.
+xreglimits(3) (ymax)? 10.
+</pre>
+   Now the 100x50 <b>xreg</b> array is limited to the range 
+   [-15.,30.5] in x, and [-10.,10.] in y, and this is where the <b>wreg</b> 
+   array is defined. The <b>xreglimits</b> array can be set explicitly too,
+<pre>
+xreglimits=[-15, -10, 30.5, 10]
+</pre>
+   Note that the order of the elements is xmin, ymin, xmax, ymax.
+   To return to the default behaviour, which is plotting the whole 
+   computational domain, set
+<pre>
+xreglimits=0
+</pre>
+   If the transformation or the transformation parameters are changed,
+   the <b>.getpict</b> or <b>.animate</b> macros, which read data from
+   the disk, will calculate <b>wreg</b> with the new tranformation settings
+   as expected. On the other hand, the <b>.r plotfunc</b> macro, 
+   which uses the data in the memory
+   and which is designed for speed, normally assumes that the transformation 
+   has already been done. This corresponds to the
+<pre>
+dotransform='n'
+</pre>
+   setting. If the transformation parameters are changed set
+<pre>
+dotransform='y'
+</pre>
+   to force <b>plotfunc</b> to redo the transformation as necessary.
+   After that you can return to dotransform='n' to save the time of
+   transformation.
+<p>
+   When part of the domain is on a regular rectangular grid, 
+   the triangulation is ambiguous: a rectangle can be cut along
+   either diagonal. This ambiguity can make the interpolated data 
+   asymmetric and somewhat ragged, even if the original data was 
+   perfectly symmetric and smooth.
+   Igor Sokolov (University of Michigan) has implemented an algorithm
+   to solve this problem. If <b>symmtri=1</b> is set, the 
+   triangulation will be chosen to fit the gradient of the data
+   and make the interpolated functions smooth and symmetric. 
+   The <b>symmtri=2</b> setting averages the two possible
+   triangulations, which makes the result symmetric.
+   The default setting is <b>symmtri=0</b>, which uses the 
+   default triangulation of IDL.
+
+<H2><A NAME="Comparison">Comparison</A> of Data</H2>
+
+   You can read snapshots from 2 or at most 3 files for purposes of
+   comparison. Simply give the filenames separated by spaces.
+<pre>
+.r defaults
+.r getpict
+filename(s)   ? example1.out example2.out
+filetype(s)   = real4 real4
+npictinfile(s)=      21     10
+npict?  2
+</pre>
+   This will read the second snapshots from 'example1.out' and
+   'example2.out'. The coordinates and the conservative variables 
+   will be put into <b>x0, x1</b> and <b>w0, w1</b> respectively, however, 
+   the header information, which is printed for each file onto the screen, 
+   will be overwritten by the last file read, in this case it will belong to
+   <b>example2.out</b>. The generic <b>x, w</b> arrays will also be
+   filled by the data read from the last file, and this is what 
+   <b>plotfunc</b> plots. If the files contained data on non-regular grid,
+   and transform='regular' is set, the data will be interpolated into 
+   the arrays <b>wreg0</b> and <b>wreg1</b>. 
+   To compare the two data sets run
+<pre>
+IDL&gt; compare,w0,w1
+iw max(|w1-w2|)/max(|w1|+|w2|) sum(|w1-w2|)/sum(|w1|+|w2|)
+       0     0.018272938   0.00017745799
+       1      0.24608387     0.017349624
+       2      0.14307581     0.016188008
+       3 wsum=0
+       4     0.022624079   0.00022667312
+       5     0.014965503   0.00022646554
+       6     0.018034518   0.00020733169
+       7 wsum=0
+</pre>
+or add the wnames array (an optional argument) to get
+<pre>
+IDL&gt; compare,w0,w1,wnames
+iw max(|w1-w2|)/max(|w1|+|w2|) sum(|w1-w2|)/sum(|w1|+|w2|)
+rho     0.018272938   0.00017745799
+m1      0.24608387     0.017349624
+m2      0.14307581     0.016188008
+m3 wsum=0
+e     0.022624079   0.00022667312
+b1     0.014965503   0.00022646554
+b2     0.018034518   0.00020733169
+b3 wsum=0
+</pre>
+   The comparison shows the maximum difference divided by the sum of maximum 
+   absolute
+   values and the sum of absolute differences divided by the sum of absolute
+   values for each variable in <b>w0</b> and <b>w1</b>. If a variable is zero
+   everywhere both in <b>w0</b> and <b>w1</b>, the <b>wsum=0</b> message is shown.
+   You can compare arbitrary 1, 2, 3 and 4 dimensional arrays as long as they 
+   have the same size.
+   The last dimension is interpreted as the variable index <b>iw</b>.
+   E.g. you could compare two cuts of <kbd>wreg</kbd> with
+<pre>
+compare,wreg(0:20,2,*),wreg(0:20,3,*)
+</pre>
+   or you can check if the data read from two files have the same grid
+<pre>
+compare,x0,x1
+</pre>
+   If the two files have different resolutions, the <b>coarse</b> 
+   function can be used. For example, if two solutions were obtained on 
+   100 x 50 and 300 x 150 grids, then 
+<pre>
+rholow =w0(*,*,0)
+rhohigh=coarse(w1(*,*,0),3)
+print,total(abs(rholow-rhohigh))/100/50
+</pre>
+   will give the average deviation in density. The coarsening is done in
+   finite volume sense, i.e. the fine cells within the coarsened cell are
+   averaged out. The <b>coarse</b> function works properly for
+   uniform Cartesian grids only. Pointwise values can be compared
+   with the use of the <b>triplet</b> function (see section
+   <A HREF="#Plotpart">Plot part</A>).
+
+<H2><A NAME="Plotfunc">Plotting</A> the Data with plotfunc</H2>
+
+   Once the data is read by <b>getpict</b> or <b>animate</b> you can plot 
+   functions of <b>w</b> with
+<pre>
+.r plotfunc
+</pre>
+   You will see the value of <b>physics</b> for the last file read and some 
+   parameters with standard default values for different plotting routines:
+<pre>
+physics (e.g. mhd12)      =mhd23
+======= CURRENT PLOTTING PARAMETERS ================
+ax,az=  30, 30, contourlevel= 30, velvector= 200, velspeed (0..5)= 5
+multiplot= 0 (default), axistype (coord/cells)=coord, fixaspect=1
+bottomline=3, headerline=0
+</pre>
+   The plots are normally shown in physical coordinates, i.e.
+   <b>axistype='coord'</b>, but the axes can also run in cell indices 
+   if <b>axistype='cells'</b> is set.
+   If <b>fixaspect=1</b> the aspect ratio of the plot will be the same
+   as the true aspect ratio of the two axes, while <b>fixaspect=0</b> lets
+   the plot fit into the plotting window tightly.
+   The variables <b>bottomline</b> and <b>headerline</b> control the number
+   of values shown at the bottom from <b>time, it, nx</b> and at the top 
+   from <b>headline, nx</b>.
+   You can change these values explicitly (e.g. <b>bottomline=0</b>), 
+   or change their default values in <b>Idl/defaults</b>. 
+   See sections <A HREF="#Plotmode">Plotting mode</A> and 
+   <A HREF="#Plotpart">Plotting part</A> on the other parameters.
+<p>
+   Now, you will be prompted 
+   for the name of function(s) and the corresponding plotting mode(s):
+<pre>
+======= PLOTTING PARAMETERS =========================
+wnames                     =  h m1 m2
+func(s) (e.g. rho p m1;m2) ? h m1
+2D scalar: shade/surface/contour/contlabel/contfill/contbar/tv/tvbar
+2D polar : polar/polarlabel/polarfill/polarbar
+2D vector: stream/stream2/vector/velovect/ovelovect
+plotmode(s)                ? surface
+plottitle(s) (e.g. B [G];J)=default
+autorange(s) (y/n)         =y
+GRID            INT       = Array(50, 50)
+</pre>
+   The function(s) to be plotted are determined by the <b>func</b>
+   string parameter, which is a list of function names separated by spaces.
+   The number of functions <b>nfunc</b> is thus determined by the number of
+   function names listed in <b>func</b>. 
+   For each function you may set the <b>plotmode</b> (in 1D there is no
+   choice, since only the <b>plot</b> routine is useful). 
+   If you give fewer plotmode(s) than <b>nfunc</b>, the rest of
+   the functions will use the last plotmode given, in the above example
+   <b>surface</b>. This padding rule is used for all the arrays described 
+   by strings. See section <A HREF="#Plotmode">Plotting mode</A>
+   for more details on plotmodes.
+<p>
+   The <b>plottitle</b> parameter is usually set to <b>default</b> which
+   means that the function name is used for the title, but you can set it
+   explicitly, e.g. <b>plottitle='Density;Momentum'</b>. Here the 
+   separator character is a semicolon, thus the titles may contain spaces.
+   No titles are produced if <b>plottitle=' '</b> is set.
+   For each function you may set the plotting range by hand or let IDL
+   calculate the minimum and maximum by itself. This is defined by
+   the <b>autorange</b> string parameter, which is a list of 'y' and 'n'
+   characters, each referring to the respective function. If you set 'n'
+   for any of the variables, the <b>fmin</b> and <b>fmax</b> arrays have
+   to be set, e.g.
+<pre>
+fmin=[1. ,-1.]
+fmax=[1.1, 1.]
+</pre>
+   IDL remembers the previous setting and uses it, unless the number
+   of functions are changed. You can always set fmin=0, fmax=0, and let
+   IDL prompt you for the values.
+
+<h3>Function names in string func</h3>
+
+   The function names listed in the <b>func</b> string can be any of 
+   the variable names listed in the string array <b>wnames</b>, which is 
+   read from the header of the file, or any of the function name strings 
+   listed in the <b>case</b> statements in the <b>funcdef</b> 
+   function in <b>Idl/funcdef.pro</b> (see section 
+   <A HREF="#Funcdef">Function definitions</A>), 
+   or any expression using the standard variable, 
+   coordinate and equation parameter names 
+<pre>
+xx yy zz r phi z   rho m1 m2 m3 mm e b1 b2 b3 bb  gamma eta adiab csound2
+</pre>
+   where "mm" and "bb" are the momentum and magnetic field squared, 
+   respectively. Note that "xx ... bb" are arrays, while  "gamma" ... csound2"
+   are scalars. For example
+   <b>r*m2/rho</b> is a valid expression for the angular momentum if the
+   second momentum points in the phi direction, or the maximum Alfv&eacute;n 
+   speed could be given as <b>func='sqrt(bb/rho)'</b>, but this is already 
+   defined in funcdef.pro as 'calfven'.
+<p>
+   You may combine two function names with the <b>;</b> character representing
+   two components of a vector, 
+   e.g. <b>vx;vy</b> or <b>b1;b3</b>, which can either be plotted as a 
+   vectorfield by the <b>velovect</b> and <b>vector</b> procedures, 
+   or as streamlines or fieldlines, using the 
+   <b>stream</b> and <b>stream2</b> plotmodes.
+   For other plotmodes the absolute value <b>sqrt(vx^2+vy^2)</b> is plotted.
+   You can also put a minus sign in front of any function name, which
+   will simply multiply the value of the rest of the string by <b>-</b>1. 
+   For example '-T' plots (-1)*temperature.
+
+<h3><A NAME="Plotmode">Plotting</A> modes in string plotmode</h3>
+
+   There are many plotting modes available for 2D data. These can be
+   listed in the <b>plotmode</b> for each function separated by spaces.
+   If the number of plotmodes is less than the number of functions,
+   the last plotmode is applied for the rest of the functions.
+<p>
+   For single functions the main plotmodes are 
+<pre>
+Plotmode   Parameters     Description
+----------------------------------------------------------------------
+surface    ax az          surface mesh, height proportional to value
+shade      ax az          shaded surface, height proportional to value
+contour    contourlevel   contourlines
+contlabel  contourlevel   contourlines labeled by value
+contfill   contourlevel   levels colored by value
+contbar    contourlevel   levels colored by value plus colorbar
+polar                     polar contour plot
+polarlabel contourlevel   polar contour plot with labels
+polarfill  contourlevel   polar plot colored by value
+polarbar   contourlevel   polar plot colored by value plus colorbar
+tv                        grid cells colored by value
+tvbar                     grid cells colored by value plus colorbar
+</pre>
+   The parameters <b>ax</b> and <b>az</b> define the viewing angle,
+   while the <b>contourlevel</b> parameter 
+   determines the number of contourlevels.
+   For functions with 2 components (e.g. 'bx;bz') the following plotmodes
+   are available
+<pre>
+Plotmode  Parameters  Description
+-----------------------------------------------------------------
+stream    velvector   stream/fieldlines at random/selected points
+          velpos      
+
+stream2   velvector   stream/fieldlines at random/selected points
+          velpos      (2nd order)
+
+vector    velvector   arrows at random/selected positions
+          velpos
+          velspeed
+velovect              arrows at every grid point
+ovelovect             arrows at every grid point (for overplot)
+</pre>
+   The <b>velvector</b> parameter determines the number of arrows or
+   stream/fieldlines shown. By default the position of arrows/streamlines
+   is random. The positions can be fixed with the <b>velpos</b> array
+   (see section <A HREF="#Plotpart">Plotting part</A> for details). 
+   During an animation the arrows can move from their initial position
+   parallel to the local velocity at a speed proportional to the magnitude
+   of the velocity and the <b>velspeed</b> parameter. The maximum value
+   is the default <kbd>velspeed=5</kbd>, while <kbd>velspeed=0</kbd> 
+   does not allow the arrows to move. 
+<p>
+   For any of the 2D plotmodes, you can add the string 'grid' or 'mesh'
+   to show the gridpoints or the gridlines (connecting the gridpoints), 
+   respectively. For example 
+<pre>
+plotmode='vectorgrid contbarmesh'
+</pre> 
+   will show arrows with grid points and 
+   a colored contour plot with a colorbar and the gridlines.
+   Also note that it makes no sense to overplot the grid for the 
+   <kbd>surface</kbd> plotting mode, on the other hand <kbd>plotmode='shademesh'</kbd>
+   will plot the shaded surface together with the mesh of 'surface'.
+<p>
+   For any of the colored plotmodes ('shade', 'contfill', 'contbar', 
+   'polarfill', 'polarbar', 'tv', and 'tvbar') the colortable can be 
+   changed by one of the 
+<pre>
+xloadct
+loadct,3
+makect,'red'
+</pre>
+   commands. The <kbd>xloadct</kbd> and <kbd>loadct</kbd> commands are part of IDL, while
+   the <kbd>makect</kbd> procedure is defined in <b>Idl/procedures.pro</b>.
+   When no argument is given for <kbd>loadct</kbd> or <kbd>makect</kbd>, 
+   all the available color tables are listed
+   and the choice can be made interactively.
+<p>
+   Many characteristics of the plots can be adjusted with system variables.
+   Here is a partial list of these:
+<pre>
+system variable     description
+-------------------------------------------------------
+!p.charsize         overall character size
+!x.charsize         X axis character size
+!x.ticks            number of X axis tick marks
+!x.tickv            positions of X axis tick marks
+!x.tickname         strings at X axis tick marks
+!x.minor            number of minor tickmarks
+!p.psym             symbols instead of lines in 1D plot
+!p.symsize          symbol size
+</pre>
+  The Y and Z axes are affected by the analogous !y. and !z. variables.
+
+<h3><A NAME="Plotpart">Plotting</A> part of the domain</h3>
+
+   It is possible to plot a part of the simulation domain.
+   One way is to set the global system variables
+<pre>
+!x.range=[-10.,10.]
+!y.range=[-20.,-5.]
+</pre>
+   This will work well for 'flat' plotmodes, like 'contour',
+   'contfill', etc. To switch back to the default maximum range, use
+<pre>
+!x.range=0
+!y.range=0
+</pre>
+   When the data is transformed to a regular grid, the domain of 
+   transformation can be limited by the <b>xreglimits</b> array as described 
+   in section
+   <A HREF="#Generalized">Transformation from generalized Coordinates</A>. 
+<p>
+   There is a further option of limiting or coarsening the plot domain, 
+   and/or reducing the dimensionality of the plot.
+   The <b>cut</b> index array selects some part of the function(s)
+   determined by <b>func</b>.
+   This is done <em>after</em> any grid transformation and <em>after</em> 
+   the functions are calculated so that derivatives can be properly taken 
+   by the <b>funcdef</b> function.
+   The <b>grid</b> index array is defined to help to construct
+   the <b>cut</b> array, e.g. if the grid size is 100 times 100:
+<pre>
+cut=grid(*,50:*)
+.r plotfunc
+</pre>
+   will show the upper half of the domain. To eliminate the edges use
+<pre>
+cut=grid(1:98,1:98)
+</pre>
+   A cross section of the domain can be plotted by reducing
+   the number of dimensions of <b>cut</b> relative to <b>grid</b>:
+<pre>
+cut=grid(*,50)
+</pre>
+   will produce 1D plots of the cross section along the midline parallel to 
+   the first coordinate axis. For a 2D cut of 3D data, use for example
+<pre>
+cut=grid(*,50,*)
+</pre>
+   The effect of the <b>cut</b> array can be switched off by 
+<pre>
+cut=0
+</pre>
+   or by running <b>.r defaults</b>.
+<p>
+   The <b>triplet</b> function provides an easy way to set the <b>cut</b> 
+   index array to represent a coarser grid. This is particularly useful
+   for the <b>velovect</b> plotmode, which tends to draw too many tiny arrows.
+   The <b>triplet</b> function can have 3, 6, 9, or 12 parameters depending on 
+   the number of dimensions, and each triplet describes a subset of the 
+   indices in the given direction. The three elements are the 
+   minimum, maximum, and stride (like in Fortran 90), e.g. 
+<pre>
+filename='example22.out'
+npict=10
+.r getpict
+func='v1;v2'
+plotmode='velovect'
+cut=triplet(0,49,2, 33,66,1)
+.r plotfunc
+</pre>
+   will show every second cell in the <b>x</b> direction and the middle third 
+   in the <b>y</b> direction. Note that the maximum index value should be
+   the actual grid size-1 except for the last dimension, otherwise the indices
+   will not be correct. This problem can be solved by the use of the 
+   <b>quadruplet</b> function, which has four parameters per dimension:
+   size, minimum, maximum, and stride. To show a coarse 20*20 grid 
+   from the top left 40*40 part of the 50*50 grid use
+<pre>
+cut=quadruplet(50,0,39,2, 50,10,49,2)
+.r plotfunc
+</pre>
+   Another way to show velocity vectors at fixed positions is the use of 
+   the "vector" plotmode after setting the number of vectors <b>velvector</b> 
+   and the array of positions <b>velpos(velvector,2)</b> containing the 
+   X and Y coordinates for each vector. In principle <b>velpos</b> can
+   be defined as an arbitrary set of points.
+   For a simple coarsening of the original grid points, the triplet and 
+   quadruplet functions can be used again:
+<pre>
+cut=grid(0:39,10:49)
+velvector=20*13 &amp; velpos=fltarr(velvector,2)
+velpos(*,*)=x(quadruplet(50,1,39,2, 50,11,49,3, 2,0,1,1))
+.r plotfunc
+
+cut=0
+plotmode='vector'
+velvector=25*25 &amp; velpos=fltarr(velvector,2)
+velpos(*,*)=x(triplet(0,49,2, 0,49,2, 0,1,1))
+.r plotfunc
+</pre>
+   Note that the last 0,1,1 triplet and 2,0,1,1 quadruplet correspond to
+   the second dimension of <b>velpos</b> that always runs from 
+   0 (X coordinate) to 1 (Y coordinate). This approach is very useful when 
+   the velocity vectors are shown together with plots of other functions 
+   that should not be coarsened. To use random positions again, 
+   set <b>velpos=0</b>.
+   The <b>velpos</b> array can also be used to position streamlines for 
+   plotmode='stream' and 'stream2'.
+
+<h3>Multiplot</h3>
+
+   The number and arrangement of subplots is automatically set based 
+   on the number of files and and the number of functions. 
+   The default arrangement be can overriden by setting the
+   <b>multiplot</b> array. For example, setting 
+   <b>multiplot=[2,3,0]</b> gives 2 (horizontally) by 3 (vertically) subplots, 
+   which are filled in a row-wise order.
+   If the third element is 1, the subplots are filled in column-wise.
+   Setting <kbd>multiplot=3</kbd> is identical with <b>multiplot=[3,1,1]</b>,
+   while <kbd>multiplot=0</kbd> gives the default behaviour.
+<p>
+   Functions can be plot on top of each other by setting the <b>multiplot</b>
+   array such that the number of subplots is smaller than the number of
+   functions. To show the magnetic field and density in the same plot, try
+<pre>
+func='rho b1;b2'
+plotmode='contbar stream'
+plottitle='rho and B'
+multiplot=1
+.r plotfunc
+</pre>
+   To show velocity vectors and pressure, use
+<pre>
+func='p vx;vy'
+plottitle='p and v'
+plotmode='contfill ovelovect'
+.r plotfunc
+</pre>
+   Note how <b>plottitle</b> is set to avoid the default titles
+   overlap on top of each other. The <b>multiplot=1</b> setting
+   is equivalent with <b>multiplot=[1,1,1]</b>. In the second plot
+   'ovelovect' is used (instead of 'velovect') for the velocity to get 
+   good alignment with the 'contfill' plot.
+   The number of functions and the number of subplots can be any combination
+   you would like. In 1D plots, the line style is varied for the different 
+   functions, so the curves can be distinguished.
+
+<H2><A NAME="Plot more">Plotting</A> another Snapshot</H2>
+
+   If you type
+<pre>
+.r getpict
+.r plotfunc
+</pre>
+   again, the data will be read and plotted again without any questions asked,
+   since IDL remembers the previous settings. This can be useful if the 
+   data changed in the file due to running VAC or VACINI with new parameters, 
+   for example.
+<p>
+   If you want to read another frame, say the second, from the same file, type
+<pre>
+npict=2
+.r getpict
+</pre>
+   You can change the <b>func</b> and <b>plotmode</b> variables the same way:
+<pre>
+func='rho p'
+plotmode='contour surface'
+.r plotfunc
+</pre>
+   Note that we did not need to reread the data.
+   Other variables, all listed in <b>Idl/defaults</b>, can be set similarly.
+   If you set
+<pre>
+doask=1
+</pre>
+   the macros will ask for all the parameters to be confirmed by a simple
+   RETURN, or to be changed by typing a new value. Set <b>doask=0</b> to
+   get the default behaviour, which is no confirmation asked.
+   To overplot previous plots without erasing the screen, set
+<pre>
+noerase=1
+</pre>
+   You can return to the default settings for all parameters by typing
+<pre>
+.r defaults
+</pre>
+
+<H2><A NAME="Animate">Plotting and Animation with animate</A></H2>
+
+   This general procedure can plot, save into file(s), or animate 
+   (using IDL's Xinteranimate) different functions of data 
+   read from one or more files. If a single snapshot is read, the
+   plot is drawn without animation. In essence <b>animate</b> combines
+   <b>getpict</b> and <b>plotfunc</b> for any number of files and any number 
+   of snapshots.
+<pre>
+.r animate
+</pre>
+   will first prompt you for <b>filename(s)</b> unless already given. 
+   Animating more than one input files in parallel is
+   most useful for comparing simulations with the same or very similar physics
+   using different methods or grid resolution. It is a good idea to save 
+   snapshots at the same <i>physical</i> time into the data files.
+   The functions corresponding to the files will be plot columnwise
+   with the leftmost column belonging to the first file.
+   The headlines and the grid sizes will be shown 
+   for each file separately above the corresponding columns
+   if <b>headerline=2</b> is set.
+   The function(s) to be animated and the plotmode(s) for the functions 
+   are determined by the same <b>func, plotmode</b>, and <b>plottitle</b> 
+   strings as for <b>plotfunc</b>. If any part of the 
+   <b>autorange</b> string is set to <b>'y'</b>,
+   the data file(s) will be read twice: first for setting the common range(s) 
+   for all the snapshots and the second time for plotting.
+   If <b>autorange='n'</b> the file(s) will only be read once.
+   The number of snapshots to be animated is limited by the end of 
+   file(s) and/or by the <b>npictmax</b> parameter. With a formula
+<pre>
+min( npictmax, (min(npictinfiles)-firstpict)/dpict + 1 )
+</pre>
+   The animation runs from <b>firstpict</b>, every <b>dpict</b>-th picture is
+   plotted and the total number of animated frames is at most <b>npictmax</b>. 
+<p>
+   The <b>multiplot</b> array can be used to get some really interesting
+   effects in <b>animate</b>. Besides overplotting different functions,
+   as explained for <b>plotfunc</b>, the data of different files can also
+   be overplotted for comparison purposes.
+   Probably it is a good idea to compare 1D slices rather than full 2D plots,
+   e.g. 
+<pre>
+filename='exampleA22.ini exampleB22.ini'
+func='h v1'
+cut=grid(*,25)
+multiplot=2
+.r animate
+</pre>
+   will overplot height and velocity read from the two files. 
+   The lines belonging to the two data files are distinguished by
+   the different line styles. Overplotting two data sets is
+   especially useful when the two results are supposed to be identical.
+<p>
+   Time series can also be produced easily with <b>multiplot</b>. 
+<pre>
+filename='example22.out'
+func='h'
+plotmode='surface'
+npictmax=6
+multiplot=[3,2,0]
+bottomline=1
+.r animate
+</pre>
+   will show the first 6 snapshots of height in a single plot. 
+   Now the time is shown for each plot individually, and setting
+   <b>bottomline=1</b> limits the time stamp to the most essential
+   information, time. If <b>npict*nfile*nfunc</b> is greater than the number 
+   of subplots defined by <b>multiplot</b>, an animation is done. 
+   Type 
+<pre>
+multiplot=0
+</pre>
+   to return to default behavior, which is one snapshot per plot.
+<p>
+   Even after exiting from Xinteranimate, the animation can be repeated
+   again without rereading the data file(s) by typing
+<pre>
+xinteranimate,/keep_pixmaps
+</pre>
+<p>
+   Sometimes it is interesting to visualize the difference of two runs, e.g.
+   to visualize deviations from the initial state, or from a steady state.
+   This can be achieved by setting the <b>wsubtract</b> array, which will be 
+   subtracted from <b>w</b> for each snapshot. Note that the subtraction is
+   done for the conservative variables, so derived quantities (like pressure
+   or velocity) should not be plotted. 
+   Set <b>wsubtract=0</b> to switch off the subtraction.
+   Note that this feature is only used by ".r animate", since a single 
+   snapshot can be easily manipulated explicitly, e.g. <b>w=w1-w0</b>.
+
+<H2><A NAME="Slice">Slicing 3D data</A></H2>
+
+   For visualizing 3D data, .r plotfunc or .r animate can be used after a
+   1 or 2D <b>cut</b> array has been defined. Alternatively slices of a single
+   snapshot (read by .r getpict) can be animated by
+<pre>
+.r slice
+</pre>
+   The 3D data is cut along <b>slicedir</b>, e.g. for cuts parallel to the
+   X-Y plane, set
+<pre>
+slicedir (1, 2, or 3)? 3
+</pre>
+   If the grid size is e.g. 50*100*60, then there are 60 slices to plot.
+   The number of animated slices can be reduced:
+   at most <b>nslicemax</b> slices are shown starting from <b>firstslice</b>,
+   and only every <b>dslice</b>-th slice is shown.
+   The plots can be further reduced by setting the <b>cut</b> array,
+   however, now indices in cut refer to a single slice. The <b>grid2d</b> 
+   index array (generated by the first .r slice, in this case it is a 50*100 
+   array) can be used, e.g.
+<pre>
+cut=grid2d(*,30:70)
+</pre>
+   For <b>plotmode='vector'</b> the arrows are not advected with the flow 
+   (i.e. velspeed=0) since it does not make sense for the slices.
+   If you wish to define the <b>velpos</b> array, then the 
+   <b>x2d</b> array should be used instead of <b>x</b>, e.g.:
+<pre>
+velvector=25*50 &amp; velpos=fltarr(velvector,2)
+velpos(*,*)=x2d(triplet(0,49,2, 0,99,1, 0,1,1))
+</pre>
+
+<H2><A NAME="Funcdef">Function</A> Definitions in funcdef.pro</H2>
+
+   Any function of the variables in <b>w</b>, the coordinates in
+   <b>x</b>, and the equation parameters in <b>eqpar</b> can be defined in the 
+   <b>Idl/funcdef.pro</b> file. Extra information is provided by the equation 
+   type <b>physics</b> and the variable names <b>wnames</b>. The function is 
+   identified by the string <b>f</b>. The user can easily define new functions
+   for a specific application by adding a new <b>case</b> statement, for
+   example the accretion rate in cylindrical symmetry can be defined as
+<pre>
+      f eq 'rmr':  result=w(*,*,1)*r
+</pre>
+   Make sure that the function is in the right branch of the <b>ndim</b>
+   switch. Note the use of the <b>r</b> array, which is extracted from 
+   <b>x(*,*,0)</b> for convenience.
+   The modified file should be recompiled and can be used as
+<pre>
+.r funcdef
+func='rmr'
+.r plotfunc
+</pre>
+   A few frequently used functions are defined in a rather general way, 
+   they work for all the appropriate equations and number of dimensions. 
+   Currently these are
+<pre>
+Function name	Physics	NDIM	Meaning
+------------------------------------------------------------
+v		any 1D		velocity in 1st direction
+vx, v1		any		velocity in 1st direction
+vy, v2		any		velocity in 2nd direction
+vz, v3		any		velocity in 3rd direction
+p               mhd, mhdiso	total pressure
+p		hd, hdadiab	thermal pressure
+pth		any		thermal pressure
+pbeta           mhd, mhdiso     plasma beta: 2*p_thermal/B^2
+T		any		temperature
+s               any             entropy: p_thermal/rho^gamma
+csound		any		sound speed: sqrt(gamma*p_thermal/rho)
+cslow1		mhd, mhdiso     slow magnetosonic speed along 1st dimension
+cslow2		mhd, mhdiso     slow magnetosonic speed along 2nd dimension
+cslow3		mhd, mhdiso     slow magnetosonic speed along 3rd dimension
+calfven1	mhd, mhdiso     Alfven speed along 1st dimension: b1/sqrt(rho)
+calfven2	mhd, mhdiso     Alfven speed along 1st dimension: b2/sqrt(rho)
+calfven3	mhd, mhdiso     Alfven speed along 1st dimension: b3/sqrt(rho)
+calfven		mhd, mhdiso     maximum of Alfven speed: |B|/sqrt(rho)
+cfast1		mhd, mhdiso     fast magnetosonic speed along 1st dimension
+cfast2		mhd, mhdiso     fast magnetosonic speed along 2nd dimension
+cfast3		mhd, mhdiso     fast magnetosonic speed along 3rd dimension
+cfast		mhd, mhdiso     maximum of fast speed: sqrt(csound^2+calfven^2)
+mach 		any		Mach number: |v|/csound
+mach1		any		Mach number:  v1/csound
+mach2		any		Mach number:  v2/csound
+mach3		any		Mach number:  v3/csound
+Mslow1		mhd, mhdiso     slow Mach number along 1st dimension: v1/cslow1
+Mslow2		mhd, mhdiso     slow Mach number along 2st dimension: v2/cslow2
+Mslow3		mhd, mhdiso     slow Mach number along 3st dimension: v3/cslow3
+Malfven1	mhd, mhdiso     Alfven Mach numbe along 1st dim: v1/calfven1
+Malfven2	mhd, mhdiso     Alfven Mach numbe along 2nd dim: v2/calfven2
+Malfven3	mhd, mhdiso     Alfven Mach numbe along 3rd dim: v3/calfven3
+Malfven		mhd, mhdiso     maximum Alfven Mach number: |v|/calfven
+Mfast1		mhd, mhdiso     fast Mach number along 1st dimension: v1/cfast1
+Mfast2		mhd, mhdiso     fast Mach number along 2nd dimension: v2/cfast2
+Mfast3		mhd, mhdiso     fast Mach number along 3rd dimension: v3/cfast2
+Mfast		mhd, mhdiso     maximum fast Mach number: |v|/cfast
+machA		mhd, mhdiso	same as Mfast
+curlv		any 2D		curl of velocity
+j		mhd, mhdiso 2D	current for slab symmetry
+j_rz		mhd, mhdiso 2D  current for cylindrical symmetry
+j_rp		mhd, mhdiso 2D	current for polar coordinates
+divb		mhd, mhdiso 2D	div B for slab symmetry
+divb4		mhd, mhdiso 2D	div B fourth order for slab symmetric 
+                                uniform Cartesian grid
+divb_CT         mhd, mhdiso 2D  div B for CT schemes on Cartesian grid
+divb_CD         mhd, mhdiso 2D  div B for CD schemes on generalized grid
+divb_rz		mhd, mhdiso 2D	div B for for cylindrical symmetry
+divb_rp		mhd, mhdiso 2D	div B for for polar coordinates
+A, AA, B	mhd, mhdiso 2D	vector potential for slab symmetry
+A_r, AA_r	mhd, mhdiso 2D	vector potential*r for cylindrical symmetry
+</pre>
+   Here <em>any</em> physics means any of <em>hdadiab, hd, mhdiso, mhd</em>.
+<p>
+   The vector potential A (or A*r in cylindrical coordinates) is most useful 
+   with <b>plotmode='contour'</b> to plot the magnetic field lines. 
+   (In case of A*r the contours are parallel to the field lines but their
+   density is not proportional to the field strength).
+   It is calculated by integrating the components of <b>B</b> along rows and 
+   columns of the possibly irregular grid. The vector potential is well defined
+   only if divergence B is zero, or negligible everywhere. Since this is not
+   always true, there are a few options to calculate the vector potential.
+   'A' and 'A_r' are integrated upwards starting from the bottom, 
+   while 'AA', 'B', and 'AA_r' are integrated from left to right.
+   This is important if the computational domain is irregular, and the
+   interpolated grid contains some unphysical regions, which should be
+   at the end of the integration paths. Finally 'B'
+   differs from 'AA' in that the resulting vector potential is smoothed a bit
+   after the integration, which makes the field lines look nicer.
+<p>
+   Also note that the derivatives are not accurate at the edges. The <b>cut</b>
+   array can be used to cut off the outermost cells for plotting.
+
+<H2><A NAME="Logfile">Reading the Logfile with getlog</A></H2>
+
+One or more (at most three) logfiles can be read by
+<pre>
+.r getlog
+</pre>
+   which reads data from the file(s) determined by the <b>logfilename</b> 
+   parameter. An initial guess for the name is made if the 
+   <b>filename</b> parameter has already been given. The data in the
+   logfile(s) is put into the <b>wlog</b> array in case of 
+   a single file, and into <b>wlog0, wlog1</b> in case of two files.
+   The <b>wlog(nt,nwlog)</b> array contains the nt rows and nwlog columns of the
+   logfile. A simple example is 
+<pre>
+.r getlog
+logfilename(s) ? example22.log
+headline       =ExampleA_hdadiab22
+Reading array wlog:
+  wlog(*, 0)= it
+  wlog(*, 1)= dt
+  wlog(*, 2)= t
+  wlog(*, 3)= h
+  wlog(*, 4)= m1
+  wlog(*, 5)= m2
+Number of recorded timesteps: nt=      20
+plot,wlog(*,0),wlog(*,3),xtitle='step',ytitle='h_mean'
+</pre>
+which checks the global mass conservation for exampleA.
+
+<H2><A NAME="Print">Saving Plots into Postscript Files</A></H2>
+
+In IDL printing a plot is possible through Postscript files.
+After the plot looks fine on the screen, use for example
+<pre>
+set_plot,'PS'
+device,filename='myfile.ps',xsize=24,ysize=18,/landscape,/color,bits=8
+loadct,3
+.r plotfunc
+device,/close
+set_plot,'X'
+</pre>
+For a non-color plot omit the <b>/color,bits=8</b> parameters and the 
+loading of the color table by the <b>loadct</b> command. For a <i>portrait</i>
+picture use <b>xsize=18, ysize=24</b> and omit the <b>/landscape</b> keyword.
+If the printout is off the page, set <b>yoffset=3</b> too.
+An alternative to the above general IDL commands are  
+the customized <b>set_device</b> and <b>close_device</b> procedures.
+<pre>
+set_device,'myfile.ps'
+loadct,3
+.r plotfunc
+close_device
+</pre>
+The first optional argument of the <b>set_device</b> procedure is the filename.
+If it is not given, the default filename 'idl.ps' is used.
+There are several keyword arguments too: <kbd>/port</kbd> for
+portrait (default is landscape), <kbd>/eps</kbd> for encapsulated postscript
+file, <kbd>percent=80</kbd> for an 80% size reduction, and <kbd>psfont=12</kbd>
+to select a specific font. The <b>close_device</b> procedure
+has no arguments, it simply closes the postscript device, and opens the
+'X' device.
+<p>
+You can use .r animate instead of .r plotfunc (e.g. for multiple files or 
+for time series) in combination with <kbd>set_device</kbd> and 
+<kbd>close_device</kbd>, but make sure that only one plot is produced by setting
+<b>npictmax=1</b> (or make sure that npictmax*nfunc*nfile does not exceed
+the number of subplots defined by the multiplot array), 
+and use <b>firstpict</b> to select the snapshot.
+To save all frames of an animation into a series of Postscript files, 
+do not use <b>set_device</b> but set
+<pre>
+printmovie='y'
+</pre>
+This will produce files 
+<b>Movie/1.ps,Movie/2.ps,...</b> in the Movie directory, which should
+exist. You can also save the frames into a series of GIF files 
+<b>Movie/1.gif,Movie/2.gif,...</b> with
+<pre>
+savemovie='y'
+</pre>
+The number of frames saved into files is limited by <b>nplotmax</b>.
+The GIF files can be put together into a movie by some program like
+<b>mpeg_encode</b> or <b>convert</b>, 
+while the PostScript files are best suited for printing. 
+
+<H2><A NAME="Scripts">IDL</A> Scripts and Procedures</H2>
+
+All the IDL commands can be collected into a script file, for example 
+<pre>
+Idl_mine/myfig.pro
+</pre>
+which can be run from IDL by
+<pre>
+@myfig
+</pre>
+This is a convenient way to store the commands for producing complicated 
+figures. An example can be found in Idl/EXAMPLE.pro. There are some
+restrictions on scripts, however. Loops cannot be used in a script.
+If loops are needed, a procedure should be written. From a procedure
+one can call all the procedures and functions, but cannot run the
+high level scripts. This requires more detailed understanding of the 
+IDL visualization procedures.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29 2003<br>
+</ADDRESS>
+</BODY>
+</HTML>

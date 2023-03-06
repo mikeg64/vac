@@ -1,0 +1,35 @@
+ &testlist 
+ /
+
+ &filelist
+	filenameini='data/waves1000.ini'
+	filename   ='data/waves1000.log',
+                    'data/waves1000.out'
+	typefileini='binary'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	dtsave=1.0, 5.0
+ /
+
+ &stoplist
+	tmax = 20.0
+	tmaxexact=T
+ /
+
+ &methodlist
+	wnames=		'rho m1 m2 m3 e b1 b2 b3'
+	typefull=	8*'tvdmu'
+	typelimiter=	8*'woodward'
+	useprimitive=   T
+ /
+
+ &boundlist
+	typeB =	8*'periodic',8*'periodic'
+ /
+
+ &paramlist
+	courantpar=0.9
+ /

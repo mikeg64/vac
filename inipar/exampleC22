@@ -1,0 +1,12 @@
+data/exampleC22.ini
+ExampleC_hdadiab22
+x y h m1 m2   gamma adiab
+domain
+50,50					-ixmax
+0,0					-min coordinates
+1,1					-max coordinates
+uniform
+1.	0.	0.			-rho,m1,m2
+eqpar
+2.	1.	0.			-gamma,g/2,coriolis coeff.
+save

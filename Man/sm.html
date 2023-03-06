@@ -1,0 +1,239 @@
+<HTML>
+<HEAD>
+<TITLE> VAC MANUAL on the SM visualization macros </TITLE>
+</HEAD>
+<BODY>
+<h1>SM VISUALIZATION MACROS</h1>
+
+This document briefly describes the use of SM (informally known as 
+Super Mongo) for plotting results from VAC. SM is not a free software,
+contact Robert Lupton at <b>rhl@astro.princeton.edu</b> if you want to 
+buy a copy.
+
+This page describes how SM can be run by local users, and how the macros work. 
+SM can only read the ASCII data files of VAC. You can use
+<A HREF="convert.html#Convertdata">convertdata</A> 
+to convert binary files to ASCII.
+<hr>
+This page:<br>
+ [<A HREF="#Initialization">Initialization</A>]
+ [<A HREF="#Running">Running</A>]
+ [<A HREF="#Plotting">PLOTTING</A>]:
+ [<A HREF="#1D">1D</A>]
+ [<A HREF="#2D">2D</A>]
+ [<A HREF="#Manipulation">Manipulation</A>]
+ [<A HREF="#Overplotting">Overplotting</A>]
+ [<A HREF="#Evolution">Time Evolution</A>]
+ [<A HREF="#Printing">Printing</A>]
+<hr>
+<H2><A NAME="Initialization">Initialization</A> File for SM</h2>
+
+   SM needs a .sm file in your main directory, create this file
+   based on the <b>.sm</b> file in the main vac/ directory, or a file
+   used by other users of SM at your institute. The 
+   <b>Sm/My.general.macros</b> file contains macros used by the other macros,
+   it should be loaded into SM.
+
+<H2><A NAME="Running">Running</A> SM</h2>
+
+   To run SM simply type <b>sm</b>. To exit SM type <b>end</b>.
+   On any macro or variable you may get information by <b>help NAME</b>.
+
+<H2><A NAME="Plotting">Plotting</A> results</h2>
+
+There are two basic macros to plot snapshots, <b>ini</b> and <b>out</b>.
+They do the same except that <b>ini</b> reads the initial file defined by
+the <b>$Inifile</b> variable, while <b>out</b> uses <b>$Outfile</b>.
+They have three optional arguments, <b>npict</b>, <b>ixy</b>, and a list
+of variable names and/or expressions.
+
+<H2><A NAME="1D">Snapshots</A> in 1D </h2>
+<p>
+   To plot results of e.g. the second saved snaphot in <b>data/PROBLEM.out</b>
+<pre>
+use PROBLEM
+out 2
+</pre>
+   The <b>use</b> macro sets the variables <b>$Inifile</b>, <b>$Outfile</b> and <b>$Logfile</b>
+   to <b>data/PROBLEM.ini</b>, <b>data/PROBLEM.out</b> and <b>data/PROBLEM.log</b>, 
+   respectively. The <b>out</b> macro plots the variables of the given snapshot
+   read from the <b>$Outfile</b>.
+<p>
+   In 1D you may choose to see points or continuous lines by the macros
+   <b>pointson</b>, <b>pointsoff</b>, <b>lineon</b>, and <b>lineoff</b>. Say <b>help ptype</b>,
+   <b>help ltype</b>, <b>help lweight</b> and <b>help ctype</b> for more options.
+<p>
+<H2><A NAME="2D">Snapshots</A> in 2D</h2>
+
+   In 2D the second parameter of <b>out</b> determines where the image should 
+   be cut for a 1D plot. If <b>ixy&gt;0</b> the cut is parallel to the 
+   <b>x</b> axis with <b>iy=ixy</b> kept constant. The default value is 
+   <b>ixy=1</b> which makes sense for 1D results as well. It is also the 
+   fastest to extract from the multi-D data file. 
+   If <b>ixy&lt;0</b> the cut is along the <b>y</b> axis with 
+   <b>ix=abs(ixy)</b> fixed. Thus
+<pre>
+out 2 10
+out 2 -10
+</pre>
+   will cut the 2D results at <b>iy=10</b> and <b>ix=10</b>, respectively.
+<p>
+   Finally <b>ixy=0</b> produces a 2D plot, which depends on <b>$Plotmode</b>.
+   The default <b>Plotmode</b> is <b>Surface</b>. Other possibilities are <b>Contour</b>,
+   <b>Greyscale</b> or <b>Colormap</b>.
+<pre>
+out 1 0
+</pre>
+   will result in surface plots of each conserved variable of the first 
+   snapshot with the default settings. See below how to plot other variables.
+   The <b>plotsurface</b> macro prompts you for the distance between gridlines
+   actually drawn. You typically want no more than 100 lines in one 
+   direction. Try <b>define Dix 1 define Diy 1</b> for maximum resolution.
+   Say <b>help viewpoint</b> for control on viewing angle and distance.
+<pre>
+define Plotmode Contour
+</pre>
+   makes <b>out</b> produce contour plots, <b>Colormap</b> and 
+   <b>Greyscale</b> are also available. A parameter may be added to set 
+   the number of levels
+<pre>
+define Plotmode "Colormap 30"
+</pre>
+   Say <b>help Colormap</b> and <b>help Greyscale</b> for more options. The 
+   default <b>$Plotmode</b> is <b>Surface</b> which uses <b>surfaceplot</b>.
+<p>
+   Once a 2D file is read you may refer to the last snapshot by number 0:
+<pre>
+out 0 0
+</pre>
+
+<H2><A NAME="Manipulation">Manipulation</A> of Variables</h2>
+
+   You have control over the plotted variables as well:
+<pre>
+out 3 1 rho m1/rho
+</pre>
+   will plot the density and the first component of the velocity at
+   the <b>y=1</b> cut of the 3rd snapshot. You can list as many expressions
+   as you wish. Some variables are calculated automatically if the
+   <b>extravar</b> macro is present. For MHD results load <b>Sm/mhd</b> by
+<pre>
+inic mhd
+</pre>
+   Say <b>help extravar</b> to see which variables will be derived by 
+   <b>out</b>.
+   You may create your own <b>extravar</b> macro in a similar manner. The 2D
+   variables are referenced by <b>Avarname</b>, thus
+<pre>
+out 0 0 sqrt(Ab1**2+Ab2**2)
+</pre>
+   will plot the magnitude of the magnetic field. You can create 
+   vectorfield plots by placing a <b>^</b> between to array variables
+<pre>
+out 0 0 Ab1^Ab2
+</pre>
+   will plot vectors descibing the magnetic field. The size of the arrows
+   can be changed by 
+<pre>
+define Plotmode2 "Vectorfield 4"
+</pre>
+   The <b>extraarr</b> macro, if present, can automatically calculate extra 
+   arrays from the original conservative variables read from the file. Type 
+   <b>help extraarr</b> to see what is available. You may have to 
+<pre>
+define Vectorpot 1
+</pre>
+   to make <b>extraarr</b> calculate the <b>Aa</b> vector potential for you.
+
+<H2><A NAME="Overplotting">Overplotting</A> and Plotting Limits</h2>
+
+   You can overplot previous plots in different colors by setting 
+<pre>
+eraseoff
+green
+</pre>
+   The opposite effect is achieved by <b>eraseon</b>.
+   It may be useful to use the same limits for the plots being compared.
+<pre>
+fixx XMIN XMAX
+</pre>
+   will fix the horizontal limits to run from XMIN to XMAX. For a single
+   plot you may use 
+<pre>
+fixy 0 1
+</pre>
+   to set the vertical limits. To fix the limits of the last plot, and
+   to simultaniously switch the <b>eraseoff</b> say
+<pre>
+fix
+</pre>
+   The limits can be made flexible and erase switched to <b>eraseon</b> by
+<pre>
+let
+</pre>
+   With multiple plots the different variables have different verticle
+   limits in general, thus <b>fixy</b> is not very useful. But
+<pre>
+fixall
+</pre>
+   will fix the verticle limits for each variable to those of the last plot
+   and also sets <b>eraseoff</b>.
+<pre>
+letall
+</pre>
+   has the opposite effect. The index ranges can also be fixed and let by
+<pre>
+fixind 1 99 1 99
+letind
+</pre>
+
+<H2><A NAME="Evolution">Plotting</A> the Time Evolution</h2>
+
+   Viewing the time evolution of some quantity stored in 
+   <b>data/PROBLEM.log</b> is possible by typing e.g.
+<pre>
+plott rho
+</pre>
+   where we plot the average density <b>rho</b> as a function of time.
+   The <b>pointson</b>, <b>pointsoff</b>, <b>lineon</b>, <b>lineoff</b>, 
+   <b>eraseon</b>, <b>eraseoff</b>,
+   <b>fixx</b>, <b>fixy</b>, <b>fix</b>, <b>let</b>, <b>fixall</b>, and 
+   <b>letall</b> macros, also the
+   <b>ptype</b>, <b>ctype</b>, <b>ltype</b> and <b>lweight</b> 
+   commands have the same effect
+   as in the 1D plots produced by <b>out</b>.
+<p>
+<H2><A NAME="Printing">Printing</A> the Plots</h2>
+
+   Printing the result of a macro call can be done by inserting one
+   of the printing macros at the beginning of the line:
+<pre>
+land MACRO PARAMETERS
+</pre>
+   will produce a landscape printout on te default <b>$printer</b> set in
+   the file <b>.sm</b>. Also availabe are <b>port</b> and <b>square</b> for 
+   portrait and square formats respectively. To print the result of a 
+   series of commands 
+<pre>
+device postport
+COMMAND
+COMMAND
+...
+x
+</pre>
+   where the last macro <b>x</b> sets the device back to the terminal,
+   and starts printing. To create an encapsulated PostScript file, type
+<pre>
+device postencap FILENAME.ps
+COMMANDS
+...
+x
+</pre>
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th,
+December 11 1996
+</ADDRESS>
+</BODY>
+</HTML>

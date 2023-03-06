@@ -1,0 +1,250 @@
+C
+*DECK VISAVSHEAD
+      SUBROUTINE VISAVSHEAD(VISFILNAME, VISRES,     VISNDIM,    VISCOOR,
+     A                      VISVECTLEN, VISNFIELDS, VISFIENAME,
+     B                      VISSTRUCTU, VISSTRUTYP, VISFORMATS,  VISXDR,
+     C                      VISHOW)
+C     ******************************************************************
+C     * THIS ROUTINE TOGETHER WITH VISOPENAVS (GENERAL FORMAT ONLY)    *
+C     * AND VISDATAOUT                                                 *
+C     * OUTPUT THE DATA IN SUCH A FORMAT THAT IT CAN BE IMMEDIATELY    *
+C     * READ INTO AVS USING THE 'READ FIELD' MODULE. THE GENERAL FILE  *
+C     * FORMAT AS WELL AS THE INTERNAL AVS FIELD FORMAT ARE SUPPORTED. *
+C     * HOWEVER WE DO RECOMMEND TO USE THE INTERNAL FORMAT ONLY SINCE  *
+C     * IT IS MUCH MORE EFFICIENT WITH RESPECT TO I/O PERFORMANCE.     *
+C     * THE GENERAL FILE FORMAT IS ONLY SUITED FOR PORTABILITY REASONS.*
+C     * IT ALLOWS ONE TO OUTPUT EVERYTHING IN ASCII AND IT SEPERATES   *
+C     * THE HEADER FROM THE DATA PART, I.E. DIFFERENT FILES ARE USED.  *
+C     * THE OUTPUT IN THE DATA FILE IS COLUMN BASED AND CAN BE READ    *
+C     * BY OTHER APPLICATIONS EASILY.                                  *
+C     *                                                                *
+C     * ON INPUT:                                                      *
+C     * VISFILNAME CONTAINS THE FILENAME OF THE OUTPUT FILE. IF IT     *
+C     *            DOES NOT ALLREADY CONTAIN THE .fld POSTFIX IT WILL  *
+C     *            BE ADDED.                                           *
+C     * VISRES     CONTAINS THE RESOLUTION OF THE DATA SET             *
+C     *            (VISRESINIT(VISCOORRAD)<=VISNI),                    *
+C     *            (VISRESINIT(VISCOORPOL)<=VISNJ),                    *
+C     *            (VISRESINIT(VISCOORTOR)<=VISNK),                    *
+C     *            (VISRESINIT(VISCOORTIM)<=VISNT).                    *
+C     * VISNDIM    CONTAINS THE NUMBER OF DIMENSION TO BE PRINTED.     *
+C     * VISCOOR    CONTAINS THE DIMENSIONS WHICH WILL BE PRINTED.      *
+C     * VISVECTLEN CONTAINS THE NUMBER OF DATA ELEMENTS PER NODE.      *
+C     * VISNFIELDS CONTAINS THE NUMBER OF FIELDS PER NODE.             *
+C     * VISFIENAME CONTAINS THE NAMES OF THE DIFFERENT FIELDS.         *
+C     * VISHOW     DETERMINES THE FILE FORMAT                          *
+C     *            VISHOW=VISGENERAL -> GENERAL  FILE FORMAT,          *
+C     *            VISHOW=VISINTERNA -> INTERNAL FILE FORMAT.          *
+C     * VISSTRUCTU DETERMINES THE TYPE OF THE FIELDS                   *
+C     *            VISSTRUCTU()=VISRANKSCA -> SCALAR FIELD,            *
+C     *            VISSTRUCTU()=VISRANKVC1 -> 1-VECTOR FIELD.          *
+C     *            VISSTRUCTU()=VISRANKVC2 -> 2-VECTOR FIELD.          *
+C     *            VISSTRUCTU()=VISRANKVC3 -> 3-VECTOR FIELD.          *
+C     *            VISSTRUCTU()=VISRANKVEC -> 3-VECTOR FIELD.          *
+C     * VISSTRUTYP CONTAINS THE PRIMITIVE TYPE OF THE FIELD            *
+C     *            VISTYPEDOU -> DOUBLE                                *
+C     *            VISTYPEFLO -> FLOAT                                 *
+C     * VISFORMATS DETERMINES WHETHER OR NOT THE DATA WILL BE PRINTED  *
+C     *            IN ASCII OR IN BINARY FORMAT.                       *
+C     *            VISFORMATS=VISFORMASC -> ASCII                      *
+C     *            VISFORMATS=VISFORMBIN -> BINARY                     *
+C     * VISXDR     DETERMINES IF BINARY IS IN XDR FORMAT OR NOT        *
+C     *            (AVS ONLY)                                          *
+C     ******************************************************************
+C
+C#include "comcoor"
+C#include "comerrn"
+C#include "cominou"
+C#include "comrank"
+C#include "comtype"
+C#include "comform"
+
+	INCLUDE 'INCLUDE/comcoor'
+	INCLUDE 'INCLUDE/comerrn'
+	INCLUDE 'INCLUDE/cominou'
+	INCLUDE 'INCLUDE/comrank'
+	INCLUDE 'INCLUDE/comtype'
+	INCLUDE 'INCLUDE/comform'
+
+
+C
+      LOGICAL       VISXDR
+      INTEGER       VISRES(*),  VISNDIM,    VISCOOR(*),
+     A              VISVECTLEN, VISNFIELDS, VISSTRUCTU(*),  VISFORMATS,
+     B              VISHOW
+      CHARACTER*(*) VISFILNAME, VISFIENAME(*),  VISSTRUTYP(*)
+C
+C     *COUNTERS
+      INTEGER I,J
+C
+C     * LOCAL VARIABLES
+      INTEGER NSPACE, SKIP, OFFSET, STRIDE,
+     A        IND, IND2
+      CHARACTER VISCOORTYP*(*), HEADERNAME*80, TYPE*9,
+     A          FILETYPE*11
+      PARAMETER (
+     1    NSPACE=3,
+     2    VISCOORTYP='irregular'
+     3)
+C
+C     * INITIAL VALUES
+      DATA SKIP/0/
+C
+C     * FUNCTIONS
+      INTEGER       VISSIZEOF
+      LOGICAL       VISNAMEOK
+C
+C     * CHECKING DIMENSIONS
+      IF (VISNDIM.LT.1.OR.VISNDIM.GT.4) THEN
+         CALL VISPRERR(VISERRNDIM,'VISAVSHEAD')
+      ENDIF
+C
+C     * FILE NAME OK?
+      IF (.NOT.VISNAMEOK(VISFILNAME)) THEN
+         CALL VISPRWAR(VISWARNAME,'VISAVSHEAD')
+         VISFILNAME='avsfile'
+      ENDIF
+C
+C     * OPEN HEADER FILE FOR GENERAL FILE FORMAT
+C     * FOR AVS INTERNAL FIELD FORMAT THIS HEADER FILE ALSO CONTAINS THE
+C     * BINARY DATA PART
+      HEADERNAME = VISFILNAME
+      IND = INDEX(HEADERNAME,'.fld')
+      IF (IND.EQ.0) THEN
+         IND = MIN(76,INDEX(HEADERNAME,' '))
+         IF (IND.EQ.0) IND = MAX(1,LEN(HEADERNAME)-3)
+      ENDIF
+      IND = MIN(76,IND)
+      HEADERNAME(IND:IND+3)   = '.fld'
+      HEADERNAME(IND+4:IND+4) = CHAR(0)
+      OPEN(UNIT=VISAVSOUTP,FILE=HEADERNAME(1:IND+3),STATUS='UNKNOWN')
+C
+C     * AVS INDICATION
+      WRITE(VISAVSOUTP,100)
+C
+C     * NUMBER OF DIMENSIONS
+      WRITE(VISAVSOUTP,110) VISNDIM
+C
+C     * DIMENSION SIZES
+      WRITE(VISAVSOUTP,120) (I, VISRES(VISCOOR(I)), I=1,VISNDIM)
+C
+C     * DIMENSION OF PHYSICAL SPACE
+      WRITE(VISAVSOUTP,130) NSPACE
+C
+C     * NUMBER OF DATA VALUES PER DATA NODE
+      WRITE(VISAVSOUTP,140) VISVECTLEN
+C
+C     * SETTING THE POSITIONS AS THE LAST FIELD
+      VISSTRUCTU(VISNFIELDS+1)=VISRANKVC3
+      VISSTRUTYP(VISNFIELDS+1)=VISSTRUTYP(1)
+      VISFIENAME(VISNFIELDS+1)='locations'
+C
+C     * PRIMITIVE DATA TYPE (ALL STRUCTURES MUST HAVE THE SAME TYPE IN
+C       AVS)
+      TYPE=VISSTRUTYP(1)
+      DO 10 I=2,VISNFIELDS+1
+         IF (VISSTRUTYP(I).NE.TYPE) THEN
+            CALL VISPRERR(VISERRSTRU,'VISAVSHEAD')
+         ENDIF
+   10 CONTINUE
+      IF (VISXDR) THEN
+         WRITE(VISAVSOUTP,150) 'xdr_'//TYPE
+      ELSE
+         WRITE(VISAVSOUTP,150) TYPE
+      ENDIF
+C
+C     * COORDINATE TYPE (IN THIS VERSION ONLY IRREGULAR IS SUPPORTED)
+      WRITE(VISAVSOUTP,160) VISCOORTYP
+C
+C     * STRUCTURE NAME LABELS
+      DO 20 I=1,VISNFIELDS
+         DO 30 J=1,VISSTRUCTU(I)
+            IND2=INDEX(VISFIENAME(I),' ')
+            IF (IND2.EQ.0) IND2 = LEN(VISFIENAME(I))+1
+            IF (VISSTRUCTU(I).EQ.VISRANKSCA) THEN
+               WRITE(VISAVSOUTP,170) VISFIENAME(I)(1:IND2-1)
+            ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC1) THEN
+               WRITE(VISAVSOUTP,170) VISFIENAME(I)(1:IND2-1),J
+            ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC2) THEN
+               WRITE(VISAVSOUTP,170) VISFIENAME(I)(1:IND2-1),J
+            ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC3) THEN
+               WRITE(VISAVSOUTP,170) VISFIENAME(I)(1:IND2-1),J
+            ELSE IF (VISSTRUCTU(I).EQ.VISRANKVEC) THEN
+               WRITE(VISAVSOUTP,170) VISFIENAME(I)(1:IND2-1),J
+            ENDIF
+   30    CONTINUE
+   20 CONTINUE
+C
+      IF (.NOT.(VISFORMATS.EQ.VISFORMASC.OR.
+     A    VISFORMATS.EQ.VISFORMBIN.OR.
+     B    VISFORMATS.EQ.VISFORMUNF)) THEN
+          CALL VISPRWAR(VISWARFORM,'VISAVSHEAD')
+          VISFORMATS=VISFORMASC
+      ENDIF
+C
+      IF (VISFORMATS.EQ.VISFORMBIN.AND.VISHOW.EQ.VISINTERNA) THEN
+C        * ONLY FOR INTERNAL AVS FIELD
+         FILETYPE='binary'
+      ENDIF
+C
+C     * DATA VARIABLES
+      DO 40 I=1,VISVECTLEN
+         IF (VISFORMATS.EQ.VISFORMASC) THEN
+            FILETYPE='ascii'
+            SKIP    =VISNFIELDS+1
+            OFFSET=I-1
+            STRIDE=VISNFIELDS+NSPACE
+            WRITE(VISAVSOUTP,190) I, VISFILNAME(1:IND-1), FILETYPE(1:5),
+     A                            SKIP, OFFSET, STRIDE
+         ELSE IF (VISFORMATS.EQ.VISFORMUNF) THEN
+            FILETYPE='unformatted'
+            SKIP  =4+(I-1)*VISSIZEOF(TYPE)
+            STRIDE=NSPACE*VISSIZEOF(VISSTRUTYP(VISNFIELDS+1))
+     A            +VISVECTLEN*VISSIZEOF(TYPE)
+            WRITE(VISAVSOUTP,195) I, VISFILNAME(1:IND-1),FILETYPE(1:11),
+     A                            SKIP, STRIDE
+         ENDIF
+   40 CONTINUE
+C
+C     * COORDINATES
+      DO 50 I=1,NSPACE
+         IF (VISFORMATS.EQ.VISFORMASC) THEN
+            OFFSET=VISNFIELDS+(I-1)
+            STRIDE=VISNFIELDS+NSPACE
+            WRITE(VISAVSOUTP,180) I, VISFILNAME(1:IND-1), FILETYPE(1:5),
+     A                            SKIP, OFFSET, STRIDE
+         ELSE IF (VISFORMATS.EQ.VISFORMUNF) THEN
+            SKIP  =4+(VISVECTLEN+I-1)*VISSIZEOF(TYPE)
+            STRIDE=NSPACE*VISSIZEOF(VISSTRUTYP(VISNFIELDS+1))
+     A            +VISVECTLEN*VISSIZEOF(VISSTRUTYP(1))
+            WRITE(VISAVSOUTP,185) I, VISFILNAME(1:IND-1),FILETYPE(1:11),
+     A                            SKIP, STRIDE
+         ENDIF
+   50 CONTINUE
+C
+C     * CLOSE FILE
+      CLOSE(UNIT=VISAVSOUTP)
+C
+C     * ADDING TWO FORM FEEDS IN CASE OF BINARY FORMAT
+      IF (VISFORMATS.EQ.VISFORMBIN) THEN
+         CALL writeff(HEADERNAME)
+      ENDIF
+C
+C     * FORMATS
+  100 FORMAT('# AVS field file',/,'#')
+  110 FORMAT('ndim=',I1)
+  120 FORMAT('dim',I1,'=',I4)
+  130 FORMAT('nspace=',I1)
+  140 FORMAT('veclen=',I1)
+  150 FORMAT('data=',A)
+  160 FORMAT('field=',A)
+  170 FORMAT('label=',A,I1)
+  180 FORMAT('coord',1X,I1,1X,'file=',A,1X,'filetype=',A,1X,
+     A       'skip=',1X,I7,1X,'offset=',I7,1X,'stride=',I7)
+  185 FORMAT('coord',1X,I1,1X,'file=',A,1X,'filetype=',A,1X,
+     A       'skip=',1X,I7,1X,'stride=',I7)
+  190 FORMAT('variable',1X,I1,1X,'file=',A,1X,'filetype=',A,1X,
+     A       'skip=',1X,I7,1X,'offset=',I7,1X,'stride=',I7)
+  195 FORMAT('variable',1X,I1,1X,'file=',A,1X,'filetype=',A,1X,
+     A       'skip=',1X,I7,1X,'stride=',I7)
+      END

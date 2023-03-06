@@ -1,0 +1,38 @@
+ &testlist 
+	teststr='readparameters'
+ /
+
+ &filelist
+        npe1=1
+        npe2=1
+	filenameini='data/peak22.ini',
+	typefileini='ascii'
+	filename=   'data/peak22nompi.log',
+		    'data/peak22nompi.out'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=1,1
+ /
+
+ &stoplist
+	itmax=5
+ /
+
+ &methodlist
+	wnames=		'rho m1 m2 e b1 b2'
+	typefull=          6*'tvd'
+	typelimiter=	6*'woodward'
+	dimsplit    =	T
+	sourcesplit=	T
+ /
+
+ &boundlist
+	typeB= 6*'cont',6*'cont',6*'cont'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

@@ -1,0 +1,22 @@
+#!/usr/bin/perl -si~
+# Replace file extensions in scripts.
+#
+# Usage: "make extensions" or "make extension77" via the Makefile.
+# Maybe: Fix/extensionfix -stem=vacdef,vacpar -ext=.f90 filename
+#
+# Here the stem can be a list of strings sepatrated by commas (no spaces).
+
+die "The extension should start with a dot (e.g -ext=.f)!\n" if $ext!~/^\./;
+die "The stem is not defined (e.g. -stem=vacdef)!\n" unless $stem;
+
+$match=$stem; $match=~s/,/|/g;
+@stem=split(/,/,$stem);
+foreach $stem (split(/,/,$stem)){
+   die "The stem=$stem is too short, not a safe replacement!" 
+       if length($stem)<5;
+}
+
+while(<>){
+    s/($match)\.[^tp]\w*/$1$ext/go;
+    print;
+}

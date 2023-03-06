@@ -1,0 +1,22 @@
+geteqpar
+	set gamma=eqpar[0]
+extraarr
+	geteqpar
+	define Extra_Var " "
+	set Ap=Ae
+	do idir=1,ndir{
+	    set Av$idir=Am$idir/Arho
+	    set Ap=Ap-0.5*Av$idir*Am$idir
+	    define Extra_Var "$!Extra_Var v$!idir" 
+	}
+	set Ap=(gamma-1)*Ap
+	define Extra_Var "$!Extra_Var p"
+extravar
+	geteqpar
+	set p=e
+	do idir=1,ndir{
+	    set v$idir=m$idir/rho
+	    set p=p-0.5*v$idir*m$idir
+	}
+	set p=(gamma-1)*p
+	set cs=sqrt(gamma*p/rho)

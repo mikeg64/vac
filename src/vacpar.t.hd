@@ -1,0 +1,29 @@
+!##############################################################################
+! include vacpar - hd
+
+! For ideal HD: density, momentum, energy + adiabatic_index
+
+CHARACTER*2,PARAMETER:: typephys='hd'            ! VACPHYS module name
+CHARACTER*5,PARAMETER:: eqparname='gamma'        ! Equation parameter names
+
+INTEGER,PARAMETER:: rho_=1,m0_=rho_,m^C_=m0_+^C,e_=m^NC_+1! flow variables
+INTEGER,PARAMETER:: ee_=e_, nw=e_                         ! No. flow variables
+
+INTEGER,PARAMETER:: v0_=m0_, v^C_=m^C_, p_=e_, pp_=ee_    ! Primitive variables
+
+                                                            ! Characteristic
+INTEGER,PARAMETER:: soundRW_=1,soundLW_=2,entropW_=3,shearW0_=3      ! waves
+INTEGER,PARAMETER:: extremeRW_=soundRW_,extremeLW_=soundLW_ ! Potential extrema
+
+INTEGER,PARAMETER:: mr_=m0_+r_,mphi_=m0_+phi_,mz_=m0_+z_  ! Polar var. names
+
+INTEGER,PARAMETER:: b0_=0                                 ! No magnetic field
+
+INTEGER,PARAMETER:: nvector=1                             ! No. vector vars.
+
+INTEGER,PARAMETER:: gamma_=1,neqpar=1                     ! equation parameters
+
+INTEGER,PARAMETER:: diffuse_=0, nprocpar=nw               ! processing params.
+                                                          ! for artif.diffusion
+! end include vacpar - hd
+!##############################################################################

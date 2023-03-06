@@ -1,0 +1,89 @@
+C
+*DECK VISTOCART9
+      SUBROUTINE VISTOCART9(VISMATDATA,    VISPOSX,    VISPOSY,VISPOSZ,
+     A                      VISPOSIRAD, VISPOSIPOL, VISPOSITOR,
+     B                      VISSTRUCTU, INVASPECT)
+C     ******************************************************************
+C     * ARGUMENT DESCRIPTION: SEE VISTOCART                            *
+C     ******************************************************************
+      COMMON /DIMS/ VISDIM1, VISDIM2, VISDIM3, VISDIM4, VISDIM5
+      INTEGER       VISDIM1, VISDIM2, VISDIM3, VISDIM4, VISDIM5
+      COMMON /INFO/ VISRESO,    VISCORD,    VISSLIC,    VISDIMS,
+     A              VISSERI,    VISVLEN,    VISNFLD,    VISFORM,
+     B              VISGEOM,    VISXDR
+      LOGICAL       VISSERI,    VISXDR
+      INTEGER       VISRESO(4), VISCORD(4), VISSLIC(4), VISDIMS,
+     A              VISVLEN,    VISNFLD,    VISFORM,    VISGEOM
+      COMMON /CTIM/ VISTIME1,   VISTRES,    VISNTST,
+     A              VISFIRS,    VISLAST,    VIS1TST
+      LOGICAL       VISFIRS,    VISLAST,    VIS1TST
+      INTEGER       VISTRES,    VISNTST
+      REAL          VISTIME1
+C
+      INTEGER       VISSTRUCTU(*)
+      REAL          VISMATDATA(VISDIM1,VISDIM2,VISDIM3,VISDIM4,VISDIM5),
+     A              VISPOSX(VISDIM2,VISDIM3,VISDIM4),
+     B              VISPOSY(VISDIM2,VISDIM3,VISDIM4),
+     C              VISPOSZ(VISDIM2,VISDIM3,VISDIM4),
+     D              VISPOSIRAD(VISDIM2),
+     E              VISPOSIPOL(VISDIM3),
+     F              VISPOSITOR(VISDIM4),
+     G              INVASPECT
+C
+C#include "comerrn"
+C#include "comrank"
+C#include "comgeom"
+	INCLUDE 'INCLUDE/comerrn'
+	INCLUDE 'INCLUDE/comrank'
+	INCLUDE 'INCLUDE/comgeom'
+C
+C     * LOCAL VARIABLE
+      INTEGER VISTMP
+C
+C     * COUNTERS
+      INTEGER I
+C
+C     * EXTERNAL SUBROUTINES
+      EXTERNAL VISPRERR, VISPRWAR, VISTOCART
+C
+C     * DETERMINING THE VECTOR LENGTH
+      VISVLEN = 0
+      DO 10 I=1, VISNFLD
+         IF (VISSTRUCTU(I).EQ.VISRANKSCA) THEN
+            VISVLEN = VISVLEN + 1
+         ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC1) THEN
+            VISVLEN = VISVLEN + 1
+         ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC2) THEN
+            VISVLEN = VISVLEN + 2
+         ELSE IF (VISSTRUCTU(I).EQ.VISRANKVC3) THEN
+            VISVLEN = VISVLEN + 3
+         ELSE IF (VISSTRUCTU(I).EQ.VISRANKVEC) THEN
+            VISVLEN = VISVLEN + 3
+         ELSE
+            CALL VISPRERR(VISERRWRST,'VISTOCART10')
+         ENDIF
+   10 CONTINUE
+C
+      IF (     VISGEOM.NE.VISGEOMCYL.AND.VISGEOM.NE.VISGEOMTOK
+     A    .AND.VISGEOM.NE.VISGEOMLOO.AND.VISGEOM.NE.VISGEOMAUX) THEN
+          CALL VISPRWAR(VISWARGEOM,'VISTOCART10')
+      ENDIF
+C
+      IF (VIS1TST) THEN
+         VISTMP     = VISRESO(4)
+         VISRESO(4) = 1
+      ENDIF
+C
+      CALL VISTOCART(VISMATDATA,
+     A               VISPOSX,    VISPOSY,       VISPOSZ,
+     A               VISPOSIRAD, VISPOSIPOL, VISPOSITOR,
+     B               VISDIM1,       VISDIM2,    VISDIM3,    VISDIM4,
+     D               VISDIM5,       VISRESO,    VISGEOM,    VISVLEN,
+     E               VISNFLD,    VISSTRUCTU,  INVASPECT)
+C
+      IF (VIS1TST) THEN
+         VISRESO(4) = VISTMP
+      ENDIF
+C
+      RETURN
+      END

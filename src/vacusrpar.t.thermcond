@@ -1,0 +1,8 @@
+!##############################################################################
+! include vacusrpar - thermcond
+
+INTEGER,PARAMETER:: kappa_=neqpar+1, nspecialpar=1
+CHARACTER*5 ,PARAMETER:: specialparname='kappa'
+
+! end include vacusrpar - thermcond
+!##############################################################################

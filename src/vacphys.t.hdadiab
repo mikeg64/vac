@@ -1,0 +1,183 @@
+!##############################################################################
+! module vacphys - hdadiab
+
+INCLUDE:vacnul.addsource.t
+INCLUDE:vacnul.process.t
+INCLUDE:vacphys.hdadroe.t^IFTVD
+!=============================================================================
+subroutine physini
+
+! Tell VAC which variables are vectors
+! Set default values for entropycoef for typeentropy='yee'
+
+include 'vacdef.f'
+
+integer:: il
+!-----------------------------------------------------------------------------
+
+iw_vector(1)=m0_
+
+! The values of the constants are taken from Ryu & Jones ApJ 442, 228
+! assuming that it works for HD just as well as for MHD.
+do il=1,nw
+   select case(il)
+   case(soundRW_,soundLW_)
+      entropycoef(il)= 0.2
+   case default
+      entropycoef(il)= -one
+   end select
+end do
+
+return
+end
+
+!=============================================================================
+subroutine getdt(w,ix^L)
+
+! No extra restriction on dt
+
+include 'vacdef.f'
+
+double precision:: w(ixG^T,nw)
+integer:: ix^L,idim
+!-----------------------------------------------------------------------------
+
+return
+end
+
+!=============================================================================
+subroutine getflux(w,ix^L,iw,idim,f,transport)
+
+! Calculate non-transport flux f_idim[iw] within ix^L.
+! Set transport=.true. if a transport flux should be added
+
+include 'vacdef.f'
+
+integer::          ix^L,iw,idim
+double precision:: w(ixG^T,nw),f(ixG^T)
+logical::          transport
+!-----------------------------------------------------------------------------
+
+if(iw==m0_+idim)then
+   ! f_i[m_i]=v_i*m_i+p and p=adiab*rho**gamma
+   f(ix^S)=eqpar(adiab_)*w(ix^S,rho_)**eqpar(gamma_)
+else
+   f(ix^S)=zero
+endif
+
+transport=.true.
+
+return
+end
+
+!=============================================================================
+subroutine addgeometry(qdt,ix^L,iws,w,wnew)
+
+! Add geometrical source terms to wnew
+
+include 'vacdef.f'
+
+integer::          ix^L,iws(niw_),ix,iiw,iw,idir
+double precision:: qdt,w(ixG^T,nw),wnew(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'addgeometry')>=1
+
+select case(typeaxial)
+   case('slab','test')
+       ! No source terms in slab symmetry
+   case('nozzle')
+      if(ndir>1)call die('Nozzle geometry for ndir>1 is not implemented')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         if(iw==mr_)then
+            tmp(ix^S)=eqpar(adiab_)*w(ix^S,rho_)**eqpar(gamma_)
+            forall(ix= ix^LIM1:) wnew(ix,ix^SE,iw)=wnew(ix,ix^SE,iw) &
+               +qdt*tmp(ix,ix^SE)*areaside(ix)
+         endif
+      enddo
+   case('sphere')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         select case(iw)
+         ! s[mr]=pthermal*2/r+(mphi**2/rho+mtheta**2/rho)/r
+         case(mr_)
+            tmp(ix^S)=eqpar(adiab_)*w(ix^S,rho_)**eqpar(gamma_)
+            ! This discretization maintains an exact equilibrium for p=const.
+            ! areaside=(areaCi-areaCh)/areadx
+            forall(ix= ix^LIM1:) wnew(ix,ix^SE,iw)=wnew(ix,ix^SE,iw) &
+               +qdt*tmp(ix,ix^SE)*areaside(ix)
+            tmp(ix^S)=zero
+            do idir=2,ndir
+               tmp(ix^S)=tmp(ix^S)+w(ix^S,m0_+idir)**2/w(ix^S,rho_)
+            end do
+         ! s[mphi]=(-mphi*mr/rho)/radius and phi-->theta
+         {case(m^CE_)
+            tmp(ix^S)= -w(ix^S,m^CE_)*w(ix^S,mr_)/w(ix^S,rho_) \}
+         end select
+         ! Divide by radius and add to wnew for variables other than rho
+         if(iw/=rho_)wnew(ix^S,iw)=wnew(ix^S,iw)+qdt*tmp(ix^S)/x(ix^S,r_)
+         if(oktest.and.iw==iwtest)&
+            write(*,*)'Geometrical source:',tmp(ixtest^D)
+      end do
+   case('cylinder')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         select case(iw)
+         ! s[mr]=(pthermal+mphi**2/rho)/radius
+         case(mr_)
+            tmp(ix^S)=eqpar(adiab_)*w(ix^S,rho_)**eqpar(gamma_)
+            if(.not.gencoord)then
+               ! For nonuniform Cartesian grid this provides hydrostatic equil.
+               forall(ix= ix^LIM1:) wnew(ix,ix^SE,iw)=wnew(ix,ix^SE,iw) &
+                  +qdt*tmp(ix,ix^SE)*areaside(ix)
+               tmp(ix^S)=zero
+            endif
+{^IFPHI
+            tmp(ix^S)=tmp(ix^S)+w(ix^S,mphi_)**2/w(ix^S,rho_)
+         ! s[mphi]=(-mphi*mr/rho)/radius
+         case(mphi_)
+            if(.not.angmomfix)tmp(ix^S)=-w(ix^S,mphi_)*w(ix^S,mr_)/w(ix^S,rho_)
+}
+         end select
+         ! Divide by radius and add to wnew
+         if(iw==mr_.or.(iw==mphi_.and..not.angmomfix)) &
+            wnew(ix^S,iw)=wnew(ix^S,iw)+qdt*tmp(ix^S)/x(ix^S,r_)
+         if(oktest.and.iw==iwtest)&
+            write(*,*)'Geometrical source:',tmp(ixtest^D)
+      end do
+end select
+
+return
+end
+
+!=============================================================================
+
+INCLUDE:vacproc.positive.t
+
+subroutine keeppositive(ix^L,w)
+
+! Keep density (and consequently pressure) positive
+
+include 'vacdef.f'
+
+integer::          ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+if(vacuumrho<zero)then
+   ! Keep density positive
+   call keeppositive_rho(ix^L,w)
+else
+   ! Where rho is small use vacuum state: rho=vacuumrho, v=0
+   where(w(ix^S,rho_)<smallrho)
+      w(ix^S,rho_)=vacuumrho
+      ^C&w(ix^S,m^C_)=zero;
+   endwhere
+endif
+
+return
+end
+
+!=============================================================================
+! end module vacphys - hdadiab
+!##############################################################################
+
+

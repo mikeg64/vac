@@ -1,0 +1,4 @@
+enstrophy
+	set Aens=(gradx(Av2)-grady(Av1))**2/Arho
+	set totens=sum(Aens)
+	echo Total enstrophy=$(totens)

@@ -1,0 +1,21 @@
+data/exampleD22.ini
+Kelvin-Helmholtz-instability_hdadiab22
+x y rho m1 m2   gamma adiab
+domain
+100,100				- ixmax,iymax
+0.,0.				- min coordinates
+1.0,0.5				- max coordinates
+shocktube
+2				-normal direction
+3				-number of segments
+1.	+0.5	0.		-state of left boundary
+1.	+0.5 	0.		-state of end of segment 1
+48				-position of segment-end 1
+1.	-0.5	0.		-state of end of segment 2
+52				-position of segment-end 2
+1.	-0.5	0.		-state of right boundary
+2.	7.5	0.		-gamma, adiabatic coeff., Coriolis coeff.
+perturbvar
+3       0.01    1 100 45 55	-momentum2,dw,ixP limits
+18.8496	0.	0.	1.571	-k1=2*pi/lambda,k2,phase1,phase2
+save

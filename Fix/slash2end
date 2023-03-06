@@ -1,0 +1,8 @@
+#!/usr/bin/perl -pi~
+# Convert / to &end in namelists. Usage: Fix/slash2end par/*
+#
+# On SP2 you may try setting the environment variable XLFRTEOPTS instead:
+#
+# setenv XLFRTEOPTS namelist=old
+
+s#/$#&end#

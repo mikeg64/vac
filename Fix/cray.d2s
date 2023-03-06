@@ -1,0 +1,16 @@
+#!/usr/bin/perl -pi~
+# Replace double precision BLAS and LAPACK with single precision versions
+# by changing the initial D into an S for Cray blas and lapack routines.
+#
+# Usage: Fix/cray.d2s src/vaciter.t src/tridiag.f src/gmresr.f src/conjgrad.f
+
+# Replace in procedure calls
+s/call +d/CALL S/i;
+
+# Replace in function names
+s/\bdnrm2\b/snrm2/gi;
+s/\bddot\b/sdot/gi;
+s/\bdtrsv\b/strsv/gi;
+
+# Replace in external statements
+s/\bd/\bS/ig if /EXTERNAL/;

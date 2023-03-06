@@ -1,0 +1,138 @@
+!##############################################################################
+! module vacphys0 - hd
+
+!=============================================================================
+subroutine conserve(ix^L,w)
+
+! Transform primitive variables into conservative ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'conserv')>=1
+if(oktest)write(*,*)'Conserve w:',w(ixtest^D,iwtest)
+
+! Calculate total energy from pressure and kinetic energy
+w(ix^S,e_)=w(ix^S,p_)/(eqpar(gamma_)-1)+half*w(ix^S,rho_)*(^C&w(ix^S,v^C_)**2+)
+
+! Convert velocity to momentum
+^C&w(ix^S,m^C_)=w(ix^S,rho_)*w(ix^S,v^C_);
+
+if(oktest)write(*,*)'New w:',w(ixtest^D,iwtest)
+
+return
+end
+
+!=============================================================================
+subroutine primitive(ix^L,w)
+
+! Transform conservative variables into primitive ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'primitive')>=1
+if(oktest)write(*,*)'Primitive w:',w(ixtest^D,iwtest)
+
+! Calculate pressure
+call getpthermal(.true.,w,ix^L,tmp)
+w(ix^S,p_)=tmp(ix^S)
+
+! Convert momentum to velocity
+^C&w(ix^S,v^C_)=w(ix^S,m^C_)/w(ix^S,rho_);
+
+if(oktest)write(*,*)'New w:',w(ixtest^D,iwtest)
+
+return
+end
+
+!=============================================================================
+subroutine getv(w,ix^L,idim,v)
+
+! Calculate v_idim=m_idim/rho within ix^L
+
+include 'vacdef.f'
+
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),v(ixG^T)
+!-----------------------------------------------------------------------------
+
+v(ix^S)=w(ix^S,m0_+idim)/w(ix^S,rho_)
+
+return 
+end
+
+!=============================================================================
+subroutine getcmax(new_cmax,w,ix^L,idim,cmax)
+
+! Calculate cmax_idim=csound+abs(v_idim) within ix^L
+include 'vacdef.f'
+
+logical:: new_cmax
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),cmax(ixG^T),csound(ixG^T)
+save csound
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'getcmax')>=1
+if(oktest)write(*,*)'GetCmax,w:',w(ixtest^D,iwtest)
+
+if(oktest)write(*,*)'new_cmax:=',new_cmax
+
+
+if(new_cmax)then
+   new_cmax=.false.
+   call getpthermal(.true.,w,ix^L,csound)
+   csound(ix^S)=sqrt(eqpar(gamma_)*csound(ix^S)/w(ix^S,rho_))
+end if
+if(oktest)write(*,*)'csound:',csound(ixtest^D)
+cmax(ix^S)=csound(ix^S)+abs(w(ix^S,m0_+idim)/w(ix^S,rho_))
+
+if(oktest)write(*,*)'cmax:',cmax(ixtest^D)
+
+return 
+end
+
+!=============================================================================
+subroutine getpthermal(clipping,w,ix^L,p)
+
+!!! tmp and tmp2 are not to be used in this subroutine!
+
+! Calculate thermal pressure=(gamma-1)*(e-0.5*m**2/rho) within ix^L
+! If clipping is set to .true., clip off negative pressures
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw),p(ixG^T)
+logical:: clipping
+!-----------------------------------------------------------------------------
+oktest=index(teststr,'pthermal')>=1
+
+p(ix^S)=(eqpar(gamma_)-1)*(w(ix^S,e_)- &
+         half*( ^C&w(ix^S,m^C_)**2+ )/w(ix^S,rho_))
+
+if(oktest)write(*,*)'pth:',p(ixtest^D)
+
+if(smallp<zero)then
+    smallp=minval(p(ix^S))*smallpcoeff
+    {^IFMPI call mpiallreduce(smallp,MPI_MIN)}
+endif
+
+! Clip off negative pressure if clipping is set
+if(clipping)p(ix^S)=max(p(ix^S),smallp)
+
+if(oktest)write(*,*)'pth:',p(ixtest^D)
+
+return 
+end
+
+!=============================================================================
+! end module vacphys0 - hd
+!##############################################################################

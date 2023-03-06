@@ -1,0 +1,43 @@
+#!/usr/bin/perl
+#
+# Run this file to get an ASCII version of the HTML manual files, e.g.:
+#
+# ASCII < MANUAL.html | more
+# ASCII < MANUAL.html | lpr
+# ASCII < MANUAL.html > MANUAL
+
+$horiz="-" x 78;
+
+while(<>){
+   # Skip HTML header
+   $body=1 if ?<BODY>?i;
+   next unless $body;
+
+   # Handle nested lists
+   if(s#<ol>##i)
+      {$llevel++; $lcount[$llevel]=0; $lnumber.="$lcount[$llevel]."};
+   if(s#</ol>##i)
+      {$llevel--; $lnumber=~s/\d+.$//;};
+   if(m#<li>#i){
+      $lcount[$llevel]++; $lnumber=~s/\d+.$/$lcount[$llevel]./;
+      s#<li>#$lnumber #i
+   };
+
+   # Replace emphasising markups and horizontal line
+   s|<hr>|$horiz|oi;
+   s#</?b>#"#ig;
+   s#</?em>#"#ig;
+
+   # Remove all HTML references
+   s/<[^>]*>//g;
+
+   # Replace special characters
+   s/\&lt;/</g;
+   s/\&gt;/>/g;
+   s/\&(.)acute;/$1/g;
+   s/\&(.)uml;/$1/g;
+   s/\&amp;/\&/g;
+
+   # Print line
+   print;
+}

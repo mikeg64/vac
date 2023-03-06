@@ -1,0 +1,61 @@
+figure
+	set levs=-1.8/15,1.8/15,0.4/15 levels levs
+	set levs=0.1,0.9,0.1
+	define Plotmode "limits 24 74 49 99 contour levels levs"
+	data "$!Outfile"
+	getpict 2 0
+	set Arotb=gradx(Ab2)-grady(Ab1)
+	set Ab=sqrt(Ab1**2+Ab2**2)
+	out 0 0 Arotb Ab
+errors	1
+	# Usage: errors method
+	# Calculate error of Bx By J and A from difference between the
+	# initial data of devore22.ini and the result in devore22method.out.
+	if(!$?Vectorpot){
+	   inic mhd
+	   define Vectorpot 1 define Divb 1 define Rotb 1
+	}
+	if(!is_set(Ab1ini,3)){
+           data "data/devore22.ini"
+	   getpict 1 0
+	   set Ab1ini=Ab1 set Ab2ini=Ab2  set Arotbini=Arotb set Aaini=Aa
+	   set Adivbini=Adivb
+	}
+	data "data/devore22$!1.out"
+	getpict 2 0
+	set errb1=error(Ab1)
+	set errb2=error(Ab2)
+	set erra=error(Aa)
+	set errj=error(Arotb)
+	echo For method $1 err_b1=$(errb1), err_b2=$(errb2), err_j=$(errj),
+        echo and err_a=$(erra).
+errorini
+	# Determine index arrays for upper center and left center quater.
+	# Calculate initial B and J in the initial quater.
+	set indices=0,n1*n2-1
+	set indini=indices if (Aix>24 && Aix<75 && Aiy>49)
+	set indout=indices if (Aix<50 && Aiy>24 && Aiy<75)
+	delete indices
+	data "figdata/devore22.ini"
+	getpict 1 0
+	set Ab1ini=Ab1[indini]
+	set Ab2ini=Ab2[indini]
+	set Abini=sqrt(Ab1ini**2+Ab2ini**2)
+	set Aj=gradx(Ab2)-grady(Ab1)
+	set Ajini=Aj[indini]
+errorsold	1
+	# Usage: errorsold method
+	# Calculate error of |B| and J from difference between the shifted
+	# initial data of devore22.ini and the result in devore22method.out.
+	# Only the quater centered on the cylinder is taken into account.
+	if(!is_set(indout,3)){errorini}
+	data "figdata/devore22$!1.out"
+	getpict 1 0
+	set Ab1out=Ab1[indout]
+	set Ab2out=Ab2[indout]
+	set About=sqrt(Ab1out**2+Ab2out**2)
+	set Aj=gradx(Ab2)-grady(Ab1)
+	set Ajout=Aj[indout]
+	set errorb=sum(abs(About-Abini))/2500
+	set errorj=sum(abs(Ajout-Ajini))/2500
+	echo For method $1 error_b=$(errorb), error_j=$(errorj)

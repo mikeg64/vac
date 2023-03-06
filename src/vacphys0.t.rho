@@ -1,0 +1,84 @@
+!##############################################################################
+! module vacphys0 - rho
+
+!=============================================================================
+subroutine conserve(ix^L,w)
+
+! Transform primitive variables into conservative ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+! For the transport equation primitive and conservative variables coincide
+
+return
+end
+
+!=============================================================================
+subroutine primitive(ix^L,w)
+
+! Transform conservative variables into primitive ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+! For the transport equation primitive and conservative variables coincide
+
+return
+end
+
+!=============================================================================
+subroutine getv(w,ix^L,idim,v)
+
+include 'vacdef.f'
+
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),v(ixG^T)
+!-----------------------------------------------------------------------------
+
+select case(ndim)
+    case(1,3)
+       v(ix^S)=eqpar(v0_+idim)
+    case(2)
+       if(eqpar(v1_).ne.12345)then
+          v(ix^S)=eqpar(v0_+idim)
+          if(typeaxial=='cylinder'.and.idim==phi_)&
+             v(ix^S)=v(ix^S)*x(ix^S,r_)
+       else
+          if(it==itmin)write(*,*)'Solid rotation for Zalesak/Devore cylinder'
+          if(idim==1)then
+             v(ix^S)=-x(ix^S,ndim)
+          else
+             v(ix^S)=+x(ix^S,1)
+          endif
+       endif
+end select
+
+return 
+end
+
+!=============================================================================
+subroutine getcmax(new_cmax,w,ix^L,idim,cmax)
+
+include 'vacdef.f'
+
+logical:: new_cmax
+integer:: ix^L,idim^LIM,idim
+double precision:: w(ixG^T,nw),cmax(ixG^T)
+!-----------------------------------------------------------------------------
+
+call getv(w,ix^L,idim,cmax)
+cmax(ix^S)=abs(cmax(ix^S))
+
+return 
+end
+
+!=============================================================================
+! end module vacphys0 - rho
+!##############################################################################

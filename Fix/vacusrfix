@@ -1,0 +1,28 @@
+#!/usr/bin/perl -pi~
+# Convert old style vacusr files to new format:
+#
+#    Replace "^INCLUDE filename" with "INCLUDE:filename".
+#    Remove references to "vacnul.setnozzle.t"
+#    Add missing "INCLUDE:" statements.
+#
+# Usage: Fix/vacusrfix src/vacusr.t.*
+
+if(/INCLUDE/ && /vacnul/){
+   $insert=1; 
+
+   s/\^INCLUDE/INCLUDE/;
+   s/INCLUDE /INDLUDE:/;
+
+   if(/vacnul\.setnozzle\.t/){
+      print STDERR "In file $ARGV removed line: $_"; $_="" 
+   }
+
+   foreach $kind ('ini','io','bound','source'){
+      $ok{$kind}=1 if /vacnul\.special$kind\.t/;
+   }
+}elsif($insert){
+   foreach $kind ('ini','io','bound','source'){
+      $_="INCLUDE:vacnul.special$kind.t\n".$_ unless $ok{$kind}
+   }
+   $insert=0; undef %ok;
+}

@@ -1,0 +1,98 @@
+!##############################################################################
+! module vacphys - nul
+
+! This module contains interfaces for subroutines called from VAC (not VACINI)
+
+INCLUDE:vacnul.addsource.t
+INCLUDE:vacnul.roe.t
+INCLUDE:vacnul.process.t
+
+!=============================================================================
+subroutine physini
+
+! Tell VAC which variables are vectors, set the iw_vector(nvector) array
+! to the indices BEFORE the first components, e.g., to m0_ and b0_.
+! Set entropycoef(il) for each characteristic wave for typeentropy='yee'
+
+include 'vacdef.f'
+!-----------------------------------------------------------------------------
+
+call die('PhysIni is undefined')
+
+return
+end
+
+!=============================================================================
+subroutine getdt(w,ix^L)
+
+! If the Courant condition is not the only constraint, modify dt further
+
+include 'vacdef.f'
+
+double precision:: w(ixG^T,nw)
+integer:: ix^L
+!-----------------------------------------------------------------------------
+
+call die('GetDt is undefined')
+
+return
+end
+
+!=============================================================================
+subroutine getflux(w,ix^L,iw,idim,f,transport)
+
+! Calculate non-transport flux f_idim[iw] within ix^L. 
+! Set transport=.true. if a transport flux should be added
+
+include 'vacdef.f'
+
+integer::          ix^L,iw,idim
+double precision:: w(ixG^T,nw),f(ixG^T)
+logical::          transport
+!-----------------------------------------------------------------------------
+
+call die('GetFlux is undefined')
+
+return
+end
+
+!=============================================================================
+subroutine addgeometry(qdt,ix^L,iws,w,wnew)
+
+! Add geometrical source terms to wnew[iws] based on w within ix
+
+include 'vacdef.f'
+
+integer::          ix^L,iws(niw_)
+double precision:: qdt,w(ixG^T,nw),wnew(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+call die('AddGeometry is undefined')
+
+return
+end
+
+!=============================================================================
+! To keep density positive simply uncomment the INCLUDE and call statements
+! INCLUDE:vacproc.positive.t
+
+subroutine keeppositive(ix^L,w)
+
+! Keep positivity of the appropriate primitive variables of w within ix^L
+! (e.g. density and pressure)
+
+include 'vacdef.f'
+
+integer::          ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+! Uncomment this line and the INCLUDE statement above to keep density positive
+!!! call keeppositive_rho(ix^L,w)
+
+call die('KeepPositive is undefined')
+end
+
+!=============================================================================
+! end module vacphys - nul
+!##############################################################################

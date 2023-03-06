@@ -1,0 +1,16 @@
+data/waves1000.ini
+Waves_mhd13
+x rho m1 m2 m3 e b1 b2 b3
+domain
+1000					-ixmax
+-50.0					-min coordinates
+ 50.0					-max coordinates
+eqpar
+1.6	0.				-gamma,eta
+uniform
+1. 1. 0.01 0.01 0.625 1.5 0.01 0.01	-rho v1 v2 v3 p b1 b2 b3
+special
+conserve
+typefileout
+binary
+save

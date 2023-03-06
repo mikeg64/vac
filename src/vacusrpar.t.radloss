@@ -1,0 +1,9 @@
+!##############################################################################
+! include vacusrpar - radloss
+
+INTEGER,PARAMETER:: qcoef_=neqpar+1, tunit_=neqpar+2, qhow_=neqpar+3
+INTEGER,PARAMETER:: nspecialpar=3
+CHARACTER*16,PARAMETER:: specialparname='Qcoef Tunit Qhow'
+
+! end include vacusrpar - radloss
+!##############################################################################

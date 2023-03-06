@@ -1,0 +1,178 @@
+This file describes how to use the MATLAB visualization routines for VAC
+========================================================================
+
+The first version of these routines were written by H. De Sterck for
+his EMMA_D code based on the VAC IDL visualization routines. 
+Those Matlab routines were simplified, generalized, and adapted to VAC 
+by G. Toth (Oct-Dec 1996).
+
+FIRST-TIME STARTUP
+------------------
+
+Put in your .login file where MATLAB can find the routines:
+
+setenv MATLABPATH $HOME/vac/Matlab
+
+Also type this on the command line if this is the first time that you
+want to use the Matlab macros (thus the .login was not executed yet).
+
+START MATLAB ('matlab')
+-----------------------
+
+Type 'matlab' in the main 'vac' directory, or in the '/data' subdirectory.
+The file 'Matlab/startup.m' is automatically executed and shows your options.
+
+READING DATA
+-------------
+
+Try getpict, plotfunc, animate, playmovie etc. Provide strings
+between quotation marks. Separate them by spaces if more values are given.
+Single numbers can be entered as is, more than one number can be given
+by enclosing them between square brackets.
+
+Set and modify plotting options, e.g. to read another file:
+
+   filename='newfilename1 newfilename2'
+   npict=[3 5]
+   getpict
+
+You can get Matlab to ask for each parameter to be either confirmed by a
+single 'Return' or changed if you set
+
+   Doask=1
+
+Files with general coordinates can be transformed to polar coordinates or
+can be interpolated to a regular grid. 
+
+FUNCTIONS
+---------
+
+Functions that you can plot are any expression of the conserved variables,
+or function names which are defined in Matlab/get_func.m, namely
+
+v1, v2, v3, pth, T, csound, mach, divb, divb_rz, divb_rp, j_r, j_rz, j_rp, 
+
+meaning the velocity components, thermal pressure, temperature, sound speed, 
+mach number, divergence B in slab/cylindrical symmetry or polar coordinates, 
+and current in slab/cylindrical symmetry or polar coordinates, respectively.
+You can easily add new function definitions. 
+
+More than one components of a function can be given by separating them 
+with semicolons. The functions themselves are separated by spaces, e.g.
+
+func(s) = 'rho m1./rho;m2./rho'
+func(s) = 'rho v1;v2'
+
+will plot density and two components of the velocity. Some plotmodes can use
+three components. You can use the 'gradx' and 'grady' functions on 
+(interpolated) Cartesian grids, e.g. divb can be easily plotted with
+
+func(s) = 'gradx(b1,x)+grady(b2,y)'
+
+To cut out part of the computational domain, or to decrease number of points
+plotted (e.g. for quiver) you can define the 'cut' string to describe
+any valid Matlab array sections. E.g. in 1D:
+
+cut='3:10'
+cut='1:4:200'
+
+or in 2D:
+
+cut='1:2:nx1,1:2:nx2'
+cut='3,:'
+cut=':,2:10'
+
+To plot the full domain again (which is the default) simply set
+
+cut=''
+
+PLOTMODES
+---------
+
+Possible plotmodes for the functions are listed on the screen. 
+Here is a short summary with explanations where the meaning is not obvious. 
+
+1D plotmodes (for 1 variable):
+
+plot            # The default plotmode if the plotmode name is invalid.
+loglog
+semilogx
+semilogy
+
+2D plotmodes for 1 variable:
+
+mesh		# The default plotmode if the plotmode name is invalid.
+surf		# Surface with colors proportional to height.
+surfc		# Surface with contours below it.
+surfl		# Surface with colors based on a light source.
+contour		# Contour lines. 
+pcolor		# Colored rectangle with colors proportional to height. 
+pcolorc		# Same as pcolor but contour lines added.
+       
+2D plotmodes for 2 variables:
+
+quiver		# Vectors for a vectorfield.
+pcolor_contour  # Colors for first variable, contourlines for second.
+
+2D plotmodes  for 3 variables: 
+
+contour_quiver  # Contour lines for first variable, vectors for 2-nd and 3-rd.
+pcolor_quiver   # Colors for first variable, vectors for 2-nd and 3-rd.
+
+Any plotmode involving contour lines and 'surfl' can be used for 
+(interpolated) Cartesian grids only. 
+
+PLOTTING OPTIONS
+----------------
+
+Use "multiplot" for setting the number of subplots explicitly:
+
+multiplot=[3,2,0]
+
+will produce 6 subplots, 3 horizontally, 2 vertically, and the third component
+means that they are filled up row by row. 
+
+multiplot=[3,2,1]
+
+is the same, but the plots are plotted column-wise. You can put more than
+one snapshot onto one plot (timeseries) by defining more subplots than
+the number of functions times the number of files.
+
+The default value for "plottitles" is 'default' which makes the titles of the 
+plots to be the function names listed in "func". You can override this by e.g.
+
+func='divb rho'
+plottitle='div B;Density'
+
+Note that the titles are separated by semicolons and not by spaces, 
+since the titles often contain spaces themselves. 
+
+The number of values shown at the top and the bottom of the plots can
+be set by the "bottomline" and "headerline" variables.
+
+The colormap can be changed any time by Matlab's "colormap" command, e.g.:
+
+colormap('cool')
+
+Set the parameters "View, Colorbar, doanimate, dohardplot" etc. as desired. 
+The number of hardplots per animation is limited by "nplotmax" to avoid 
+excessive number of plots by accident. 
+
+DEFAULTS
+--------
+
+Type 'defaults' to set the variables back to defaults.
+In 'defaults.m' you can specify your favourite default values.
+You may also use 'Doask=1' to be prompted for most of the parameters.
+
+USER M-FILES
+------------
+
+You can build up customized plotting macros with specific settings.
+In the macro you can simply set all variables, and then call 'animate',
+or 'getpict' and 'plotfunc'. Give the macro a name starting with CAPITAL
+letters, so that you macros are well separated from the general functions. 
+
+Gabor Toth
+
+December 3 1996

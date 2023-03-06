@@ -1,0 +1,10 @@
+!##############################################################################
+! module vacusr - nul
+
+INCLUDE:vacnul.specialbound.t
+INCLUDE:vacnul.specialini.t
+INCLUDE:vacnul.specialsource.t
+INCLUDE:vacnul.specialio.t
+
+! end module vacusr - nul
+!##############################################################################

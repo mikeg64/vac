@@ -1,0 +1,24 @@
+geteqpar
+	set gamma=eqpar[0] set adiab=eqpar[1]
+extraarr
+	geteqpar
+	define Extra_Var " "
+	do idir=1,ndir{
+	    set Av$idir=Am$idir/Arho
+	    define Extra_Var "$!Extra_Var v$!idir" 
+	}
+	if($?Enstrophy){
+	   set Aens=(gradx(Av2)-grady(Av1))**2/Arho
+	   define Extra_Var "$!Extra_Var ens"
+	   echo Total enstrophy=$(sum(Aens))
+	}
+extravar
+	geteqpar
+	set p=adiab*(rho**gamma)
+	set cs=sqrt(gamma*p/rho)
+	set mach=0*cs
+	do idim=1,ndir{
+	    set v$idim=m$idim/rho
+	    set mach=mach+v$idim**2
+	}
+	set mach=sqrt(mach)/cs

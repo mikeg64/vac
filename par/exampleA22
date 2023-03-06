@@ -1,0 +1,39 @@
+ &testlist 
+	teststr='readparameters'
+ /
+
+ &filelist
+	filenameini='data/exampleA22.ini',
+	typefileini='ascii'
+	filename=   'data/example22.log',
+		    'data/example22.out'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=5,5
+ /
+
+ &stoplist
+	itmax=100
+ /
+
+ &methodlist
+	wnames=		'h  	 m1  	 m2'
+	typefull=	3*'tvd'
+	typelimiter=	3*'woodward'
+	dimsplit=	T
+	sourcesplit=	T
+ /
+
+ &boundlist
+	typeB=	'symm','asymm','symm'
+		'symm','asymm','symm'
+		'symm','symm','asymm'
+		'symm','symm','asymm'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

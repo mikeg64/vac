@@ -1,0 +1,2 @@
+# This script starts netscape using private color table
+netscape -install $1

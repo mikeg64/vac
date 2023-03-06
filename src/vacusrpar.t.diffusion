@@ -1,0 +1,10 @@
+!##############################################################################
+! include vacusrpar - diffusion
+
+INTEGER,PARAMETER:: diff0_=neqpar, diff^D_=neqpar+^D, nspecialpar=^ND
+{^IFONED   CHARACTER*5 ,PARAMETER:: specialparname='diff1'}
+{^IFTWOD   CHARACTER*11,PARAMETER:: specialparname='diff1 diff2'}
+{^IFTHREED CHARACTER*17,PARAMETER:: specialparname='diff1 diff2 diff3'}
+
+! end include vacusrpar - diffusion
+!##############################################################################

@@ -1,0 +1,81 @@
+Installation of VAC 4.5
+
+All file names are relative to the main "vac" directory.
+------------------------------------------------------------------------------
+1. Making Perl work
+
+   If the Perl interpreter is not in the default path (try typing 'perl -v')
+   set the path in the .login to something like
+   
+setenv PATH .:/usr/local/bin/perl:$PATH
+
+   The first lines of the Perl scripts have to contain the full path to 
+   the "perl" program. On most machines it is /usr/bin/perl. If it is
+   different on your machine, you should run
+
+perl -i Fix/PERL
+
+2. Update the Makefile
+
+   The src/Makefile needs to be modified to work with your compilers. 
+
+   There are a few useful but non-standard Fortran 90 lines in the source code.
+   If your compiler complains about some of them do the following:
+
+   - Forall is unknown: change the Makefile so that it uses "forall2do".
+
+   - The subroutine flushunit at the end of src/vacio.t does not compile:
+     modify subroutine flushunit according to the comments.
+     If your compiler does not support any form of flush, 
+     modify subroutine flushunit to do nothing.
+
+   - The function "cputime" at the end of src/vac.t does not compile: 
+     This problem cannot occur for F90 which has a standard timing function.
+     For GNU's g77 compiler replace F77_ by G77_ in the cputime function.
+     For other Fortran 77 compilers use the timing function specific to that
+     machine, or just set cputime=-1.D0 and forget about timing.
+     On the Cray C90, comment out the normal Fortran 90 lines and 
+     uncomment the "cputime=second()" line.
+
+3. Read the manual files !
+
+   There is a new manual file for MPI parallel runs (relative to VAC 4.02).
+   If you want to run VAC on a parallel machine or a cluster, read 
+   Man/mpi.html.
+
+   The IDL macros have been greatly improved and modified. If you plan to use 
+   IDL for visualization, read Man/idl.html.
+
+   If you are a new user start reading with the Features.html and 
+   USAGE.html manual files, and try to do the examples with weblink.pl
+
+   If you have an earlier version of VAC check the Man/Diary.html manual
+   to see what is new. 
+
+   The manual files can be read via the VAC User Interface, started by typing
+
+weblink.pl &
+
+   or directly with a web browser like "netscape" or "mozilla":
+
+netscape Man/Contents.html
+
+   You can print out the manual pages from the browser file by file,
+   or print Man/MANUAL.ps.gz directly which was produced according
+   to the procedure described in Man/Makefile. This Man/Makefile includes a
+   "make print" option, so get a print out by
+
+cd Man
+make print
+
+   If you have no web browser, you may read the manuals in an ASCII format by
+
+cd Man
+ASCII Contents.html | more
+ASCII idl.html      | lpr
+
+------------------------------------------------------------------------------
+
+Good luck,
+
+Gabor Toth and Rony Keppens

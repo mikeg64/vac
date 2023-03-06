@@ -1,0 +1,79 @@
+#!/usr/bin/perl -s
+# Insert HPF directives
+#
+# Usage: f90tohpf [-distr=[1][2][3]] [-distrstatic] [-pghpf] F90FILE > HPFFILE
+# -------------------------------------------------------------------------
+
+# Default is distribution in 1st dimension
+$distr=1 unless $distr;
+die "Invalid string for -distr: $distr\n" unless $distr=~/^[123]+$/;
+
+# The -pghpf flag produces code that avoids some PGHPF compiler bug
+$onto=" ONTO PP" unless $pghpf;
+
+# The -distrstatic flag distributes arrays with IXGLO, IXGlo  etc. declaration
+if($distrstatic){
+  $block="[iI][xX]G[lL][oO][$distr]:[iI][xX]G[hH][iI][$distr]";
+}else{
+  $block="ixGlo[$distr]:ixGhi[$distr]";
+}
+
+
+while(<>){
+    chop;
+
+    if(?^! module (\w*)?){$module=$1};
+
+    # CREATE DISTRIBUTION DIRECTIVES
+    # If some distributed arrays have been declared collect continuation lines
+    if($declare){
+	if($cont){
+	    $declare.=$_; $declare=~s/ *& *//;
+	}elsif($declare=~s/$block/\@/go){
+	    # When no continuation line follows print out layout directive
+	    # Find the list of variables following "::" or "/COMMONNAME/"
+	    $declare=~m@(::|/[^/]+/) *@; $bigvar=$'; 
+	    if($declare=~/dimension(\([^\)]*\))/){
+		# If declaration contains "dimension" process dimension
+		$dimen=$1; $dimen=~s/[^,\@()]+/\*/g; $dimen=~s/\@/BLOCK/g;
+		# Append dimension after each variable in bigvar
+		$bigvar=~s/,/$dimen,/g; $bigvar.="$dimen,";
+	    }else{
+		# When variables are declared individually split list at "()"
+		split(/[\(\)]/,$bigvar); $bigvar="";
+		# Loop over dimensions, find those containing the $block token
+		for($i=1;$i<=$#_;$i+=2){
+		    if($_[$i]=~/\@/){
+			# If dimension contained "$block" token process it
+			$_[$i]=~s/[^,\@]+/\*/g; $_[$i]=~s/\@/BLOCK/g;
+			# Keep very last variable only from preceeding element
+			$_[$i-1]=~s/.*,//;
+			$bigvar.="$_[$i-1]($_[$i]),";
+		    }
+		}
+	    }
+	    # Split the variable list, and collect directives for each
+	    foreach $var (split(/\), */,$bigvar)){
+		print "\!HPF\$ DISTRIBUTE $var)$onto\n";
+	    }
+	    $declare="";
+	}else{
+	    $declare="";
+	}
+    }
+
+    # Find declarations
+    if(/^ *(double precision|real|integer|logical|COMMON)/i){$declare=$_};
+    # Determine if next line will be a continuation line
+    $cont=/& *$/;
+
+    # Special !HPF_ comments are used according to this rule:
+    # f90source !HPF_ hpfsource --> hpfsource
+    if(/!HPF_ ?/){print "$'\n"; next}
+
+    # COMMENT LINES AND EMPTY LINES ARE PRINTED WITHOUT MODIFICATION
+    if(/^!/||/^$/){print "$_\n"; next}
+
+    # Print the line
+    print "$_\n";
+}

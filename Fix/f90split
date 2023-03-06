@@ -1,0 +1,30 @@
+#!/usr/bin/perl -n
+# Splits subroutines and functions in VAC Fortran 90 files into separate files 
+# named "vac_SUBROUTINEORFUNCTONNAME.f" and generates a list of object files 
+# into the file "OBJECTS" which can be used in a Makefile. 
+# This can be useful for debugging, since subroutines can be changed one
+# by one with minimal recompilation time.
+# 
+# Usage: ../Fix/f90split vacall.f90
+
+if(/^(subroutine|(logical|double precision) function|program) (\w+)/){
+    $name="vac_$3";
+    open(FILE,">$name.f");
+    $objects.= "	$name.o \\\n";
+    $lines='';
+}
+
+$lines.=$_;
+
+if(/^end$/){
+    print FILE $lines;
+    close(FILE);
+}
+
+if(eof){
+    open(OBJ,">OBJECTS");
+    print STDERR $objects;
+    print OBJ $objects;
+    close(OBJ);
+    exit;
+}

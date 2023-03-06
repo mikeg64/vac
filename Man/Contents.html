@@ -1,0 +1,150 @@
+<HTML>
+<HEAD>
+<TITLE>Contents of the VAC Manual</TITLE>
+</HEAD>
+<BODY>
+
+<h1><IMG SRC="vaclogosmall.gif" ALT="VAC - Versatile Advection Code">
+CONTENTS OF THE VAC MANUAL</h1>
+
+This table of contents lists <b>all</b> the manual pages. The links within 
+the pages are provided for searching on specific topics, they are not meant
+to be used during a first reading. 
+<hr>
+This page: [<A HREF="#Introduction">Introduction</A>]
+ [<A HREF="#General">General</A>]
+ [<A HREF="#Parameters">Parameters</A>]
+ [<A HREF="#Source">Source</A>]
+ [<A HREF="#Visualization">Visualization</A>]
+ [<A HREF="#Files">Data Files</A>]
+<hr>
+
+<H2><A NAME="Introduction">Introduction</A> for New Users</h2>
+<dl>
+<dt><A HREF="WELCOME.html">Welcome</A>
+<dd>	Basic information on the project.
+
+<dt><A HREF="Credits.html">Acknowledgments</A> 
+<dd>	Information on collaboration and financial support.
+
+<dt><A HREF="Features.html">Features</A>
+<dd>	An overview of the main features of the Versatile Advection Code.
+
+<dt><A HREF="REGISTER.html">Registration</A>
+<dd>	Registration form for obtaining the Versatile Advection Code.
+</dl>
+<H2><A NAME="General">General</A></h2>
+<dl>
+<dt><A HREF="Diary.html">Release Notes</A>
+<dd>	List of new features in temporal order. You can check the
+        <A HREF="http://hermes.elte.hu/~gtoth/VAC/Man/Diary.html">
+        current status</A> on Gabor Toth's 
+	<A HREF="http://hermes.elte.hu/~gtoth">home page</A> 
+        to see the current development of the code.
+
+<dt><A HREF="USAGE.html">Usage</A>
+<dd>	How to make and run <b>vacini</b> and <b>vac</b> on different
+	machines, and how to do basic visualization of results.
+
+<dt><A HREF="mpi.html">MPI parallelization</A>
+<dd>    How to make and run <b>vacini</b> and <b>vac</b> with
+        MPI parallelization.
+
+<dt><A HREF="Weblink.html">User Interface</A>
+<dd>	A description of the web based user interface.
+
+<dt><A HREF="Examples.html">Examples</A>
+<dd>	Description of some example simulations for which the parameter files
+	and the VACUSR module have been provided.
+
+<dt><A HREF="equations.html">Equations</A>
+<dd>	The equations and parameters in the existing VACPHYCS modules.
+	How to create a new VACPHYS module.
+
+<dt><A HREF="vacusr.html">VACUSR Module</A>
+<dd>	The VACUSR Library containing source terms like viscosity,
+	diffusion, gravity, etc. and the I/O routines for REAL*4 binary files.
+        How to create new "src/vacusr.t.PROBLEM" and "src/vacusrpar.t.PROBLEM" 
+        files for special initial conditions, data file formats, 
+        boundary types, and source terms.
+
+<dt><A HREF="discretization.html">Discretization</A>
+<dd>	The equation and its discretization, the basic variables, 
+	the structure of the grid, boundaries, ghost cells.
+
+<dt><A HREF="axial.html">Axial Symmetry</A>
+<dd>	Important information on simulations with axial symmetry, and on
+	the use of polar grids.
+
+<dt><A HREF="bugs.html">Bugs</A>
+<dd>	Known problems, limitations, and the suggested work-arounds.
+</dl>
+<H2><A NAME="Parameters">Parameters</A></h2>
+<dl>
+<dt><A HREF="inipar.html">Parameters for VACINI</A>
+<dd>	Description of the "inipar/PROBLEM" parameter files for VACINI.
+
+<dt><A HREF="par.html">Parameters for VAC</A>
+<dd>	Description of the "par/PROBLEM" parameter files for VAC.
+                        
+<dt><A HREF="methods.html">Methods</A>
+<dd>	Properties of the MacCormack, FCT, TVDLF, TVDMU, TVD, TVDMC, ...
+	methods and of the projection scheme.
+
+</dl>
+<H2><A NAME="Source">Source Code</A></h2>
+<dl>
+<dt><A HREF="source.html">Source</A>
+<dd>	Description of the dimension independent source 
+	language, which is translated to F90 by the VACPP preprocessor.
+
+<dt><A HREF="srclimits.html">Limitations</A>
+<dd>	Limitations in using features of Fortran 90 due to
+	compatibility requirements and (pre)compiler restrictions.
+
+<dt><A HREF="varnames.html">Variable Names</A>
+<dd>	How variable names are formed in the source files.
+
+<dt><A HREF="vacpp.html">VACPP</A>
+<dd>	Making and running the VACPP preprocessor itself.
+
+</dl>
+<H2><A NAME="Visualization">Visualization</A></h2>
+<dl>
+<dt><A HREF="idl.html">IDL</A>
+<dd>	IDL procedures and functions for visualization.
+
+<dt><A HREF="matlab.html">MATLAB</A>
+<dd>	MATLAB scripts and functions for visualization.
+
+<dt><A HREF="sm.html">SuperMongo</A>
+<dd>	SuperMongo macros for visualization.
+
+<dt><A HREF="gnuplot.html">Gnuplot</A>
+<dd>    Gnuplot visualization.
+
+<dt><A HREF="java.html">Javascript</A>
+<dd>	A simple javascript to animate GIF images
+
+</dl>
+<H2><A NAME="Files">Data</A> file formats</h2>
+<dl>
+
+<dt><A HREF="convert.html">Conversion</A>
+<dd>	Conversion of data files for visualization with AVS and DX.
+	Conversion between ASCII, binary, double and single precision, 
+	and user defined formats.
+	How to transfer binary files between different machines.
+
+<dt><A HREF="fileformat.html">File format</A>
+<dd>	Description of the VAC data file format.
+
+</dl>
+<hr>
+<ADDRESS>
+<A HREF="http://www.phys.uu.nl/~toth">VAC home page</A><br>
+December 29 2003
+</ADDRESS>
+
+</BODY>
+</HTML>

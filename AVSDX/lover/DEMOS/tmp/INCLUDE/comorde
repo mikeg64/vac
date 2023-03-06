@@ -1,0 +1,14 @@
+*COMDECK COMORDE
+C@(#)comorde	2.1
+#ifndef LSB
+#define MSB 1
+#endif
+      CHARACTER BYTEORDER*(*)
+      PARAMETER(
+#ifdef MSB
+     1     BYTEORDER='msb '
+#else
+     1     BYTEORDER='lsb '
+#endif
+     2)
+C

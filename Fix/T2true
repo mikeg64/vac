@@ -1,0 +1,9 @@
+#!/usr/bin/perl -pi~
+# Convert T to .true. and F to .false. in namelists. Usage: Fix/T2true par/*
+#
+# On SP2 you may try setting the environment variable XLFRTEOPTS instead:
+#
+# setenv XLFRTEOPTS namelist=old
+
+s/\bT\b/.true./g;
+s/\bF\b/.false./g;

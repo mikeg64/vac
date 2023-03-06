@@ -1,0 +1,85 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on the VAC PreProcessor </TITLE>
+</HEAD>
+<BODY>
+<h1>VAC PREPROCESSOR</h1>
+
+This document briefly describes the use of the VAC PreProcessor (VACPP)
+which converts dimension independent notation into Fortran 90.
+VACPP is a specialized implementation of the general 
+<A HREF="http://hermes.elte.hu/~gtoth/Papers/vac.html#LASY"
+>LASY Preprocessor</A>.
+<hr>
+   VACPP is implemented in Perl in the <b>src/vacpp.pl</b> script. 
+   The main variables of VACPP, such as the number of dimensions 
+   <b>$ndim</b> and vector components <b>$ndir</b>, 
+   or the values of the logical variables corresponding to various modules
+   ($if_tvd, $if_fct etc.) are normally modified by another Perl script 
+   <b>src/setvac</b>. Based on these variables and the LASY patterns
+   in the <b>*.t</b> source files VACPP generates the Fortran 90 source code 
+   of the output <b>*.f</b> files.
+<p>
+   The Perl script <b>src/forall2do</b> can be used as an additional 
+   translator to replace the FORALL statements by ordinary DO loops, which is
+   required only, if the code will be compiled by a Fortran 90 compiler that 
+   does not recognize the FORALL statement. When any of the Perl scripts 
+   <b>src/f90tof77</b> or <b>src/f90tohpf</b> are used for 
+   further translation, there is no need for <b>src/forall2do</b>. 
+<p>
+   The maximum length of the lines is determined by the <i>final</i> 
+   translation step and it can be set by the <b>-maxlen=...</b> flag for 
+   any of the above mentioned Perl scripts. By default the output lines are 
+   at most 80 character long. Most F90, F77, or HPF compilers have flags 
+   to accept such line length, but if this is not the case, you may 
+   set '-maxlen=72' for the last preprocessor in <b>src/Makefile</b>.
+<p>
+   The <b>-O</b> flag is used on parallel machines to improve communication
+   speed. With this optimization flag, the general index shifts marked by 
+   the special !SHIFT comments in the source code <b>*.t</b> are 
+   translated to a combination of IF statements and simpler shifts.
+   This optimization improves performance for parallel machines significantly,
+   thus <b>make vachpf</b> uses this optimization by default and 
+   it is advised to select the definition 
+   <b>VACPP=vacpp.pl -O</b> in the <b>src/Makefile</b> for parallel machines.
+<p>
+   The preprocessor is mainly used via the Makefile, but one can translate
+   a single file directly, or even use the preprocessor interactively, when
+   the dimension independent notation is typed in line by line from the 
+   keyboard and the expanded code appears on the screen. The interactive 
+   use is a very efficient way of checking the syntax of complex dimension 
+   independent notation. For interactive usage the
+   number of dimensions and vector components can be overdefined temporarily 
+   with the <b>-d</b> flag. For example type (<em>note the last dash!</em>)
+<pre>
+vacpp.pl -d=23 -
+^D
+1,2
+^C
+1,2,3
+x(ixI^S,1)
+x(ixImin1:ixImax1,ixImin2:ixImax2,1)
+...
+Ctrl-D
+</pre>
+   You may use <b>vacpp.pl</b> for translation directly
+<pre>
+vacpp.pl FILENAME.t &gt; FILENAME.f
+</pre>
+   or indirectly via the Makefile with
+<pre>
+make FILENAME.f
+</pre>
+   You may switch on shift optimization and/or change the maximum line 
+   length to e.g. 72 directly on the command line
+<pre>
+vacpp.pl -O FILENAME.t &gt; FILENAME.f
+vacpp.pl -maxlen=72 FILENAME.t &gt; FILENAME.f
+</pre>
+   or edit the <b>src/Makefile</b> accordingly. 
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29 2003
+</ADDRESS>
+</BODY>
+</HTML>

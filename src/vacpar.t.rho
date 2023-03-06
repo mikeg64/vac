@@ -1,0 +1,26 @@
+!##############################################################################
+! include vacpar - rho
+
+! For transport equation: density + velocity^D
+
+CHARACTER*3,PARAMETER:: typephys='rho'               ! VACPHYS module name
+
+{^IFONED   CHARACTER*2,PARAMETER:: eqparname='v1'}   ! Equation parameter names
+{^IFTWOD   CHARACTER*5,PARAMETER:: eqparname='v1 v2'} 
+{^IFTHREED CHARACTER*9,PARAMETER:: eqparname='v1 v2 v3'} 
+
+INTEGER,PARAMETER:: rho_=1                           ! flow variables
+INTEGER,PARAMETER:: nw=1                             ! No. flow variables
+
+INTEGER,PARAMETER:: extremeLW_=1,extremeRW_=1        ! One characteristic
+
+INTEGER,PARAMETER:: mphi_=0                          ! No phi momentum
+INTEGER,PARAMETER:: b0_=0                            ! No magnetic field
+
+INTEGER,PARAMETER:: nvector=0                        ! No. vector vars.
+
+INTEGER,PARAMETER:: v0_=0,v^D_=v0_+^D,neqpar=v^ND_   ! equation parameters
+INTEGER,PARAMETER:: nprocpar=1                       ! processing params.
+
+! end include vacpar - rho
+!##############################################################################

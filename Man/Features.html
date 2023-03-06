@@ -1,0 +1,252 @@
+<HTML>
+<HEAD>
+<TITLE> FEATURES OF VAC </TITLE>
+</HEAD>
+<BODY>
+<h1><IMG SRC="vaclogosmall.gif" ALT="">FEATURES</h1>
+
+This manual is a brief overview of the main features of the VAC software 
+package.
+<hr>
+This page:
+ [<A HREF="#Structure">Structure</A>]
+ [<A HREF="#Language">Language</A>]
+ [<A HREF="#Equations">Equations</A>]
+ [<A HREF="#Grid">Grid</A>]
+ [<A HREF="#Spatial">Spatial</A>]
+ [<A HREF="#Temporal">Temporal</A>]
+<hr>
+<H2><A NAME="Structure">Structure</A></h2>
+
+This software has two main executable programs, <b>vac</b> and <b>vacini</b>
+which are responsible for advancing and initializing the flow, respectively. 
+The two programs consist of several modules, some of them are shared by the
+two programs. Modules are simply sets of subroutines and functions that 
+belong together and they are put in a single file. 
+<pre>
+   Module	    VAC VACINI	Function
+<hr NOSHADE>   VAC		     x		Main program and subroutines.
+   VACINI		  x	Main program and subroutines.
+   VACMPI            x    x     MPI parallelization.
+   VACIO	     x    x	Input and output.
+   VACGRID	     x		Grid and boundary.
+   VACTVDLF	     x		TVD Lax-Friedrich and TVD-MUSCL methods.
+   VACTVD	     x		Total Variation Diminishing method.
+   VACCD	     x		Central difference scheme.
+   VACMC	     x		MacCormack scheme.
+   VACFCT	     x		Flux Corrected Transport method.
+   VACIMPL	     x		Implicit time integration schemes.
+   VACITER	     x		Interface for iterative methods.
+   VACPOISSON        x          Poisson solver (e.g. for projection scheme).
+   VACPROC.SCHEME    x          Post- or preprocessing schemes (project, CT/CD)
+   VACPHYS0.EQUATION x	  x	Basic equation dependent subroutines.
+   VACPHYS.EQUATION  x		Equation dependent subroutines.
+   VACUSR.PROBLEM    x    x	Problem dependent user written subroutines.
+   VACUSR.SOURCE     x          Source term subroutines.
+   CONJGRAD	     x		CG, BiCGSTAB, Bi-CGstab(l) iterative solvers.
+   GMRESR	     x		GMRES, GMRESR, MRPC iterative solvers.
+   TRIDIAG	     x		Tri-, penta-, and heptadiagonal matrix solvers.
+   BLAS		     x		BLAS routines provided for iterative schemes.
+   LAPACK	     x		LAPACK routines provided for iterative schemes.
+</pre>
+The VACPHYS and VACUSR modules have several versions, but only the actual
+module, selected by either the <b>Weblink User Interface</b>
+or the Perl script <b>src/setvac</b> is compiled at a time. 
+See Man/<A HREF="USAGE.html">USAGE</A> about the configuration procedure.
+<p>
+Once the configuration and compilation are done, <b>vacini</b> can be run
+to produce the initial data files, and then <b>vac</b> can advance the 
+solution in time. The result is saved into one or more output data files.
+Since the input and output files have identical structures, a simulation 
+can be continued from any saved time step. The results can be 
+visualized by e.g. <A HREF=idl.html>IDL</A>, <A HREF=matlab.html>MATLAB</A>, 
+or <A HREF=sm.html>SuperMongo</A> using the customized IDL procedures,
+MATLAB scripts, and SM macros, or <A HREF=convert.html>converted</A> to 
+AVS, DX, or Gnuplot fileformats.
+<p>
+The <A HREF=Weblink.html>Weblink User Interface</A> allows the user to do 
+all the steps of configuration, compilation, initialization, simulation, and 
+visualization through a user friendly interface, which makes 
+use of the web browsers like Netscape and Mozilla. The WEBLINK server
+was developed by the US based WWLINK company especially for this purpose.
+<p>
+<H2><A NAME="Language">Source</A> Language and Compilation</h2>
+
+The <b>src/*.t</b> source files of VAC and VACINI are written in 
+<A HREF="source.html">dimension independent notation</A>. 
+The VAC Pre-Processor, <A HREF="vacpp.html">VACPP</A> translates it to
+Fortran 90 including non-standard FORALL statements which is understood by 
+most Fortran 90 compilers. The FORALL statements can be translated to 
+DO loops by the Perl script <b>src/forall2do</b>. Another possibility is
+to translate the source code to Fortran 77 by the Perl scripts 
+<b>src/f90tof77</b>. The code can also be run on <b>parallel machines</b> using
+High Performance Fortran (HPF) or the Message Passing Interface (MPI) library.
+Conversion to HPF is done with the <b>src/f90tohpf</b> script.
+<p>
+Examples:
+<pre>
+   Machine				   Compilation
+<hr NOSHADE>   DEC, SGI, SUN, IBM, HP, Linux PC	   VACPP + F90TOF77  + F77
+   DEC Alpha				   VACPP + F90
+   Cray C90, Cray J90                      VACPP + FORALL2DO + F90 
+   IBM SP, Cray T3E, Cray T3D		   VACPP + F90TOHPF  + HPF
+   Linux cluster			   VACPP + MPIF90
+</pre>
+
+<H2><A NAME="Equations">Equations</A></h2>
+
+In general, VAC aims to solve a system of hyperbolic equations written
+in conservation form with optional source terms on the right hand side:
+<pre>
+   dw/dt=dF_i(w)/dx_i+S(w)=R(w)
+</pre>
+All the equation dependent subroutines are collected in the VACPHYS0.EQUATION 
+and VACPHYS.EQUATION modules which are in the <b>src/vacphys0.t.equation</b>
+and <b>src/vacphys.t.equation</b> files. Based on the existing 
+VACPHYS modules one can write a new module for a new equation.
+The following equations are already defined:
+<pre>
+   Module name	Equation
+<hr NOSHADE>   rho		Transport equation       [d(rho)/dt+div(v*rho)=0, v is fixed]
+   hdadiab	Adiabatic hydrodynamics  [p=const*rho^gamma] 
+   hd		Hydrodynamics		 [Euler equations]
+   mhdiso	Isotherm./polytrop. MHD	 [ideal or resistive]
+   mhd		Magnetohydrodynamics     [ideal or resistive]
+</pre>
+The resistivity can be a function of the flow variables as well as position. 
+Some typical source terms have been implemented as a VACUSR LIBRARY:
+<pre>
+   Library       Equation(s)  Source terms
+<hr NOSHADE>   diffusion     all          diffusion of density 
+   viscosity     all but rho  viscosity 
+   thermcond     hd, mhd?     thermal conduction (isotropic)
+   thermcondmhd  mhd          thermal conduction parallel to B (by S. Belien)
+   radloss       hd, mhd      radiative losses (by S. Belien)
+   gravity       all but rho  external gravity 
+   selfgrav      all but rho  self-gravity
+</pre>
+These can be modified and included into the VACUSR module.
+For example, the <b>hd</b> module together with the <b>viscosity</b> 
+library can solve the compressible Navier-Stokes equations.
+<p>
+See Man/<A HREF="equations.html">equations</A> for more detail.
+
+<H2><A NAME="Grid">Grid</A> and Boundary</h2>
+
+<b>The grid is a 1, 2, or 3 dimensional structured grid with slab or axial
+symmetry for the ignored direction in less than 3D.</b> Cartesian and polar
+grids are treated as special cases for efficiency.
+<p>
+A structured grid is a <em>continuous</em> mapping of an ordinary rectangular 
+mesh into a distorted grid described by the <b>x(i,j,k,idim)</b> coordinates. 
+This naturally includes cylindrical or spherical meshes.
+The vector variables are, however, always represented by their <b>x, y, z</b>
+Cartesian components. A polar grid, on the other hand, uses <b>r, phi, z</b>
+coordinates and vector components, and the grid is rectangular in these 
+coordinates. There is also the option of <i>generalized polar grid</i>,
+which is regular in the <b>phi</b> coordinate, but general in <b>r, z</b>. 
+Numerical conservation is ensured by a finite volume discretization. 
+<p>
+The <b>slab</b> and <b>axial</b> symmetries differ in the 
+definition of volumes and surfaces for the grid cells, and there are
+some extra terms in the equations, like the <b>p/r</b> term in the radial 
+momentum equation for hydrodynamics. These are defined in the 
+<b>addgeometry</b> subroutines for each VACPHYS module. For polar grids
+the same geometrical source terms are used.
+<p>
+The boundaries are represented by ghost cells around the physical mesh.
+The ghost cells are grouped into boundary regions, in the simplest case
+each edge of the computational grid is a single region. The boundary 
+types are defined for each region and each variable separately. The 
+following boundary types are available:
+<pre>
+   Type		Value of the ghost cell
+<hr NOSHADE>   periodic	Copied from opposite edge of the mesh
+   symm		Reflected from closeby mesh cells
+   symm0	Like 'symm' and EXACTLY zero flux through the interface
+   asymm	Reflected from closeby cells and multiplied by -1
+   cont		Copied from mesh cell next to the ghost cell
+   cont1	Linearly extrapolated from the closest two mesh cells
+   fixed	Copied from closest cell or read from input then fixed
+   fixed1	Linearly extrapolated from closest two cells then fixed
+   grad1	Extrapolated with the fixed initial gradient
+   special	Defined by the specialbound subroutine in VACUSR module
+</pre>
+
+See Man/<A HREF="discretization.html#Grid">discretization</A> and
+Man/<A HREF="axial.html">axial</A> for further information.
+
+<H2><A NAME="Spatial">Spatial</A> Discretization</h2>
+
+<b>In VAC, all the spatial discretizations are shock capturing conservative 
+numerical schemes</b>.
+The only exceptions are the simple MacCormack method, which cannot capture
+discontinuities well and the even simpler central difference discretizations.
+These simple methods are used in conjunction with the more sophisticated 
+schemes, which are based on the Flux Corrected Transport and Total Variation 
+Diminishing methods:
+<pre>
+   Name	    Module(s)         Description
+<hr NOSHADE>   cd	    VACCD             Central difference
+   cd4      VACCD             4th order central diff. on uniform Cartesian grid
+   mc	    VACMC	      MacCormack
+   fct	    VACFCT	      ETBFCT and YDFCT
+   tvdlf    VACTVDLF	      MUSCL type TVD-Lax-Friedrich
+   tvdlf1   VACTVDLF	      First order TVD-Lax-Friedrich
+   tvdmu    VACTVDLF,VACTVD   TVD-MUSCL with Hancock predictor
+   tvdmu1   VACTVDLF,VACTVD   First order upwind scheme
+   tvd	    VACTVD,VACCD      One-step temporally 2nd order TVD
+   tvd1	    VACTVD,VACCD      One-step temporally 1st order TVD
+   tvdmc    VACTVD,VACMC      TVD with MacCormack predictor
+</pre>
+The 4th order central difference scheme is typically used with a 
+4th order Runge-Kutta time stepping followed by a <b>filter</b> step.
+The filter is based on the dissipative part of the TVD, TVD-MUSCL, or TVDLF 
+schemes. The second order dissipative flux can be reduced by the
+Automatic Compression Method (ACM).
+<p>
+In multidimensional MHD calculations the divergence of the magnetic field
+may become significantly different from zero. This may cause numerical 
+instability or inaccurate results. There are three options to fix this problem.
+<b>Powell's</b> non-conservative source terms, which are proportional to 
+<b>div B</b>, can be used to stabilize the TVD methods, and to improve the 
+accuracy for any of the methods. 
+The <b>projection scheme</b> can eliminate the divergence of the magnetic field
+after each time step by solving a Poisson equation iteratively. 
+Finally, 
+several versions of the <b>Constrained Transport/Central Difference</b>
+schemes are implemented in VAC. These schemes
+conserve div B in some discretization to the accuracy of round off errors
+(see the paper <A HREF=http://hermes.elte.hu/~gtoth/Papers/vac.html#Divb>
+The div B=0 Constraint in Shock-Capturing MHD Codes</A>).
+<p>
+See Man/<A HREF="methods.html">methods</A> for a more detailed description.
+
+<H2><A NAME="Temporal">Temporal</A> Discretization</h2>
+
+Second order accurate explicit time integration can be obtained by
+predictor-corrector and multistep Runge-Kutta type discretizations.
+The more important ones are:
+<pre>
+   Name	      Module          Description
+<hr NOSHADE>   onestep                    1st order Euler scheme
+   twostep		      2nd order predictor-corrector schemes
+   threestep  RK              3rd order Runge-Kutta for TVD schemes (by Shu)
+   fourstep   RK              4th order Runge-Kutta (classical)
+</pre>
+The time step can be adjusted dynamically to satisfy the stability criteria.
+<p>
+<b>Implicit and semi-implicit methods</b> for steady-state and time-accurate 
+calculations have been developed. They use numerical derivatives to
+evaluate the <b>dR/dU</b> Jacobian for linearization, and iterative solvers
+to solve the linearized problems. They allow for faster convergence to 
+steady state equilibria or more efficient and stable integration of time 
+dependent systems with dominant elliptic terms and/or hyperbolic systems with 
+characteristic speeds much faster than the actual physical evolution. 
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29, 2003
+</ADDRESS>
+</BODY>
+</HTML>

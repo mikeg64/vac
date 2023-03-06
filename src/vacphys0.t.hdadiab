@@ -1,0 +1,91 @@
+!##############################################################################
+! module vacphys0 - hdadiab
+
+!=============================================================================
+subroutine conserve(ix^L,w)
+
+! Transform primitive variables into conservative ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'conserv')>=1
+if(oktest)write(*,*)'Conserve w:',w(ixtest^D,iwtest)
+
+! Convert velocity to momentum
+^C&w(ix^S,m^C_)=w(ix^S,rho_)*w(ix^S,v^C_);
+
+if(oktest)write(*,*)'New w:',w(ixtest^D,iwtest)
+
+return
+end
+
+!=============================================================================
+subroutine primitive(ix^L,w)
+
+! Transform conservative variables into primitive ones
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'primitive')>=1
+if(oktest)write(*,*)'Primitive w:',w(ixtest^D,iwtest)
+
+! Convert momentum to velocity
+^C&w(ix^S,v^C_)=w(ix^S,m^C_)/w(ix^S,rho_);
+
+if(oktest)write(*,*)'New w:',w(ixtest^D,iwtest)
+
+return
+end
+
+!=============================================================================
+subroutine getv(w,ix^L,idim,v)
+
+! Calculate v_idim=m_idim/rho within ix^L
+
+include 'vacdef.f'
+
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),v(ixG^T)
+!-----------------------------------------------------------------------------
+
+v(ix^S)=w(ix^S,m0_+idim)/w(ix^S,rho_)
+
+return
+end
+
+!=============================================================================
+subroutine getcmax(new_cmax,w,ix^L,idim,cmax)
+
+! Calculate cmax_idim=csound+abs(v_idim) within ix^L
+
+include 'vacdef.f'
+
+logical:: new_cmax
+integer:: ix^L,idim
+double precision:: w(ixG^T,nw),cmax(ixG^T),csound(ixG^T)
+save csound
+!-----------------------------------------------------------------------------
+
+!Direction independent part of getcmax:
+if(new_cmax)then
+   new_cmax=.false.
+   csound(ix^S)=sqrt(eqpar(adiab_)*eqpar(gamma_)*&
+      w(ix^S,rho_)**(eqpar(gamma_)-1))
+endif
+
+cmax(ix^S)=csound(ix^S)+abs(w(ix^S,m0_+idim)/w(ix^S,rho_))
+
+return 
+end
+
+!=============================================================================
+! end module vacphys0 - hdadiab
+!##############################################################################

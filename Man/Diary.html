@@ -1,0 +1,838 @@
+<HTML>
+<HEAD>
+<TITLE> VAC RELEASE NOTES </TITLE>
+</HEAD>
+<BODY>
+<h1><IMG SRC="vaclogosmall.gif"> RELEASE NOTES</h1>
+
+This file lists all changes in the features of the software in temporal order
+starting from approximately November 1995.
+The filenames show where you can get more information, they are relative to 
+the main "vac" directory.
+<hr>
+This page:
+ [<A HREF="#VAC1.10">VAC1.10</A>]
+ [<A HREF="#VAC2.0">VAC2.0</A>]
+ [<A HREF="#VAC2.2">VAC2.2</A>]
+ [<A HREF="#VAC2.3">VAC2.3</A>]
+ [<A HREF="#VAC2.5">VAC2.5</A>]
+ [<A HREF="#VAC3.0">VAC3.0</A>]
+ [<A HREF="#VAC4.0">VAC4.0</A>]
+<hr>
+<pre>
+Date		Filename	Feature
+</pre>
+<hr NOSHADE>
+<H2><A NAME="VAC1.10">01/11/95 VAC 1.10</A></H2>
+<pre>
+	 	Man/<A HREF="source.html#Special">source</A>	INCLUDE:files instead of ^INCLUDE, nesting OK
+		Man/<A HREF="source.html#Special">source</A>	^IFONED,^IFTWOD,^IFTHREED,^NOONED,^IFTHREEC
+		Man/<A HREF="inipar.html#Filetype">inipar</A>	"typefileini","typefileout" actions in VACINI
+		Man/<A HREF="inipar.html#Manipulation">inipar</A>	"polargrid","polarvar" actions in VACINI
+		Man/<A HREF="inipar.html#Grid">inipar</A>	"domain" action can be used besides "grid"
+		Man/<A HREF="par.html#Methodlist">par</A>		"smallp","smallpcoeff" in methodlist for VAC
+27/11/95	Man/<A HREF="inipar.html#Header">inipar</A>	"varnames" instead of "typex" and "typew" in 
+					ini and out files. 
+		Man/<A HREF="par.html#Methodlist">par</A>		"wnames" instead of "typew" in par and log file
+28/11/95	Man/<A HREF="par.html#Savelist">par</A>		Save results before the first time step in VAC
+		par/default	Default scalar parameters read by VAC
+		Sm/default	"default" SM macros are moved to ./Sm directory
+		.idlrc		startup file for IDL
+		Idl/getpict	IDL macros to read VAC ini and out files
+		Idl/procedures.pro
+		Idl/defaults
+29/11/95	Man/<A HREF="inipar.html#Reading">inipar</A>	"readmesh" action in VACINI
+	   	inipar/.fixinipar  Perl script fixes "varnames" in inipar files
+	   	par/.fixpar 	Perl script fixes "wnames" in par files
+		Man/<A HREF="par.html#Filelist">par</A>		"fullgridini,fullgridout" in filelist for VAC
+		Man/<A HREF="par.html#Filelist">par</A>		"fullgridini" is used by "fixed" boundaries
+		Man/<A HREF="par.html#Filelist">par</A>		"fullgridini" is used by gridsetup 
+					for ghost cell coordinates
+30/11/95	src/vacdef.t	lvc array, the 3*3*3 Levi-Civita tensor
+		src/vacphys.mhd0.t Resistivity rewritten for 1D and gencoord
+02/12/95	src/vac.t	"getdtcourant" subr. independent of VACPHYS
+		src/vactvd.t	"dtcourant(ndim)" calculated from adtdxC,cmaxC
+		src/vactvd.t	"couranterr_" checked for TVD-type methods
+		Man/<A HREF="varnames.html#Differential">varnames</A>	"...W_" index names for characteristic waves
+04/12/95	Idl/*.pro	Transformation to polar vector components
+05/12/95	Man/<A HREF="inipar.html#Manipulation">inipar</A>	"roundgrid" action for round comput. domains
+06/12/95	src/vacphys.t.*	"exact" parameter of subr. "getcmax" deleted
+07/12/95	par/.parfix	"typelaxfri","typesource","centerflux" options
+				are eliminated from parfiles
+		Man/<A HREF="axial.html">axial</A>	describes how to use axial symmetry for VAC
+		Man/<A HREF="idl.html">idl</A>		describes how the IDL procedures are used
+		Man/<A HREF="Contents.html">Contents</A>	lists the manual files
+08/12/95	Idl/animate	show time evolution of a variable (S.Poedts)
+		Man/<A HREF="par.html#Methodlist">par</A>		MacCormack method, typefull='mc' is available
+		Man/<A HREF="methods.html">methods</A>	Manual describing FCT,TVD,projection scheme...
+		src/vacphys.seteta.t
+				sets resistivity for src/vacphys.mhd0.t
+		src/vacgrid.setnozzle.t 
+				replaces the obsolete src/vacnul.setnozzle.t
+		src/vacnul.specialsource.t
+				for user defined source terms
+		src/.vacusrfix	Updates the INCLUDE:-s in vacusr.t.* files
+11/12/95	par/default	"sourcesplit=F", since T is first order in time
+				unless user provides second order subroutine
+12/12/95	Man/<A HREF="par.html#Methodlist">par</A>		"t,it,eqpar" values can be overdefined by VAC
+		Man/<A HREF="inipar.html#Parameters">inipar</A>	"eqpar" action to set equation params by VACINI
+		Man/<A HREF="inipar.html#Parameters">inipar</A>	"gencoord" action to set the gencoord param.
+		src/vacusrpar.t	Problem dependent parameters for VAC and VACINI
+13/12/95	Man/<A HREF="par.html#Boundlist">par</A>		'symm' and 'asymm' boundary types now work in
+				generalized coordinates
+14/12/95	Idl/animate	Improved animation procedure
+		Man/<A HREF="vacusr.html">vacusr</A>	Manual describing the VACUSR modules
+		src/vacusr.t.example		Example VACUSR module
+		src/vacusrpar.t.example
+08/01/96	par/.end2slash	Perl scripts to change NAMELIST formats
+		par/.slash2end	for different compilers
+		src/Makefile	definitions for SP2 compilers
+		src/forall2do	Translates FORALL statements to DO loops
+10/01/96	par/.parfix	Repl. "entropyfix" by "typeentropy" in parfiles
+		Man/<A HREF="methods.html#TVD">methods</A>	"typeentropy" provides options for entopyfixes:
+		Man/<A HREF="par.html#Methodlist">par</A>		'harten','powell','yee','ratio', or 'nul' types
+11/01/96	Man/<A HREF="par.html#Methodlist">par</A>		"fileheadout" can be set in the parfile
+16/01/96	Man/<A HREF="par.html#Methodlist">par</A>		"typelimited" is now a scalar parameter
+		par/DEFAULT	Name capitalized for sake of clarity
+		Man/<A HREF="methods.html#TVDMUSCL">methods</A>	MUSCL TVD scheme 'tvdmu'
+18/01/96	Man/<A HREF="par.html#Methodlist">par</A>		"musclomega" and "muscleta" parameters
+24/01/96	Man/ASCII	Perl script to translate HTML files to ASCII
+26/01/96	Man/*.html	Manual files translated to HTML
+29/01/96	Man/<A HREF="vaclogo.gif">vaclogo.gif</A>	Logos for VAC
+		Man/<A HREF="vaclogosmall.gif">vaclogosmall.gif</A>
+		src/Makefile	"make perl" at installation for Perl files
+01/02/96	src/savemem	-unitname flag to display memory usage
+		Man/<A HREF="vacpp.html">vacpp</A>	maximum line length flags for Perl scripts
+02/02/96	src/Makefile	options for the preprocessors 
+04/02/96	Man/<A HREF="Features.html">Features</A>	new manual file
+05/02/96	src/*.t		^T instead of ^LL: in all source files
+		Man/<A HREF="par.html#Methodlist">par</A>		"x" and "w" can be changed in parfile
+		Man/<A HREF="inipar.html#Variable">inipar</A>	"multiply" and "divide" actions for rescaling
+		inipar/example*	example parameter files for VACINI
+		par/example*	example parameter files for VAC
+06/02/96	Fix/*		new directory for fixing Perlscripts
+07/02/96	Man/<A HREF="par.html#Methodlist">par</A>		"typefilelog" for logfiles
+		Man/<A HREF="vacusr.html#Specialio">par</A>		'special' I/O in VACUSR module
+		Man/<A HREF="equations.html">equations</A>	new manual file on the VACPHYS modules
+08/02/96	Man/<A HREF="Examples.html">Examples</A>		new manual file on example simulations
+09/02/96	src/Makefile	"make extensions" for different compilers
+12/02/96	Man/<A HREF="idl.html#Animate">idl</A>		"autorange" for animate
+		Man/<A HREF="idl.html#Getpict">idl</A>		"diff2,diff3" for derivatives in IDL
+</pre>
+<H2><A NAME="VAC2.0">12/02/96 VAC 2.0 released version</A></H2>
+<pre>
+15/02/96	Fix/PERL	"perl -i Fix/PERL", alternative for "make perl"
+		<A HREF="http://stkwww.phys.uu.nl:8000/~toth/VACFIX.html">Online HELP</A>	Contains bug fixes to VAC2.0 for now.
+19/02/96	<A HREF="http://stkwww.phys.uu.nl:8000/~toth/VACMovie/movies.html">Online Movies</A>	Movies (mpeg) of the example simulations
+		Idl/animate	"savemovie='y'" can create movies
+		Movie/		to contain gif frames, giftoppm, mpeg_encode
+23/02/96	Idl/animate	"func" values found in "names" are recognized
+26/02/96	Cray C90	Successful installation on Cray C90 (Perl,F90)
+27/02/96	<A HREF="http://stkwww.phys.uu.nl:8000/~toth/VACPATCH2.0">VACPATCH2.0</A>	Perl script to patch VAC2.0
+13/03/96	Man/<A HREF="par.html#Filelist">par</A>		"snapshotini"-th snapshot is read by VAC
+		Man/<A HREF="inipar.html#Reading">inipar</A>	"snapshotini" action for VACINI
+15/03/96	Man/<A HREF="par.html#Boundlist">par</A>		"special" boundaries are done AFTER normals (except in FCT)
+		Man/<A HREF="par.html#Methodlist">par</A>		no source is added if typefull='nul'
+25/03/96	weblink		User Interface for VAC
+		<A HREF="../Home.html">Online demo</A>	Demo User interface for VAC on my Homepage
+26/03/96	Man/<A HREF="Weblink.html">Weblink</A>	Manual page on the User Interface
+27/03/96	Idl/animate	Animation works in 1D as well
+19/04/96	Idl/getlog	".r getlog" reads log file (by M.Nauta)
+		Idl/animate	"plotmode='tv'" added      (by M.Nauta)
+				"dpict=.." to animate every dpict-th frame
+22/04/96			"func='rho m1'" for multiple animation
+				"cut" indexarray plots a subset of "func"
+				"grid size, timestep, time, titles" are shown 
+				padding for generalized coordinates improved
+		Idl/escape	".r escape" puts us back to the MAIN level
+				Actually the same as "retall".
+23/04/96	Idl/animate	"axistype (cells/coord)" plotting parameter
+				output formatting improved
+		Idl/animfunc	"physics" parameter can be used
+				1, 2 and 3D functions are added or generalized
+		Idl/procedures	"openfile","gethead" procedures added
+				"regulargrid" produces both "xreg" and "wreg"
+				and triangulates only when needed
+26/04/96	Man/<A HREF="par.html#Methodlist">par</A>		"typeadvance" for 'onestep','twostep',
+				'threestep','fourstep' and 'jameson'
+				time integration schemes.
+				"typelimited='nul'" for first order TVDMUSCL
+28/04/96	src/vacusr.gravity.t
+		src/vacusr.viscosity.t
+		src/vacusr.thermcond.t
+				Source terms for VACUSR module (by R.Keppens)
+29/04/96	src/vacnul.specialsource.t
+				getdt_special subroutine 
+02/05/96	weblink		running simulations are not killed at exit
+03/06/96	Idl/vel.pro	velocity field animation (R.Keppens, G.Toth)
+</pre>
+<H2><A NAME="VAC2.2">06/06/96 VAC 2.2 released version</A></H2>
+<pre>
+07/06/96	src/vacgrid.t	'grad1' boundary condition keeps gradient fixed
+				'fixed1' behaves as 'fixed' for fullgridini=T
+		src/vacpp.pl	More robust quotation hiding, unmatched
+		src/f90tof77	quotation marks are tolerated.
+11/06/96	src/vacgrid.t	"teststr='savegrid'" saves corners for EMMA_D
+12/06/96	src/vacphys.t.mhd
+				"divbwave=F" switches off Powell's 8-th wave
+13/06/96	src/vacini.t	"readnext" action to read next snapshot
+				"write" action to write into file without exit
+				"transpose" action to transpose x and w
+14/06/96	Idl/getpict	"filename='file1 file2...'" reads 2 or 3 files 
+17/06/96	Idl/procedures.pro
+				"triplet(0,99,2,20,30,1)" function for cuts
+18/06/96	src/vacini.t	"regrid" action to change resolution
+15/07/96	<A HREF=http://stkwww.phys.uu.nl:8000/~toth/Papers/main.html>LASY Paper</A>	Paper on the Preprocessor submitted to JCP
+15/07/96	vacproc.projectb.t	The projection scheme now can apply
+				'periodic,symm,asymm' boundaries exactly
+22/07/96	Man/<A HREF="idl.html">idl</A>		"transform='polar'" works for animate (M.Nauta)
+26/07/96	src/f90tof77	Fortran labels are now translated correctly
+		src/Makefile	Improved, may use own BLAS routines
+		Man/*.html	Manuals are updated
+</pre>
+<H2><A NAME="VAC2.3">31/07/96 VAC 2.3 released version</A></H2>
+<pre>
+04/09/96	Man/par		residmin=DOUBLE for steady state stop condition
+05/09/96	Fix/PERLPATH	A fix around a Cray shell bug.
+		Fix/T2true	Converts namelist T and F to .true. and .false.
+		Fix/true2T	Converts namelist .true. and .false. to T and F
+		src/Makefile	Cray flags and compilation rules included
+		Distribute/Readme.Cray	Info on installing VAC on a Cray
+10/09/96	ieee2dec	Converts binary files from e.g. Cray to DEC
+		dec2ieee	Converts binary files from DEC to e.g. Cray
+15/09/96	Man/axial	angmomfix=T conserves angular momentum for
+				cylindrical axial symmetry in 1.5 and 2.5D
+25/09/96	src/vacio.t	residual is saved into logfile if residmin&gt;0
+		UPDATE		shell script to copy old user files to new VAC
+30/09/96	Man/idl		'physics' is read from headerline: PROBLEM_hd22
+		Man/inipar	give physics in the headerline from now on
+		Man/idl		'filetype' is determined automatically for
+				getpict and animate by the gettype procedure
+02/10/96	Man/idl		'pictsize' is not used anymore, resize window
+				with mouse or set !d.x_size and !d.y_size
+				and now the current window is used by animate
+		Idl/plotfunc	plots functions of w read by getpict
+				or replots last image read by animate. Fast!
+		Idl/escape	removed ('retall' is the same as '.r escape')
+06/10/96	Man/methods	"divbmax" is estimated from first div B>0
+				rather than the initial gradients of B
+07/10/96	src/f90tof77	a(1:nw,1:nw)=0 is now translated correctly
+08/10/96	Gnuplot/README	instructions for visualizing VAC results with 
+				GNUPLOT
+		Gnuplot/cutpict	Perl script for cutting out parts of ASCII data
+13/11/96	Man/axial	Polar grid available with typeaxial='cylinder'
+				and phi_=2 and polar r,phi and vectors
+		Man/axial	angmomfix=T works for polar grid too
+		Man/inipar	'cartesian' action for polar grids
+19/11/96	src/vaciter.t	Module containing all the linear solvers
+		Man/par		residmax=DOUBLE, stop for big relative change
+				residual is saved in logfile if residmax is set
+20/11/96	Man/axial	phi_ and z_ are in vacdef.t instead of vacpar.t
+		src/setvac	-phi and -z flags to set phi_ and z_
+		weblink		PHI=. Z=. is shown and can be set
+25/11/96	Idl/vel.pro	/NOERASE keyword is accepted
+		Man/idl		multiplot=[nx,ny,0] or multiplot=[nx,ny,1] 
+				  can be used for overplotting and time series
+				ax=20 & az=70 defines viewpoint for plotmode
+				  'surface' and 'shade' in animate and plotfunc
+				headerline=0,1,2 to show headline, nx
+				bottomline=0,1,2,3 to show time, it, nx
+26/11/96	Man/idl		plottitle='V^2 J_z' for customized plot titles
+				doask=1 to change the current parameters
+				autorange='n' now remembers previous settings
+27/11/96	Idl/animate	printmovie='y' saves into Movie/1.ps 2.ps...
+03/12/96	Matlab/*	MATLAB visualization macros
+05/12/96	Man/matlab.html	Manual file for the MATLAB macros
+06/12/96	src/vacphys.seteta.t 
+				is deleted, and replaced by
+		src/vacnul.specialsource.t
+				subroutine specialeta for the VACUSR module
+		src/vacphys.mhd0.t
+				getdt checks for dt limit for non-constant eta
+10/12/96	Man/par		snapshotout=3 will put at most 3 snapshots
+				into the output file, then a new file is used
+		src/vacpar.t	typephys parameter is included
+		src/vacio.t	headline is checked for containing physics
+				and appended as eg. _mhd12 if it is missing
+		Man/inipar	"conserv" action does not require typephys
+		Fix/iniparfixtotal
+				ask for physics in headline if missing
+				add equation parameter names to vacrnames
+				delete physics if given after conserv
+		src/vac.t	VAC writes more info about its configuration
+		Man/USAGE	Description for usage on Cray C90
+		README.Cray	is incorporated into README and Man/USAGE
+12/12/96	src/vacpar.t.*	"eqparname" contains equation parameter names
+		src/vacusrpar.t.*
+				"specialparname" contains special param names
+		src/vacio.t	"eqparname" and "specialparname" are added
+				to the "varnames" in the output file if missing
+		Fix/iniparfix	replace _ to - in headline if not for physics
+				delete physics if given after conserv
+		Fix/PERL	is more robust and efficient
+		convertdata	"convertdata" is a new code to convert between
+				ASCII,BINARY,AVS and DX file formats.
+		AVSDX/lover.uu	The LOVER library for AVS/DX conversion
+		Man/convert	Manual file on data file conversions
+				between ascii and binary, binary formats,
+				and for AVS, DX and Gnuplot
+		Gnuplot/README	incorporated into Man/convert, deleted
+		Man/idl		"npictinfiles" is shown by getpict and animate
+		weblink		MATLAB can also be started from weblink
+</pre>
+<H2><A NAME="VAC2.5">13/12/96 VAC 2.5 released version</A></H2>
+<pre>
+20/01/97	Idl/animfunc.pro
+				A,AA,A_r,AA_r,B, divb,divb_rz,j,j_rz work in 
+				generalized coordinates with transform='none'.
+				DIVB,DIVB_rz,J,J_rz are the old simpler 
+				functions that work for Cartesian grid only
+		Idl/procedures.pro
+				grad,div,curl,grad_rz,curl_rz, and div_rz
+				functions for general 2D grids
+		src/*.t		Explicit time dependent boundaries and sources
+				are calculated more accurately.
+		Man/vacusr	Two extra time parameters for specialsource, 
+				ensurebound, and addsource_* subroutines.
+07/02/97	Man/idl		transform='unpolar' to transform polar grid
+				back to irregular grid for animate and getpict
+		Idl/animfunc.pro
+				func='mach' is isotropic Mach number v/csound
+				'cfast' is isotropic fast magnetosonic speed
+				'machA' is the Alfvenic Mach number v/cfast
+				'mach1' and 'mach2' are not defined any longer
+16/02/97	Man/idl		cut=grid(10,*) is recognized as a 1D cut and
+				now it works properly with axistype='coord'
+		Man/idl		Automatic switch to plotmode='plot' for 1D cuts
+		Idl/getpict	npict=1 is automatic if npictsinfile is 1.
+20/02/97	src/conjgrad.t	The TMPLTS subroutines that caused compilation
+				problems on some machines are replaced by
+				better written codes (by A. van der Ploeg).
+22/02/97	src/f90tohpf	Inserts HPF directives into the Fortran 90 code
+24/02/97	src/Makefile	Improved in many respect. Fortran 90 and 77
+				extensions can be the same. For Fortran 77
+				compilation no intermediate Fortran 90 files.
+				Default Fortran compiler can be defined for 
+				"make vac" and "make vacini".
+		src/Makefile	"make vachpf" and "make vacinihpf" for HPF,
+				"make vac90" and "make vacini90" for F90 
+				compilation if it is not the default. These and
+				"make vac77" and "make vacini77" will all
+				produce executables "vac" and "vacini" !
+		src/Makefile	"make extension77" added, "make extensions" 
+				is simplified, and much more robust.
+		Fix/extensionfix
+				More general and usable.
+		src/vacpp.pl	"include vacdef.??" is replaced by correct
+				file extension, no need to change the source.
+26/02/97	Man/weblink	MAKE VACINI and MAKE VAC pages updated
+28/02/97	src/f90tohpf	uses !SHIFT directives to optimize performance
+				for HPF compilers
+		src/vactvd.t	!SHIFT directives are inserted where useful
+		src/vaceuler.t
+		src/vacphys.mhd0.t
+		src/vacphys.rho.t
+		src/vacfct.t
+11/03/97	src/vacproc.projectb.t
+				'fixed' and 'fixed1' boundaries are handled
+				more accurately by the projection scheme
+		src/f90tof77	!F77_ comments for lines (not) used by the f77
+				compiler. Rule: txt1 !F77_ txt2 --> txt2
+18/03/97	Man/par		typedimsplit='xyyx' for alternation of sweeps
+				typedimsplit='xy'   for no alternation
+				typesourcesplit='sfs'   for 1st order twosided
+				typesourcesplit='sf'    for 1st order onesided
+				typesourcesplit='ssfss' for 2nd order twosided
+				typesourcesplit='ssf'   for 1st order onesided
+		Man/discretization
+				updated to describe dimensional and source
+				splitting in some detail
+		Man/par		artcomp=T,F,.. for artificial compression using
+				TVD scheme with typetvd='harten' (by M. Nauta)
+27/03/97	src/vacproc.projectb.t
+				The projection scheme now handles correctly a
+				symmetric boundary with normal magnetic field,
+				'fixed','fixed1' for gen.coord. or axial symm.
+27/03/97	Idl/vel.pro	VEL works on general grids (partly by D. Innes)
+03/04/97	Man/idl		vectors, nvector are determined automatically
+04/04/97	Man/Makefile	"make" will produce "ALL.html" for printing
+				"make clean" deletes it and the *~ files.
+07/04/97	Man/par		The absolute value of procpar(3) for the 
+				projection scheme selects between conservation
+				of total energy (1), thermal pressure (2), and
+				total pressure (3). The sign means the same
+				as before, i.e. application of boundary cond.
+		Man/par		"typeadvance='extra'" for 3-level 2nd order 
+				explicit extrapolation scheme, C<0.5 only.
+09/04/97	Idl/getlog	Now can read from 1, 2, or 3 logfiles.
+				The array "step" is read instead of "it" so
+				no interference with "it" from data files.
+				Faster buffered reading for big log files.
+10/04/97	Man/Idl		multiplot=N can be used instead of [N,1,1]
+11/04/97	src/vacpp.pl	-O option to optimize for !SHIFT directives.
+				Now works for arbitrary dimensions.
+				This replaces the optimization in f90tohpf.
+		src/f90tohpf	-distr=12 to distribute 1st and 2nd dimensions
+				-distr=123 to distribute all, -distr=2 etc.
+16/04/97	Man/par		slowsteps=6 in &amp;parlist to do first 6 steps
+				slower, i.e. with reduced time steps
+		Man/Idl		default filename and logfilename based on the
+				other one
+16/05/97	Man/par		"typeadvance='extra'" is removed
+		Idl/compare	works for 1, 2, and 3D w arrays
+		src/vacphys.t.hdadiab
+				Roe-type average in the Riemann solver for 
+				adiabatic hydrodynamics (by M. Nauta)
+				the default is still the faster original solver
+				set qsimple in src/vacphys.hdadroe.t to switch
+18/05/97	src/vactvdlf.t	TVDLF module is separated
+		src/setvac	-on=tvdlf and -off=tvdlf switches
+19/05/97	src/vacphys.*roe.t
+				Roe-solvers are separated, they are compiled
+				only when the TVD moduule is switched on
+		src/vaccd.t	Module for centered difference scheme (for TVD)
+		src/vacmc.t	Module for Mac-Cormack scheme (for TVDMC too)
+		src/vaceuler.t	removed, addflux, gradient, TVD limiters are
+				now in vacgrid.t
+		Man/par		the name 'euler' is replaced by 'cd', which
+				stands for Centered Differencing
+		Man/par		'roe' and 'superroe' limiters for TVD with
+				typetvd='sweby' or 'roe'. Similar to 'woodward'
+				and 'superbee', somewhat slower, maybe better
+11/06/97	Man/par		typeadvance='adams2' re-introduced 
+				(same as the 'extra' deleted a while ago)
+		src/lapack.f	LAPACK routines are separated
+		src/Makefile	Option to use local lapack library
+19/06/97	Fix/cray.d2s	Converts to BLAS and LAPACK calls to Cray  
+				single precision calls. Usage given in file.
+26/06/97	Man/par		typefull='tvd1' temporally first order TVD for
+				steady state calculation and/or implicit RHS
+		Man/methods	Onestep TVD adds unsplit sources and/or 
+				cylindrical geom. terms to 2nd order accuracy
+27/06/97	Man/par		sourceunsplit=F to switch-off unsplit sources
+				It is an optimization for speed.
+17/07/97	Man/idl		plotmode='ovelovect' for overplotting velocity 
+				vectors with contour or contfill plots.
+21/07/97	Man/inipar	"stretchgrid" action for piecewise logarithmic
+				non-uniform Cartesian grids. Maintains domain.
+		Man/par		smallfix=T to keep density and press. positive
+		Man/par		smallrho, smallrhocoeff parameters
+		src/vacproc.positive.t
+				New subroutine to keep density positive
+		src/vacphys.t.*	subroutine keeppositive called if smallfix=T
+26/07/97	Man/par		typelimited='original' is replaced by 
+				            'previous' if dimsplit=F and ndim>1
+		Man/par		Updated with new features including implicit
+				and MR-PC paramters
+29/07/97	Man/par		slowsteps=1 means to use dtpar in the very
+                                first timestep, later use courantpar, dtdiffpar
+04/08/97	Man/par		extraB=T in boundlist calls specialbound before
+				any boundary update with ix^L=ixM^L,iB=0,iw=0
+				Can be used to process w in an arbitrary way.
+05/08/97	job*		Scripts to submit VAC as a batch job on the
+				DEC (ruunf3), Cray C90 and T3E, and IBM SP2
+07/08/97	Man/idl		line style in 1D plots is set to ifile or ifunc
+				whenever functions are overplotted
+		src/Makefile	"convertdata" can be compiled without AVS/DX 
+		                conversion if it is not needed
+		Man/convert	"convertdata" can select snapshots from the
+				input file in a very general way.
+12/08/97	Man/equations   Polytropic MHD can be used in VACMHDISO by 
+				setting eqpar(gamma_)>1 
+		src/vacini	"shocktube" ACTION gives linear interpolation
+		                on nonuniform grids (by E. van der Swaluw)
+		src/convertdata.f
+		                used to be convert.f
+		src/convertavsdx.f
+		                subroutine for AVS and DX conversion
+		src/convertnul.f
+		                dummy subroutine for no AVS or DX conversion 
+		src/convertusr.f
+		                User written subroutine for arbitrary
+				data conversion and data format
+		Man/par		"vacuumrho" can be used to represent vacuum
+				together with smallp, smallrho, smallfix.
+		src/vacpp.pl	-d flag overwrites $ndim and $ndir.
+		                Only intended for interactive use, e.g.
+				vacpp.pl -d=23 -
+		Man/USAGE	VAC can be installed directly on the CM5
+		src/Makefile	CM5 flags are provided
+		Fix/tab2space	replace TAB-s with spaces (required by CM5)
+</pre>
+<H2><A NAME="VAC3.0">01/09/97 VAC 3.0 released version</A></H2>
+<pre>
+31/10/97        src/conjgrad.f  relative "assumedzero" value (van der Ploeg)
+		Man/par		dtcantgrow=T in paramlist may improve
+				convergence to steady state
+05/11/97	src/vacpp.pl	^DLOOP ^CLOOP can be used instead of 
+				^D&amp; ^C&amp; at the end of lines to avoid ambiguity. 
+				Also, CAPITALLETTER&amp; at the end of line
+				is not taken as continuation line anymore.
+11/11/97	src/f90tohpf	-pghpf flag can be set in src/Makefile 
+				to avoid a PGHPF 2.3-1 compiler bug.
+				Simply drops ONTO PP from the HPF directives.
+12/11/97	Man/par		adams2 method can only be used with IMPL on
+				to save memory.
+15/11/97	src/vacpoisson.t conjugate gradient method in LASY notation
+				so that projection scheme can be HPF compiled.
+19/11/97	src/blas.f	DNRM2 function replaced by a better written
+				version to avoid a G77 compiler bug.
+19/01/98	src/vacio.t	nwini /= nw or neqparini /= neqpar+nspecialpar
+				produce warnings only.
+20/01/98	Man/par		"varnames" can be given in &amp;filelist 
+				when the value read from input file is not OK
+                Man/inipar	varnames read from a file by VACINI with the
+		                "read" action for example, is only used 
+		                if the 3rd line of the inipar file is 'default'
+05/02/98	src/vac.t	the final error messages print more info
+		src/Makefile	timing problem is solved for the g77 compiler
+		src/vacpoisson.t New module solving Poisson equation, used
+				by projection scheme, and future applicaions.
+				Uses LASY versions of CG and BiCGSTAB (latter
+				is by M. Botchev). 
+		Man/par		typepoisson='cg' or 'bicgstab' can overrule 
+		                the 'default' choice for the iterative method. 
+		src/Makefile	projection scheme can be used by vachpf.
+26/02/98	Man/par		extended meaning for projection scheme 
+				parameters (procpar): reduction factor and
+				maximum number of iterations can be given
+13/03/98	Idl/animfunc.pro has been rewritten completely, easier to add
+                                user defined functions
+		Man/idl		'func' can contain a '-' character meaning
+				negative sign for any function e.g. '-pth'
+				'func' can be any expression of standard 
+				variable and coordinate names, e.g. 'r*m2/rho'
+				';' should be used to separate vector 
+				components instead of '^', since '^' can now
+				be part of expressions. E.g. 'v1;v2'
+24/03/98	src/vacusr.real4io.t
+				special I/O subroutines for real*4 binary data 
+		src/vacusr.t.real4
+				setvac -u=real4 and 'special' file type: real*4
+				Can save disk space, and T3E compatibility 
+26/03/98	Man/inipar	'primitive' action, inverse of 'conserv'
+30/03/98	Man/idl         noerase=1 prohibits animate/plotfunc to erase
+
+VAC 3.09	
+
+22/04/98	src/vacdef.t	IMPLICIT NONE forces variable declarations
+		src/Makefile	'make vac' and 'make vachpf' are now identical
+				if HPF default compiler and VACPP=vacpp.pl -O
+				are selected
+		src/Makefile	rules for 'vacpp.f' and 'tpp.f' are removed
+		src/vacpp.f	deleted, as it became obsolete
+		src/tpp.f	deleted, as it became obsolete
+		src/setvac	comments out libraries in Makefile unless
+				the implicit module is on (-on=impl)
+		src/setvac	'-off=gencoord' can be used to reduce memory
+				usage and compilation time for Cartesian only
+		src/setvac	'-off=resist' can be used to reduce memory
+				usage and compilation time for ideal MHD
+		Man/source	new ^IFGEN ^NOGEN ^IFRES ^NORES patterns
+		Man/source 	'COMMON,' can be preceeded with spaces
+		Fix/noflush	comments out 'call flush' statements for
+				operating systems where 'flush' does not exist
+				Usage is described in the file
+		Fix/doflush	uncomments 'call flush' statements
+		Man/USAGE	'assign -F f77 -N ieee u:12' can be used on
+				Cray T3E together with 'real4io' routines
+				to produce compatible binary data files
+		src/vacpoisson.t MINRES algorithm (M.Botchev)
+		Man/par		typepoisson='minres' is a new option
+		src/vacdef.t	'nwrk=?' can be used to set work array size
+				for the iterative Poisson solvers.
+		src/f90tohpf	error that occurs for setvac -d=33 is fixed
+		Man/idl		cuts of 3D data now work for typeaxis='coord'
+		Idl/slice       new IDL script for slicing 3D data read
+				by e.g. '.r getpict'. Usage: '.r slice'
+		Man/idl		real*4 data files are recognized and read
+		src/savemem	ixGlo1, ixGlo2 ... are read from vacdef.f
+				which fixes a small bug in calculatin PADDING
+
+VAC 3.1beta
+
+06/05/98        src/savemem     now reads continuation lines from vacdef.f
+				correctly (fixes a bug that can occur in 3D)
+07/05/98	src/vacphys.mhdres
+				subroutines for resistivity for MHD and MHDISO
+		src/setvac	-off=resist switches vacphys.mhdres off
+		src/setvac	-off=poisson switches vacpoisson module off
+		Man/source	^IFRES ^NORES ^IFPOISSON
+15/05/98        src/vacproc.constrainb.t
+                                implementation of a constrained transport 
+                                like algorithm for 2 and 3D MHD(ISO)
+				equations on Cartesian grids.
+		Man/par		divbconstrain=T switches div B constraint on
+18/05/98	src/vacpp.pl	{^IFTWOD include 'vacdef.f90'} now works
+		src/vacini      multiD subroutines are omitted in 1D
+		Man/inipar	"spheregrid" action to generate 3D sphere
+				"spherevar" converts spherical vectors to XYZ
+				"setvar" action sets 1 variable in a rectangle
+		Idl/slice	GRID2D is defined, usage: cut=grid2d(0:10,*)
+25/05/98	Idl/procedures.pro
+				"plotgrid,x" now draws grid lines exactly
+		Man/idl		xinteranimate,/keep_pixmaps repeats last movie
+		Man/idl		plotmode='shadeirr' uses 'surf_shade_irr'
+07/07/98	Man/inipar	"roundgrid" action reads center coordinates too
+14/07/98	Movie/animate.html JavaScript movie player for *.gif images
+15/07/98	Man/Weblink	VAC User Interface updated for new modules
+16/07/98	Man/convert	convertdata can read and write real*4 datafiles
+                par/DEFAULTS	typefileini='auto' typefileout='auto' default
+		Man/par		typefileini='auto' lets VAC to set typefileini
+				   automatically by examining the file
+				typefileout='auto' sets typefileout=typefileini
+		Man/inipar	typefileini='auto' by default for "read" action
+				   For VACINI typefileout='ascii' by default 
+				   just as before!
+		Man/idl		"velrandom=1" before .r slice makes vector
+				   positions random for each slice.
+24/07/98	Man/par		useprimitive=T makes TVDLF and TVDMU use the
+				primitive variables for linear reconstruction
+29/07/98	src/vacpar.t.*	Indexnames for prim. var.: v0_,v1_,v2_,v3_,p_
+		Man/par		useprimitive=T uses dp=pR-pL in MHD Roe solver
+                                   instead of complicated conservative form.
+	        src/vacphys.mhdroe.t
+				MHD Roe solver has been generalized for MHDISO
+				Nonideal gas can be implemented (gamma<0)
+		src/vacphys.t.mhd
+		                Nonideal gas can be implemented (gamma<0)
+		src/vacusr.viscosity.t
+		                <A HREF=http://www.phys.uu.nl/~toth/VACFIX.html#Viscosity>Bug and fix</A> has been found for axial symmetry
+		Idl/animate	If "wsubtract" is set, it is subtracted from w
+		                   after each getpict during the animation.
+VAC 3.2
+
+15/08/98	Jobs/jobc90.pbs	job script file for a PBS queue
+		src/Makefile	vacpp.f has been removed from the Makefile
+		src/vacpp.pl	TAB-s in *.t files are replaced by spaces
+		convertdata     Asks for typefileini when automatic type 
+		                  recognition fails (e.g. for Cray binary file)
+		Man/Matlab	some minor bugs were removed
+		Man/Matlab	func='A', 'A_r', 'AA', 'AA_r' vector potential
+				  can be used to draw field lines with contour
+		Matlab/grad4x	4th order gradient in X direction
+		Matlab/grad4y	4th order gradient in Y direction
+		Man/Matlab	func='divb4' is 4th order div B
+		Man/par		tmaxexact=T in stoplist adjusts last time step
+				  such that final t equals tmax
+		Man/par		typeadvance='fourstep' is 4th order Runge-Kutta
+		src/setvac	-off='rk' switches off all Runge-Kutta schemes
+				   and saves some memory
+		Man/par		typefull='cd4' for 4th order central difference
+				   scheme on uniform slab symm. Cartesian grid
+		Man/par		fourthorder='T' makes projection scheme,
+				   Powell's source terms and heat conduction
+				   fourth order accurate in space for uniform
+				   Cartesian grids with slab symmetry
+		Man/par		ACM reduction of dissipative flux implemented:
+				acmwidth=2 number of cells used on both sides
+				acmexpo=1  for the exponent in ACM switch
+				acmcoef=6*'0.7' the coefficients for each wave
+26/08/98	Man/par		typefilter='nul','tvd1','tvdmu','tvdlf'...
+				   applies dissipative filter after base scheme
+27/08/98	Idl/procedures.pro
+                                "diff4" function for 4th order derivatives
+		Man/Idl		func='divb4' for 4th order div B
+03/09/98	Fix/endian	Perl script to test and convert between
+                                  little and big endian binary VAC files
+22/09/98	src/vacproc.constrainb.t
+				Works for (orthogonal) generalized coord.
+14/10/98	Man/inipar	'stretchgridcent' action stretches grid
+                                while fixing the first and last cell centers
+15/01/99	src/setvac	-phi -z switches modify vacpp.pl, not vacdef.t
+                src/vacpp.pl	^PHI ^Z patterns return the index values
+                                ^IFPHI ^IFZ are conditional patterns
+		src/*.t *.t.*	all phi_ and z_ subscripts are put inside 
+                                  ^IFPHI and ^IFZ conditional `loops'
+		                  to avoid annoying compiler warnings
+18/01/99	src/vacproc.constrainb.t
+				fieldCD,efieldCD,fieldCT,efieldCT,fluxCT,fluxCD
+                                ryuCT schemes are implemented for 2D Cartesian
+				grids for testing.
+	        Man/par		typeconstrain parameter selects CT/CD scheme
+				constraincoef parameter for fluxCT and fluxCD
+                                   defines coefficient of the flux limiter 
+                                   and for fieldCD the spatial weights
+		Man/idl		divb_CT the staggered divb definition in 2D,
+		                   which should remain 0 for the CT schemes
+19/01/99	Man/par		entropycoef=0.2,0.2,... can be set for the
+                                   typeentropy='yee' entropy fix
+		src/vacphys.*   default values for entropycoef are set in 
+		                   the physini subroutine
+		src/vacgrid.t	for automatic pairing of periodic boundaries,
+                                   boundsetup now takes the size of the regions
+                                   into account as well
+                Man/par         ipairB=3,0,1,0... can be set explicitly in
+                                   boundlist to match periodic regions
+22/01/99	Man/idl		ac=coarse(a,4) makes a 4 times coarser array
+                                   by averaging 4, 4*4, 4*4*4 points.
+10/02/99	Man/convert	Fix/endian can now read Cray T3E binary files
+                                   if "assign -F f77 g:su" is set on the T3E
+18/02/99	Man/convert	convertdata can now be used for conversion 
+				   between Cray and non-Cray files with e.g.
+				   "assign -F f77 -N ieee u:12"
+
+VAC 3.3
+
+25/03/99	Man/fileformat	new Man page describing the VAC data files
+31/03/99	Man/idl		transform='sphere' for spherical grids
+05/04/99	src/vacphys*    VACPHYS modules are split into VACPHYS and
+                                   VACPHYS0, which is used by VACINI too.
+                src/vacphys0*   conserve and primitive conversion subroutines
+                                   defined for all equations.
+                src/setvac      vacphys0.t is linked to vacphys0.t.PHYSICS
+                src/Makefile    VACINI compiles and links vacphys0.t
+                Man/vacusr      subroutine specialini can now use subroutines
+				  in the VACPHYS0 module
+                src/vacpar.t.*  ee_ and pp_ indexnames are defined to avoid
+                                   compiler warnings: ee_=pp_=min(e_,1)
+                src/*.t *.t.*   e_ and p_ indices replaced by ee_ and pp_
+		src/vacpp.pl	^PPHI, ^ZZ patterns: min(1,^PHI), min(1,^Z)
+		src/vacdef.t	pphi_, zz_ parameters =min(1,phi), min(1,z_)
+                                   can be used for indices to avoid compiler
+				   warnings (alternatives to ^IFPHI and ^IFZ)
+08/04/99	Man/axial	3D polar grid with general R,Z coordinates
+				   can now be used
+		src/vacdef.t	"polargrid" logical variable is availabe
+		src/vacgrid.gencoord.t
+				teststr='savecorners' saves corners
+				teststr='savegrid' saves grid info in grid.dat
+				teststr='correctgrid' allows to correct
+				   3D grid based on a 2D grid in grid.dat
+09/04/99	src/vacusr.thermcond.t.mhd
+				New library subroutine for thermal conduction
+				   parallel to the field lines. (by S. Belien)
+		src/vacusr.radloss.t
+				New library subroutine for radiative losses
+				   in an optically thin plasma (by S. Belien)
+VAC 3.5
+
+27/04/99	Man/USAGE	vac and vacini print out the full setting
+		src/setvac	setvac puts the settings into vac.t, vacini.t
+01/05/99	Man/idl		pi=3.1415926... is defined in .idlrc
+06/05/99	Man/idl		transform=none is taken for hitting ENTER
+		Man/idl		mm and bb (momentum^2 and B^2) are defined 
+                                   in animfunc beside conservative variables
+		Man/idl		NEW FUNCTIONS defined in animfunc.pro:
+                                plasma beta (2*p/b^2): 'pbeta'
+				entropy (p/rho^gamma): 's'
+				wave speeds and Mach numbers for MHD: 
+				   calfven, calfven1, calfven2, calfven3,
+				   Malfven, Malfven1, Malfven2, Malfven3,
+				   cfast, cfast1, cfast2, cfast3, 
+				   Mfast, Mfast1, Mfast2, Mfast3, 
+				   cslow1, cslow2, cslow3, 
+				   Mslow1, Mslow2, Mslow3
+                                   ('Mfast' is the same function as 'machA')
+12/05/99	Man/methods	CD/CT schemes work for generalized coordinates
+				in 2D. field-CD scheme implemented for 3D too.
+		Man/idl		compare,w0,w1 now prints relative difference
+		                   both in the maximum and first norms
+VAC 3.6
+
+18/05/99	Man/par		cputimemax=3600.0 set in the stoplist stops the
+                                   calculation and saves the final state
+                                   if the CPU time exceeds one hour
+21/05/99	Man/par		typeB='symm0' is like 'symm', but it 
+                                   guarantees zero flux accross the boundary
+                                   for all methods on Cartesian grid, also for 
+                                   TVDLF, TVDMUSCL, and the Riemann solver 
+                                   part of TVD in generalized coordinates
+09/06/99	VACLOGOMOVIE	Moving vaclogo on the VAC home page
+10/06/99	Fix/endian      -C option converts to Cray 8 byte integers
+
+VAC 3.7
+
+24/06/99	src/convertdata.f
+                                checks whther input file size is too big
+25/06/99	Fix/endian	prints file and snapshot sizes, and the
+				  the number of snapshots in the file
+26/06/99	src/convertusr.f.nul
+                                Template file to create new convertusr.f
+27/06/99	src/convertusr.f.cut
+                                library data conversion code to cut out blocks
+01/07/99	src/setvac	-off=ct can switch off CT/CD schemes
+                src/vacpp.pl	^IFCT conditional pattern 
+                src/vacdef.t	fstore array is only used if -on=ct
+		Weblink/*       CT/CD schemes can be switched on and off
+02/07/99	src/vacusr.diffusion.t
+				New library subroutine for density diffusion
+		Man/par		typefull='source' means to evaluate source
+		                terms only (both split and unsplit)
+06/07/99	src/vacusr.t.LIBRARY 
+                src/vacusrpar.t.LIBRARY
+		                VACUSR files demonstrating the individual use 
+				of the src/vacusr.LIBRARY.t libraries.
+12/07/99	src/vacusr.selfgrav.t
+                                New library subroutine for self-gravitating gas
+				   Uses the Poisson solver to calculate gravity
+13/07/99	Fix/f90split	Splits F90 files into subroutines and functions
+27/07/99	Idl/procedures.pro
+				triplet function can now be used for 4D arrays
+		Idl/vel.pro	no random positions are produced for very short
+		                arrows when the initial positions X0 are given
+		Idl/*		"velpos" array is reserved by animate, slice, 
+				and plotfunc
+		Man/idl         quadruplet(...) function generalizes triplet()
+				to coarsen part of multiD array
+24/08/99        Jobs/jobsp2	is renamed to 
+                Jobs/jobsp	since now SP2 is officially called SP
+		src/*.t *.t*    include 'vacdef.f90' has been changed to 
+				include 'vacdef.f', which is the usual name 
+		src/*thermcond_mhd*
+                                files renamed to '*thermcondmhd*'
+		src/vacusr.t.real4
+		                renamed to
+                src/vacusr.t.real4io
+                                for sake of consistency
+        	Man/gnuplot	Description of gnuplot got its own HTML page
+                Man/Contents    Slightly rearranged
+   	        Man/html2latex.pl
+                                Perl script to convert VAC manuals in HTML
+				format into a single LaTeX file
+		Man/eq.*.tex	LaTeX files for the equations
+		Man/*.eps       Encapsulated Postscript files converted from
+		                GIF images.
+		Man/Makefile	"make" will produce Man/MANUAL.ps.gz with LaTeX
+		Man/MANUAL.ps.gz
+		                Compressed Postscript VAC Manual
+		Sm/default	'overload gamma 1' fixes a name conflict
+		                The gamma function is still available as GAMMA
+		Idl/animate	npict is calculated even if autorange='n'
+		Idl/slice       firstslice value is shown, nslice is checked
+28/09/99	src/vacusr.viscosity.t
+		src/vacusr.thermcond.t
+                                Time step limits are corrected
+</pre>
+<H2><A NAME="VAC4.0">05/10/99 VAC 4.0 released version</A></H2>
+<pre>
+15/03/00        Man/methods     Reduced memory consumption of BiCGSTAB from
+                                7 to 5 vectors in src/vacpoisson.t
+		src/vacdef.t	nwrk=5 is set when VACPOISSON module is on
+12/04/00        Idl/vel.pro     2nd order integration added for streamlines
+                Man/idl         plotmode='stream' is available
+14/04/00	Man/USAGE	updated info on binary file conversion for C90
+06/07/01	src/vacproc.constrainb.t
+                                is now part of the distribution (JCP paper appeared)
+</pre>
+<H2><A NAME="VAC4.01">07/07/01 VAC 4.01 </A></H2>
+<pre>
+21/10/03        src/            various bug fixes as listed on web site
+</pre>
+<H2><A NAME="VAC4.02">07/07/01 VAC 4.02 released version </A></H2>
+<pre>
+21/10/03        <A HREF=mpi.html>Man/mpi</A>         Added MPI parallelization. Many changes.
+21/12/23        Fix/*flush      removed, edit subroutine flushunit in src/vacio
+26/12/03	<A HREF=idl.html>Idl/*</A>           New improved IDL macros
+26/12/03	Weblink/        support for MPI parallel runs and data files
+26/12/03	Weblink/	use mozilla instead of the obsolete mosaic
+29/12/03	src/* Man/*	removed all Connection Machine related things
+29/12/03	Weblink/        CLEAN button added to MAKE VAC and MAKE VACINI
+</pre>
+<H2><A NAME="VAC4.5">29/12/03 VAC 4.5 released version</A></H2>
+<A NAME=END> </A>
+<pre>
+02/06/05	weblink.pl	Extended and renamed weblink to run on the Mac.
+</pre>
+</BODY>
+</HTML>

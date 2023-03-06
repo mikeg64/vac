@@ -1,0 +1,39 @@
+!##############################################################################
+! module vacphys - mhdiso
+
+INCLUDE:vacphys.mhd0.t
+
+!=============================================================================
+INCLUDE:vacproc.positive.t
+
+subroutine keeppositive(ix^L,w)
+
+! Keep density (and consequently pressure) positive
+
+include 'vacdef.f'
+
+integer::          ix^L
+double precision:: w(ixG^T,nw)
+!-----------------------------------------------------------------------------
+
+if(vacuumrho<zero)then
+   ! Keep density positive
+   call keeppositive_rho(ix^L,w)
+else
+   ! Where rho is small use vacuum state: rho=vacuumrho, v=0, same B
+   where(w(ix^S,rho_)<smallrho)
+      w(ix^S,rho_)=vacuumrho
+      ^C&w(ix^S,m^C_)=zero;
+   endwhere
+endif
+
+return
+end
+
+!=============================================================================
+
+! end module vacphys - mhdiso
+!##############################################################################
+
+
+

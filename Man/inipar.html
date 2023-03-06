@@ -1,0 +1,407 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on Parameter Files for VACINI </TITLE>
+</HEAD>
+<BODY>
+<h1>PARAMETER FILES FOR VACINI</h1>
+
+This document describes how the <b>inipar/PROBLEM</b> parameter files for 
+VACINI should be used. Some features of no general interest remain 
+partially documented, their use can be learned by reading the appropriate
+subroutines in <b>src/vacini.t</b>.
+<hr>
+This page:<br>
+ [<A HREF="#Header">HEADER</A>]<br>
+ [<A HREF="#Actions">ACTIONS</A>]:
+ [<A HREF="#Filetype">Filetype</A>]
+ [<A HREF="#Reading">Reading</A>]
+ [<A HREF="#Grid">Grid</A>]
+ [<A HREF="#Manipulation">Manipulation</A>]
+ [<A HREF="#Variable">Variable</A>]
+ [<A HREF="#General">General</A>]
+ [<A HREF="#Special">Special</A>]
+ [<A HREF="#Parameters">Parameters</A>]
+ [<A HREF="#Saving">Saving</A>]<br>
+ [<A HREF="#Example">EXAMPLE</A>]
+<hr>
+<H2><A NAME="Header">Filename</A> and Header</h2>
+
+The parameter file always starts with the following 3 lines:
+
+<ol><li>the name of the initial file to be created, e.g.<br>
+   <kbd>data/brio12.ini</kbd>
+<li>the header line containing <b>_physics</b> that will appear in the 
+first line of the initial file, e.g.<br>
+   <kbd>Brio-Wu_mhd12</kbd>
+<li>the names of the <b>x</b> and <b>w</b> variables, e.g.<br>
+   <kbd>x rho m1 m2 e b1 b2</kbd>
+</ol><p>
+VACINI will automatically check physics, and it if is missing, VACINI
+will put it in the header line. Do not use any other underscore '_' 
+in the header line. You may use <b>Fix/iniparfix inipar/*</b> to replace
+extra underscores by hyphens.
+The equation parameter names are appended automatically to the third line. 
+VAC will also check for physics in the headline and for the
+equation parameter names among the variable names, and add them  
+for the output file if they are missing. Still, it is a good idea to use this 
+information in the inipar files, so that physics can be checked by VACINI.
+<p>
+Sometimes VACINI is used to read an existing data file and save the
+modified data into a new file. If the variable names read from the input file
+should be used, write <b>default</b> in the 3rd line.
+
+<H2><A NAME="Actions">Actions</A> and Action-Parameters</h2>
+
+The rest of the parameter file consists of some ACTION defined by a
+string followed by several lines containing the ACTIONPARAMETERS.
+The type and number of actionparameters are different for each action. 
+A parameter file usually contains several ACTION-ACTIONPARAMETERS segments.
+In the following I shall describe the existing actions. 
+
+<H4><A NAME="Filetype">Setting</A> the file types: 
+     typefileini, typefileout</h4>
+<pre>
+typefileout
+binary
+</pre>
+   sets the type of the new initial file to binary. The default is 
+   <b>ascii</b>. The type of the file read by the <b>read, readnext</b>, or 
+   <b>readmesh</b> actions can be set by
+<pre>
+typefileini
+binary
+</pre>
+   Again, the default type is <b>ascii</b>. The <b>special</b> type can also 
+   be used if the <b>readfileini_special</b> and/or <b>savefileout_special</b>
+   subroutines are defined in the 
+   <A HREF=vacusr.html#Specialio>VACUSR module</A>.
+
+<H4><A NAME="Reading">Reading</A> a file for modification:<br>
+read, readnext, readmesh, snapshotini</h4>
+<pre>
+read
+filename
+</pre>
+   It is possible to read only a part of the file by using 
+<pre>
+readmesh
+filename
+2 2 2 2
+</pre>
+   where the last numbers describe the width of cut off boundaries for the sides
+   of a 2D grid. In general the order is left, right, bottom, top, front, back,
+   or in other words, xmin, xmax, ymin, ymax, zmin, and zmax.
+<p>
+   If the input file contains more than one snapshots the last one is read
+   unless the <b>snapshotini</b> action is applied before reading, e.g.
+<pre>
+snapshotini
+2
+read
+filename
+</pre>
+If VACINI is used for transforming several snapshots in a file, 
+the <b>readnext</b> action can be used repeatedly after the
+first <b>read</b> has been completed. This is usually combined with the
+repeated use of the <b>write</b> action. However, using 
+<A HREF="convert.html#Convertdata">convertdata</A> may be more convenient.
+
+<H4><A NAME="Grid">Generating</A> a uniform grid: domain, grid</h4>
+
+   An example in 2D is
+<pre>
+domain
+n1,n2
+xmin1,xmin2
+xmax1,xmax2
+</pre>
+   This subroutine generates a uniform grid of size <b>n1 x n2</b> in the 
+   computational domain <b>[xmin1,xmax1] x [xmin2,xmax2]</b>, i.e. the 
+   cell center coordinates will run from xmin+dx/2 to xmax-dx/2.
+<p>
+   In case the cell center coordinates need to be defined use the <b>grid</b>
+   action, e.g. in 1D
+<pre>
+grid
+n1
+xmin1
+xmax1
+</pre>
+   will produce a uniform grid with <b>n1</b> cell centers located at 
+<b>xmin1,...,xmax1</b>.
+<p>
+
+<H4><A NAME="Manipulation">Grid</A> manipulations:<br>
+stretchgrid, stretchgridcent, polargrid, spheregrid, rotategrid, shiftgrid, 
+sheargrid, roundgrid, regrid, transpose</h4>
+
+   <b>stretchgrid</b> can be used to produce a non-uniform Cartesian grid.
+   It should be called after <b>domain</b>, since it leaves the size of the
+   computational domain and the number of grid cells intact, only the 
+   cell sizes are changed in a piece-wise logarithmic fashion. For example
+   the first 20 cells can be clustered closer to the Y axis by
+<pre>
+stretchgrid
+1       2                               -idir, nsegment
+5.0                                     -dxlast/dx1 for segment 1
+20                                      -ixlast     for segment 1
+5.0                                     -dxlast/dx1 for segment 2
+</pre>
+   The leftmost cell will have 5 times smaller dx size than the cells 
+   right of the 20-th column. All sizes are measured against the first cell.
+   Another example is a grid with 20 cells along the -L<y<L direction
+   with grid points accumulated around y=0 in a symmetric fashion
+<pre>
+stretchgrid
+2       2                               -idir, nsegment
+0.1                                     -dxlast/dx1 for segment 1
+11                                      -ixlast     for segment 1
+1.0                                     -dxlast/dx1 for segment 2
+</pre>
+   Note that the first segments ends at the 11th grid point, since the
+   smallest distance is between the 10th and 11th points, which is 1/10th
+   of the distance between the 1st and 2nd or 19th and 20th.
+   <b>stretchgrid</b> can be called for each dimension separately.
+<p>
+   <b>stretchgridcent</b> does the same thing as <b>stretchgrid</b>,
+   except that it keeps the position of the first and last grid centers fixed,
+   rather than the boundaries of the computational domain. Normally
+   <b>stretchgridcent</b> should be used after the <b>grid</b> action.
+<p>
+   <b>polargrid</b> transforms the <b>x</b> coordinates already defined
+   by e.g. the <b>domain</b> action. 
+   It assumes that the first coordinate describes radial distance, and the 
+   second one is the angle normalized to 1, ie. 1 corresponds 2*pi radians. 
+   Thus x1'=x1*cos(2*pi*x2) and x2'=x1*sin(2*pi*x1). For 3D the third 
+   coordinate is kept as it is. A cylinder of radius 2, height 4 can be
+   defined as
+<pre>
+domain
+20 20 20    - size of grid
+ 0. 0. 0.   - rmin, phimin, zmin
+ 2. 1. 4.   - rmax, phimax, zmax
+polargrid
+</pre>
+<p>
+   <b>spheregrid</b> transforms the 3 dimensional <b>x</b> coordinates, 
+   defined by e.g. the <b>domain</b> action, to a spherical grid. The
+   first coordinate is the radial distance <b>r</b>, the second is the 
+   azimuthal angle <b>phi</b>, and the last one is the latitude <b>theta</b>
+   measured from the equatorial plane. The angles are measured in 2*pi units.
+   For example, a spherical shell of inner radius 0.1 and outer radius 10 
+   can be de defined as
+<pre>
+domain
+20  40  20      - grid size
+0.1  0. -0.25   - rmin, phimin, thetamin
+10   1. +0.25   - rmax, phimax, thetamax
+spheregrid
+</pre>
+<p>
+   <b>rotategrid</b> rotates <b>x</b>, it is mostly used to test generalized 
+   coordinates.
+<p>
+   <b>shiftgrid</b> and <b>sheargrid</b> shift and shear the grid, 
+   see vacini.t.
+<p>
+   <b>roundgrid</b> shrinks (part of) a rectangular grid to an ellipse 
+   relatively smoothly. For example a circular computational domain 
+   can be created without a singularity (very elongated cells) at the
+   center.
+<p>
+   <b>regrid</b> can be used to refine or coarsen an existing data read by
+   one of the read actions.
+<p>
+   <b>transpose</b> swaps the <b>x</b> and <b>y</b> axes and the components of
+   vector variables.
+
+<H4><A NAME="Variable">Variable</A> manipulations: <br>
+setvar, conserve, primitive, multiply, divide, polarvar, spherevar, rotatevar, 
+perturbvar</h4>
+
+   <b>setvar</b> can set a number of variables to uniform values in a 
+   region defined by index limits. For example to set density and pressure
+   in a 2 by 3 region at the bottom left corner
+<pre>
+setvar
+1 1 2 3    - ixmin1,ixmin2,ixmax1,ixmax2
+1 0.5 F    - iw=rho_, rho, last=false
+4 4.0 T    - iw=p_  , p  , last=true
+</pre>
+   Initial conditions are often provided in terms of the primitive
+   variables. Use the <b>conserve</b> action to transform that to the 
+   conservative variables used in the VAC data files.
+   For sake of backwards compatibility, the truncated
+   name <b>conserv</b> can also be used.
+<p>
+   The <b>primitive</b> action is the inverse of 'conserve'. It can be
+   useful when the conservative variables are read from a file, but the
+   modification is easier to do in the primitive variables. Remember to
+   convert back to conservative variables before saving the initial condition!
+<p>
+   The <b>divide</b> and <b>multiply</b> actions allow for conversion
+   between different units, they may be applied to the primitive variables
+   before <b>conserve</b> is called, or to the conservative variables.
+<pre>
+polarvar
+2 3
+</pre>
+   will calculate <b>x</b> and <b>y</b> components for the 2nd and 3rd 
+   variables from the <b>r</b> and <b>phi</b> polar components defined earlier.
+   It assumes <b>x2=2*pi*phi</b>, thus use it <em>before</em> 
+   <b>polargrid</b> is called.
+<p>
+<pre>
+cartesian
+2 3
+</pre>
+   does more or less the opposite of <b>polarvar</b>, it converts the
+   <b>x</b> and <b>y</b> components of a vector variable to polar components,
+   which is useful for <A HREF=axial.html#Polargrid>polar grids</A>.
+<p>
+   <b>spherevar</b> calculates the <b>x, y, z</b> components of a vector
+   variable from the <b>r, phi, theta</b> components defined earlier.
+   The coordinates are interpreted as <b>x1=r, x2=2*pi*phi, x3=2*pi*theta</b>,
+   thus <b>spherevar</b> should be used <em>before</em> the <b>spheregrid</b> 
+   action.
+<p>
+   <b>rotatevar</b> rotates 2 components of a vector variable (e.g. velocity) 
+   by some angle. <b>perturbvar</b> adds the product of sine waves in each 
+   direction to the original value of a specific variable within a rectangle.
+
+<H4><A NAME="General">General</A> initialization subroutines:<br>
+uniform, shocktube, wave</h4>
+
+   The <b>uniform</b> subroutine sets each variable to a spatially uniform 
+   value in the whole domain. E.g. in 3D MHD
+<pre>
+uniform
+1. 0. 0. 0. 10. 0.12 -0.2 0.3   - rho m1 m2 m3 e b1 b2 b3
+</pre>
+   The <b>shocktube</b> subroutine generates linearly interpolated 
+   segments for each variable along one of the axes of the grid. 
+   For example the 'Sod' shocktube problem in 1.5D hydrodynamics
+   on a grid of 100 cells can be setup as
+<pre>
+shocktube
+1                               -shock direction
+3                               -number of segments
+1.0   0 2.5                     -state of left boundary
+1.0   0 2.5                     -state of end of segment 1
+49                              -position of segment-end 1
+0.125 0 0.25                    -state of end of segment 2
+52                              -position of segment-end 2
+0.125 0 0.25                    -state of end of segment 3
+1.4                             -gamma
+</pre>
+   Note that the jump itself is a segment, which is smeared out to 4 cells
+in this example.
+<p> 
+   The <b>wave</b> action can add waves of given amplitude and phase for each 
+   variable and direction separately. The variables fluctuate around some mean
+   values. For example the Orszag-Tang vortex problem can be defined as
+<pre>
+wave
+2.778   0.      0.      1.667   0.      0.      -mean values
+0.      0.      0.      0       0       0       T -rho (ampl,k,phase idim=1,2)
+0.      0.      0.      -1.     1.      0.      T -v1
+1.      1.      0.      0.      0.      0.      T -v2
+0.      0.      0.      0.      0.      0.      T -p
+0.      0.      0.      -1.     1.      0.      T -b1
+1.      2.      0.      0.      0.      0.      T -b2
+1.667   0.                                      -gamma, eta
+</pre>
+   in terms of primitive variables, so a <b>conserve</b> action is needed
+   before saving the initial data.
+<p>
+   The shocktube and wave subroutines ask for the <b>eqpar</b> array
+   at the end which is an obsolete feature from the time when the 
+   <b>eqpar</b> action has not been defined yet. 
+
+<H4><A NAME="Special">Special</A> initialization subroutine: special</h4>
+
+   <b>special</b> results in a call of the <b>specialini</b> subroutine defined
+   in the <A HREF="vacusr.html#Specialini">VACUSR module</A>. This subroutine 
+   normally defines <b>w</b>, it may also determine the <b>x</b> 
+   coordinates, the <b>ixM^L</b> limits or any other common variables 
+   declared in <b>src/vacdef.t</b>. You may provide parameters for the
+   <b>special</b> action the same way as for other actions:
+<pre>
+special
+param1,param2
+param3
+</pre>
+   These parameters may be read by the <b>specialini</b> subroutine
+   with simple read statements, like 
+
+<pre>
+read(*,*)param1,param2
+read(*,'(a)')param3
+</pre>
+
+<H4><A NAME="Parameters">Setting</A> parameters: eqpar, gencoord</h4>
+
+   The <b>eqpar</b> action can be used to set all the equation parameters.
+   This array contains the <b>neqpar</b> equation parameters 
+   e.g. the adiabatic index eqpar(gamma_), where <b>gamma_</b> is an integer 
+   index defined in the equation-specific <b>src/vacpar.t</b> source file. 
+   The equation parameters also contain <b>nspecialpar</b> problem dependent 
+   parameters, their index names are defined in the <b>src/vacusrpar.t</b> 
+   file. This approach provides means for an arbitrary number of double 
+   precision equation parameters which are stored in the header of the data
+   files. 
+<p>
+   The <b>gencoord</b> action can be used to change the logical variable 
+   if the default value <b>F</b> (false, i.e. rectangular grid), or the value 
+   <b>T</b> (true, i.e. generalized coordinates, set by, e.g., the 
+   <b>polargrid</b>, <b>roundgrid</b> or <b>rotategrid</b> actions) should 
+   be overruled.
+
+<H4><A NAME="Saving">Saving</A> the initial file: save, write</h4>
+
+   All parameter files for VACINI should end with the 
+<pre>
+save
+</pre> 
+   action, which saves the initial conditions into the new initial file and 
+   stops VACINI. The filetype is <b>ascii</b> by default, but this can be 
+   changed by the <b>typefileout</b> action. The <b>write</b> action
+   appends the current snapshot to the end of the output file without 
+   exiting VACINI. This is useful for transforming more than one snapshots
+   by means of VACINI, see also <b>readnext</b>, and also the 
+   <A HREF="convert.html#Convertdata">convertdata</A> program.
+
+<H2><A NAME="Example">Example</A>: inipar/brio12</h2>
+
+   the following file creates the standard initial conditions for the
+   Brio-Wu MHD shock tube problem.
+   Note that comments following the numbers are disregarded by Fortran,
+   however strings have to stand alone in their line.
+<pre>
+data/brio12.ini
+Brio-Wu_mhd12
+x rho m1 m2 e b1 b2
+domain
+800                             -ixmax
+0.                              -min coordinates
+1.                              -max coordinates
+shocktube
+1                               -shock direction
+3                               -number of segments
+1.0   0 0 1.  0.75 +1.          -state of left boundary: rho,v1,v2,p,b1,b2
+1.0   0 0 1.  0.75 +1.          -state of end of segment 1
+400                             -position of segment-end 1
+0.125 0 0 0.1 0.75 -1.          -state of end of segment 2
+401                             -position of segment-end 2
+0.125 0 0 0.1 0.75 -1.          -state of end of segment 3
+2., 0.                          -gamma, eta
+conserve
+save
+</pre>
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

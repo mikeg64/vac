@@ -1,0 +1,36 @@
+ &testlist 
+	teststr='readparameters'
+ /
+
+ &filelist
+	filenameini='data/peak33_np010102.ini',
+	typefileini='ascii'
+	filename=   'data/peak33.log',
+		    'data/peak33.out'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=1,1
+ /
+
+ &stoplist
+	itmax=5
+ /
+
+ &methodlist
+	wnames=		'rho m1 m2 m3 e b1 b2 b3'
+	typefull=       8*'tvd'
+	typelimiter=	8*'woodward'
+	dimsplit    =	T
+	sourcesplit=	T
+ /
+
+ &boundlist
+	typeB= 8*'cont',8*'cont',8*'cont',8*'cont',8*'cont',8*'cont'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

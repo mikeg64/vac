@@ -1,0 +1,52 @@
+#!/usr/bin/perl -i
+# This perl script replaces the first #!....perl lines 
+# in each Perl script with the proper path to perl.
+#
+# Usage: go to the main "vac" directory and type
+#
+# perl -i Fix/PERL
+#
+# This will fix all files listed in this script. You can fix any files by
+# giving it as an argument to Fix/PERL:
+#
+# perl -i Fix/PERL file1 file2 ...
+
+
+# FIGURE OUT THE FULL PATH FOR PERL (The PERLPATH script is needed for Cray)
+($perl=`which perl`) || ($perl=`csh Fix/PERLPATH`);
+if($perl eq ""){
+    print 
+	"Please give the full path for perl, e.g. /usr/local/bin/perl/perl:\n";
+    $perl=<STDIN>;
+};
+chop($perl);
+
+if(! @ARGV){
+
+   # COLLECT ALL THE PERL SCRIPTS
+   @file=("src/askvac","src/setvac","src/vacpp.pl","src/forall2do",
+	  "src/f90tof77","src/f90tohpf","src/f90tocmf","src/savemem",
+	  "weblink.pl","Man/ASCII","Man/html2latex.pl","Gnuplot/cutpict");
+
+   foreach $file (@file){
+       push(@ARGV,$file) if -f $file;
+   }
+
+   if(-d "Fix"){
+       opendir(FIX,"Fix");@fixes=grep(!(/^\./),readdir(FIX));closedir(FIX);
+       foreach $fix (@fixes){$fix="Fix/".$fix};
+       @ARGV=(@ARGV,@fixes);
+   }
+
+   die "No files to fix!\n" unless @ARGV;
+}
+
+warn("Fixing: \n\t".join("\n\t",@ARGV)."\n");
+while(<>){
+    if($.==1){
+	s/^#!\S*/#!$perl/;
+    }
+    print;
+    close(ARGV) if eof(ARGV);
+}
+

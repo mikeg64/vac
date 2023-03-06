@@ -1,0 +1,41 @@
+C ============================================================================
+
+      subroutine savespecial(x,w)
+
+C     In this subroutine you can extract, modify and combine data read into
+C     the x and w arrays, and write it into an output file in any format.
+C     Use common variables "unitout" and "filenameout" for the unit and name.
+C
+C     Check subroutine savefileout in src/convertdata.f for examples on saving.
+C     Below you find some useful examples in commented out lines
+
+      include 'convertdef.f'
+
+      REAL*8 x(nx1,nx2,nx3,ndim), w(nx1,nx2,nx3,nw)
+C      LOGICAL fileopen
+C      INTEGER ix1,ix2,ix3,e_
+C ----------------------------------------------------------------------------
+
+C Check if the file needs to be opened
+
+C      inquire(unitout,opened=fileopen)
+
+C Open an unformatted file
+
+C      if(.not.fileopen)
+C     &   open(unitout,FILE=filenameout,STATUS='unknown',
+C     &        FORM='unformatted')
+
+C Save some header info
+C     write(unitout)nx1,nx2,nx3
+
+C Save just the energy variable converted to 4 byte reals
+C     e_=5
+C      write(unitout)(((real(w(ix1,ix2,ix3,e_)),
+C     &              ix1=1,nx1),ix2=1,nx2),ix3=1,nx3)
+
+C      return
+      stop 'ConvertUsr subroutine is missing! Edit src/convertusr.f!'
+      end
+
+C ============================================================================

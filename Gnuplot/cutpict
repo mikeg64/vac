@@ -1,0 +1,65 @@
+#!/usr/bin/perl -s
+#
+# Cuts out the lines containing the NPICT-th picture from a VAC style 
+# ASCII data file. The header information is displayed on STDERR. 
+# The default value of NPICT is 1.
+#
+# Unless the -noempty flag is set, extra empty lines are inserted after each 
+# x-row of data as Gnuplot requires it.
+#
+# Usage: cutpict [-n=NPICT] [-noempty] < vac-data-file > picture-data
+
+$n=1 unless $n;
+
+while(<>){
+   if($.==1){
+      warn "Headline:$_";
+      next
+   }
+   if($.==2){
+      split(' ');
+      warn "it=$_[0] t=$_[1] ndim=$_[2] neqpar=$_[3] nw=$_[4]\n" if $n==1;
+      $ndim=$_[2];
+      $gencoord= $ndim < 0;
+      $ndim=abs($ndim);
+      die "Gnuplot cannot handle 3D data!\n" if $ndim==3;
+      next;
+   }
+   if($.==3){
+      split(' ');
+      warn "nx= $_" if $n==1;
+      $nx=$_[0];
+      $nline=$nx;
+      $nline*=$_[1] if $ndim==2;
+      $skipline=($n-1)*($nline+5);
+      $lastline=$skipline+$nline+5;
+      next;
+   }
+   if($.==$skipline+2){
+      split(' ');
+      warn "it=$_[0] t=$_[1] ndim=$_[2] neqpar=$_[3] nw=$_[4]\n";
+      next;
+   }
+   if($.==$skipline+3){
+      warn "nx: $_";
+      next;
+   }
+   if($.==$skipline+4){
+      warn "eqpar: $_";
+      next;
+   }
+   if($.==$skipline+5){
+      warn "xwnames: $_";
+      next;
+   }
+   next if $.<=$skipline+5;
+   print;
+   if($noempty==0){
+      $ix++;
+      if($ix==$nx){
+         $ix=0;
+         print "\n";
+      }
+   }
+   last if $.==$lastline;
+}

@@ -1,0 +1,19 @@
+#! /bin/sh
+# This is a shell script to compile VAC in the batch of a Cray C90.
+# The Makefile must be set correctly.
+# Usage: qsub jobc90make
+
+# Job parameters (limit for memory and CPU time)
+# ==============
+#QSUB -lM 12.0mw
+#QSUB -lT 1800
+#QSUB
+
+# Working directory    
+# =================
+cd $HOME/vac/src
+
+# Compile
+# =======
+make vacini
+make vac

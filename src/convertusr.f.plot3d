@@ -1,0 +1,61 @@
+C ============================================================================
+
+      subroutine savespecial(x,w)
+
+C     Transform and save a snapshot in plot3D format
+
+C     In this subroutine you can extract, modify and combine data read into
+C     the x and w arrays, and write it into an output file in any format.
+C
+C     Check subroutine savefileout for examples on saving.
+
+      include 'convertdef.f'
+
+      REAL*8 x(nx1,nx2,nx3,ndim), w(nx1,nx2,nx3,nw)
+      LOGICAL fileopen
+      INTEGER idim,ix1,ix2,ix3,iw,e_
+C ----------------------------------------------------------------------------
+
+C Check if the file needs to be opened
+
+      inquire(unitout,opened=fileopen)
+
+C Open an unformatted file
+
+      if(.not.fileopen)
+     &   open(unitout,FILE=filenameout,STATUS='unknown',
+     &        FORM='unformatted')
+
+      if(index(filenameout,'xyz').gt.0)then
+C         Saving for grid file
+          write(unitout)(nx(idim),idim=1,ndim)
+          write(unitout)((((real(x(ix1,ix2,ix3,idim)),
+     &              ix1=1,nx1),ix2=1,nx2),ix3=1,nx3),idim=1,ndim)
+          return
+      endif
+
+      write(unitout)(nx(idim),idim=1,ndim)
+      write(unitout)0.E0,0.E0,0.E0,real(t)
+
+C calculate energy index
+      e_=(nw+2)/2
+C subtract magnetic energy
+      do ix3=1,nx3
+      do ix2=1,nx2
+      do ix1=1,nx1
+         do iw=e_+1,nw
+            w(ix1,ix2,ix3,e_)=w(ix1,ix2,ix3,e_)-w(ix1,ix2,ix3,iw)**2/2.D0
+         enddo
+      enddo
+      enddo
+      enddo
+
+C Save rho,momenta,hydro-energy         
+
+      write(unitout)((((real(w(ix1,ix2,ix3,iw)),
+     &              ix1=1,nx1),ix2=1,nx2),ix3=1,nx3),iw=1,e_)
+
+      return
+      end
+
+C ============================================================================

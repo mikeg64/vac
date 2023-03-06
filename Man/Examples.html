@@ -1,0 +1,439 @@
+<HTML>
+<HEAD>
+<TITLE> VAC EXAMPLES </TITLE>
+</HEAD>
+<BODY>
+<h1>EXAMPLE SIMULATIONS</h1>
+<p>
+This document describes a few relatively simple example simulations which
+can be done based on the <b>src/vacusr.t.example, src/vacusrpar.t.example,
+inipar/example*</b>, and <b>par/example*</b> files, which are part of the 
+distributed VAC package. For sake of brevity in the examples it is assumed 
+that you use IDL for visualization and that you can run the code on the local 
+machine.
+See Man/<A HREF="USAGE.html">USAGE</A> for a more complete description.
+If you can, you should use the VAC User Interface <A HREF="Weblink.html">
+Weblink</A>, it should not be difficult to follow the description below,
+which is written for doing the examples from the UNIX shell.
+The results of the example simulations can be found on the 
+<A HREF=http://www.phys.uu.nl/~toth/>VAC Home Page</A> under the 
+<A HREF=http://www.phys.uu.nl/~toth/VACMovie/movies.html>MOVIES</A> link.
+<hr>
+This page:<br>
+ [<A HREF="#Configuration">Configuration</A>]
+ [<A HREF="#ExampleA">A:reflected waves</A>]
+ [<A HREF="#ExampleAmpi">A:MPI version</A>]
+ [<A HREF="#ExampleB">B:circular wave</A>]
+ [<A HREF="#ExampleC">C:Coriolis force</A>]
+ [<A HREF="#ExampleD">D:K-H instability</A>]
+<hr>
+<H2><A NAME="Configuration">Configuration</A> and Compilation</h2>
+
+   Configure VACINI and VAC to the 2D 
+   <A HREF="equations.html#HDADIAB">adiabatic hydrodynamics equations</A> 
+   and use the example VACUSR module by typing:
+<pre>
+cd src
+setvac -d=22 -phi=0 -z=0 -g=104,104 -p=hdadiab -u=example -on=cd,tvd -s
+</pre>
+   All other modules can be off.
+   Actually this is the configuration set right after installation of the
+   VAC package. You may check the current configuration by
+<pre>
+setvac -s
+</pre>
+   Edit the <b>Makefile</b> and select the options specific to your 
+   computer and compiler if you have not done it yet. Set the compiler flags.
+   Now make the executable codes
+<pre>
+make vacini
+make vac
+</pre>
+   If everything went well you may return to the main VAC directory and change
+   the names of the executables to express their configurations:
+<pre>
+cd ..
+mv vacini vacini_example
+mv vac vac_example
+</pre>
+   
+<H2><A NAME="ExampleA">Example</A> A: circular waves in a pool</h2>
+
+   This example shows circular surface waves produced by an initial height 
+   perturbation in the middle of a square shaped pool which has reflective 
+   walls. The shallow water equations are solved.
+<p>
+   To produce the <b>data/exampleA.ini</b> file containing the initial conditions type
+<pre>
+vacini_example &lt; inipar/exampleA22
+</pre>
+   Here is the parameter file
+<pre>
+data/exampleA22.ini
+ExampleA_hdadiab22
+x y h m1 m2   gamma adiab coriolis
+domain
+50,50                                   -ixmax
+0,0                                     -min coordinates
+1,1                                     -max coordinates
+uniform
+1.      0.      0.                      -rho,m1,m2
+eqpar
+2.      1.      0.                      -gamma,g/2,coriolis coeff.
+setvar
+25 25 26 26                             -index limits for middle four cells
+1 1.3 T                                 -index of height, value, last variable 
+save
+</pre>
+   As you can see the first variable is height <b>h</b> and not the usual
+   density <b>rho</b>. A 50 by 50 grid is set up covering the [0,1]x[0,1]
+   domain. First a uniform height and zero velocity is set, then <b>h</b> is 
+   set in the central 4 cells to a 1.3 amplitude.
+   The equation parameters are set for the shallow water equations (gamma=2)
+   with a vertical gravitational acceleration (g=2) and no Coriolis forces
+   (coriolis=0). The Coriolis forces are defined in the example  
+   <A HREF="vacusr.html#Specialsource">VACUSR module</A>.
+<p>
+   You may do the simulation by typing
+<pre>
+vac_example &lt; par/exampleA22 &amp;
+</pre>
+   The parameter file for VAC is the following:
+<pre>
+ &amp;testlist &amp;end
+
+ &amp;filelist
+        filenameini='data/exampleA22.ini',
+        typefileini='ascii'
+        filename=   'data/example22.log',
+                    'data/example22.out'
+        typefileout='binary'
+ &amp;end
+
+ &amp;savelist
+        itsave(1,2)=0
+        ditsave=5,5
+ &amp;end
+
+ &amp;stoplist
+        itmax=100
+ &amp;end
+
+ &amp;methodlist
+        wnames=         'h       m1      m2'
+        typefull=       3*'tvd'
+        typelimiter=    3*'woodward'
+        dimsplit=       T
+	sourcesplit=	F
+        sourceunsplit=  F
+ &amp;end
+
+ &amp;boundlist
+        typeB=  'symm','asymm','symm'
+                'symm','asymm','symm'
+                'symm','symm','asymm'
+                'symm','symm','asymm'
+ &amp;end
+
+ &amp;paramlist
+        courantpar=0.8
+ &amp;end
+</pre>
+   It uses <b>data/exampleA22.ini</b> as input, and <b>data/example22.log</b> 
+   and <b>data/example22.out</b> for output. The output files are the same in
+   all examples to save disk space, but in general they should be different. 
+   It is not really necessary to set <b>typefileini</b>, since VAC can
+   recognize the input file format automatically.
+   Change the <b>typefileout</b> parameter to <b>ascii</b> format if you 
+   cannot visualize unformatted output.
+<p>
+   The simulation is run for 100 time steps. Every fifth snapshot is saved 
+   together with logfile information (ditsave=5,5) and the initial data 
+   as well (itsave(1,2)=0). The TVD method is used with the Woodward limiter.
+   Dimensional splitting is required for the TVD method. There are no sources
+   now (neither split nor unsplit), since eqpar(coriolis_)=0 was set in the 
+   initial condition. The 
+   boundaries are reflective, this means that at the first and second boundary 
+   regions (left and right) the first component of the momentum <b>m1</b> is 
+   anti-symmetric, while at the bottom and top regions <b>m2</b> is 
+   anti-symmetric. The 'symm' boundary types are identical with 'symm0'
+   (which is the general choice for reflective boundaries) for this simple 
+   grid.
+   Finally the Courant number is 0.8 which is appropriate for the TVD method.
+<p>
+   The results can be nicely <A HREF="idl.html">visualized by IDL</A> 
+   once you see 
+<pre>
+ Finish Advance    18.340 sec
+ Finished VAC      18.350 sec
+</pre>
+   on the screen. The actual CPU times depend on the machine, of course. 
+   If the CPU times are zero, you need to correct <b>function cputime</b> 
+   in <b>src/vac.t</b> and recompile VAC. 
+<p>
+   Start up IDL (read about the IDL_STARTUP environment variable in
+   Man/<A HREF="idl.html">idl</A> first) by typing
+<pre>
+idl
+</pre>
+and do an animation of the height by typing the following
+<pre>
+.r animate
+filename(s) ? data/example22.out
+...
+func(s) (e.g. rho p m1;m2 r*m1 -T) ? h
+...
+plotmode(s)                ? shade
+</pre>
+I hope you enjoyed the <em>movie</em>.
+
+<H2><A NAME="ExampleAmpi">Example</A> A: MPI parallel version</h2>
+
+   The previous example can also be done with MPI parallelization.
+   See <A HREF="mpi.html">mpi.html</A> for complete information on MPI.
+   Here a brief overview is presented.
+
+   First edit the <b>src/Makefile</b> so that it compiles the code
+   with <b>mpif90</b> and/or <b>mpif77</b> (or links the MPI library).
+   Configure with
+<pre>
+setvac -on=mpi
+</pre>
+   and recompile the codes
+<pre>
+make vacini
+make vac
+</pre>
+   Copy or link the <b>inipar/exampleAmpi22</b> and <b>par/exampleA22mpi</b>
+   files to <b>vacini.par</b> and <b>vac.par</b>, respectively
+<pre>
+ln -s inipar/exampleAmpi22 vacini.par
+ln -s par/exampleAmpi22 vac.par
+</pre>
+   In the VAC user interface simply select these parameter files and
+   the links are automatically created before running the MPI versions 
+   of the executables. These parameter files differ from the non-MPI versions
+   in the name of the input data file only: <b>exampleA22.ini</b> is
+   replaced with <b>exampleA22_np0201.ini</b>. The <b>_np0201</b> 
+   indicates that the data is distributed on a 2 by 1 processor map,
+   i.e. the computational domain is decomposed to 2 processors in the first 
+   dimension and 1 processor in the second dimension. 
+   The code should be run on 2 processors
+<pre>
+mpirun -np 2 vacini
+mpirun -np 2 vac
+</pre>
+   If the run is executed on 2 CPU-s, the execution time will
+   be less than on a single PE. 
+   The resulting input and output files can be merged into a 
+   single file (e.g. for visualization):
+<pre>
+Fix/distribution data/example22_np0201.out data/example22.out
+</pre>
+
+<H2><A NAME="ExampleB">Example</A> B: round blob</h2>
+
+   This example is very similar to <b>Example A</b>, except that the boundaries
+   are <b>continuous</b>, typeB='cont' in par/exampleB22, and that the initial 
+   height perturbation is a <b>circular blob</b>. The latter effect is achieved
+   by calling the <A HREF="vacusr.html#Specialini">specialini</A> subroutine 
+   of the example VACUSR module in the <b>inipar/exampleB22</b> file by the 
+   <b>special</b> action instead of <b>perturbvar</b>. Type
+<pre>
+vacini_example &lt; inipar/exampleB22
+vac_example &lt; par/exampleB22 &amp;
+</pre>
+   to run the simulation. As the visualization in IDL
+<pre>
+.r animate
+</pre>
+   shows, the wave is very smooth and circular due to the nice initial data
+   and there is very little reflection from the boundaries. You can try
+<pre>
+npict=5
+.r getpict
+contour,w(*,*,0)
+</pre>
+to check the roundness of the waves.
+
+<H2><A NAME="ExampleC">Example</A> C: waves and Coriolis forces</h2>
+
+This example demonstrates driving plane waves by a time-dependent boundary 
+specified in the <A HREF="vacusr.html#Specialbound">specialbound</A> subroutine
+in the example VACUSR module. 
+The subroutine is called from the <b>par/exampleC22</b> parameter file with
+<pre>
+ &amp;boundlist
+        typeB=  'special','special','fixed'
+                'cont','cont','cont'
+                'symm','symm','asymm'
+                'symm','symm','asymm'
+ &amp;end
+</pre>
+The <b>'special'</b> boundary type is set for the left boundary for the
+height <b>h</b> and the first component of momentum <b>m1</b>, while the
+transverse momentum is fixed to its original 0 value. The right boundary is
+continuous, the top and bottom boundaries are reflective. 
+<p>
+To make things more interesting the <A HREF="vacusr.html#Specialsource">
+Coriolis force</A> is switched on in the
+<A HREF="par.html#Methodlist">&amp;methodlist</A> by setting 
+<b>eqpar(coriolis_)=eqpar(3)</b> different from 0.
+As a reminder the <b>fileheadout</b> header line is also set:
+<pre>
+ &amp;methodlist
+        wnames=         'h       m1      m2'
+        fileheadout=    'Example with Coriolis forces'
+        eqpar(3)=       4.0
+        typefull=       3*'tvdlf'
+        typelimiter=    3*'woodward'
+        dimsplit=       T
+        sourcesplit=    T
+ &amp;end
+</pre>
+Note that <b>sourcesplit=T</b> is required for this particular 
+<b>specialsource</b> subroutine. We could have set both <b>eqpar</b> and the 
+<b>filehead</b> in the <b>inipar/exampleC22</b>, but it is easier to play 
+with the equation parameter without the need of running VACINI. 
+<p>
+The effect of the Coriolis force is to create transverse motion in the waves.
+We use the <A HREF="vacusr.html#Specialio">savefilelog_special</A> subroutine 
+in the VACUSR module to save the potential enstrophy and the average absolute 
+transverse momentum into the logfile. The subroutine is called because of the 
+<b>typefilelog='special'</b> setting in the <b>filelist</b>.
+<p>
+Do the simulation by typing
+<pre>
+vacini_example &lt; inipar/exampleC22
+vac_example &lt; par/exampleC22 &amp;
+</pre>
+and visualize e.g. the height and the transverse velocity component:
+<pre>
+func='h vy'
+.r animate
+</pre>
+The bumps on the plane waves appear due to the transverse motions created by
+the Coriolis force, and reflected by the top and bottom boundaries.
+A more detailed temporal information can be gained by inspecting the
+<b>data/example22.log</b> file which shows an initial increase of the 
+transverse momentum followed by a saturated oscillation
+<pre>
+.r getlog
+logfilename(s) =data/example22.log ?
+headline       =ExampleC_hdadiab22
+Reading arrays step,t,dt,wlog:
+  wlog(*, 0)= enstrophy
+  wlog(*, 1)= abs_m2
+Number of recorded timesteps: nt=      20
+plot,t,wlog(*,1),xtitle='t',ytitle='|rho*vy|'
+</pre>
+You can make the movie more spectacular by overplotting the height and the
+velocity field:
+<pre>
+func='h vx;vy'
+plottitle='h and V'
+plotmode='contfill vel'
+multiplot=1
+.r animate
+multiplot=0
+</pre>
+The last command returns to the normal plotting behaviour.
+
+<H2><A NAME="ExampleD">Example</A> D: Kelvin-Helmholtz instability</h2>
+
+<em>M. Nauta is acknowledged here for the specifications of this test problem.
+</em><p>
+In this example the adiabatic hydrodynamical equations are solved.
+The density, and thus the pressure, are uniform initially, while the
+velocity field is a shear flow with a steep <b>y</b> gradient in the velocity
+component <b>vx</b> in the middle band and a small sine wave perturbation in 
+the normal velocity component <b>vy</b>. Due to the Kelvin-Helmholtz 
+instability the perturbation is expected to increase exponentially in time.
+<p>
+The initial conditions are set up by using the predefined <b>shocktube</b> and
+<b>perturbvar</b> actions in the <b>inipar/exampleD22</b> parameter file:
+<pre>
+data/exampleD22.ini
+Kelvin-Helmholtz-instability_hdadiab22
+x y rho m1 m2   gamma adiab coriolis
+domain
+100,100				- ixmax,iymax
+0.,0.				- min coordinates
+1.0,0.5				- max coordinates
+shocktube
+2				-normal direction
+3				-number of segments
+1.	+0.5	0.		-state of left boundary
+1.	+0.5 	0.		-state of end of segment 1
+48				-position of segment-end 1
+1.	-0.5	0.		-state of end of segment 2
+52				-position of segment-end 2
+1.	-0.5	0.		-state of right boundary
+2.	7.5	0.		-gamma, adiabatic coeff., Coriolis coeff.
+perturbvar
+3       0.01    1 100 45 55		-momentum2,dw,ixP limits
+18.8496	0.	0.	1.571		-k1=2*pi/lambda,k2,phase1,phase2
+save
+</pre>
+Note that the grid  cells are rectangular with an aspect ratio 2 to 1, 
+because the [0, 1]x[0, 0.5] domain is resolved by 100x100 grid cells.
+The shear velocity <b>vx=m1</b> (the density is 1) drops from 0.5 to -0.5
+from the 48-th to the 52-th cell with linear interpolation in between.
+The adiabatic index gamma could be different from 2 here. The perturbation 
+has a wavenumber k1=6*pi, thus there are 3 waves between the periodic 
+left and right boundaries. The bottom and top boundaries are fixed
+as it can be seen in the <b>par/exampleD22</b> file:
+<pre>
+ &amp;boundlist
+	typeB=	3*'periodic'
+		3*'periodic'
+		3*'fixed'
+		3*'fixed'
+ &amp;end
+</pre>
+Like in <em>exampleC</em>, the 
+<A HREF="vacusr.html#Specialio">savefilelog_special</A> subroutine
+is used for producing the logfile <b>data/example22.log</b> since
+<b>typefilelog='special'</b> is set in the parameter file. This allows
+us to check the growth of the perturbation measured as the volume average
+of |rho*v2|. 
+<p>
+Run the simulation by typing
+<pre>
+vacini_example &lt; inipar/exampleD22
+vac_example &lt; par/exampleD22 &amp;
+</pre>
+This simulation takes longer than the other ones due to the higher grid
+resolution and the number of time steps. But this is real physics!
+To get a feeling of the flow, try
+<pre>
+func    ='rho vx;vy'
+plottitle='rho and V'
+plotmode='contfill vel'
+multiplot=1
+.r animate
+multiplot=0
+</pre>
+Visualize e.g. the curl of the velocity field, the <b>curlv</b> function 
+is already defined in <b>Idl/animfunc.pro</b>:
+<pre>
+func    ='curlv'
+plotmode='contour'
+contourlevel=15
+.r animate
+</pre>
+The fast initial growth saturates when the perturbation becomes non-linear.
+To see this, let us plot the last column <b>abs_m2</b> in the logfile on a 
+semi-logarithmic plot:
+<pre>
+.r getlog
+plot_io,t,wlog(*,1),xtitle='t',ytitle='|rho*vy|'
+</pre>
+A weak initial transient and then a nearly perfect exponential growth 
+can be seen. The growth saturates by the end of the simulation. 
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29 2003
+</ADDRESS>
+</BODY>
+</HTML>

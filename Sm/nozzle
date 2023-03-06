@@ -1,0 +1,41 @@
+nozzle
+	#The nozzle with k=kappa for two different resolutions:
+	set x_=0,10,0.5  set k =1.398+0.347*(1-2/(exp(2*(0.8*x_-4))+1))
+	set x_=0,10,0.05 set kk=1.398+0.347*(1-2/(exp(2*(0.8*x_-4))+1))
+	set gamma=1.4
+	#Inflow density (Yee) and momentum (arbitrary):
+	set rhoin=0.5 set min=1
+        set vin=min/rhoin set kin=k[0]
+	#The shock is assumed to be at x=x[10]=5.0
+	#The Mach number at the shock from Draine and Roberge p.6:
+	set rhoup=0.3 set rhodown=0.7
+	set mach= (((gamma+1)/(rhodown/rhoup)-(gamma-1))/2)**(-0.5)
+	                                     echo Mach number= $(mach)
+	set kup=k[10] set mup=min*kin/kup set vup=mup/rhoup
+	set cup=vup/mach                     echo c_sound_up=  $(cup)
+	set pup= rhoup*cup**2/gamma          echo pressure_up= $(pup)
+	set eup= 0.5*vup*mup + pup/(gamma-1) echo energy_up=   $(eup)
+	#Inflow energy: v*(gamma*e-(gamma-1)/2*v^2*rho)*area is conserved:
+	set econs=vup*(gamma*eup-(gamma-1)/2*vup*mup)*kup echo econs=$(econs)
+	echo --------
+	echo rho_in=   $(rhoin)
+	echo m_in=     $(min)
+	set ein=(econs/vin/kin+(gamma-1)/2*vin*min)/gamma echo energy_in=$(ein)
+	set pin=(gamma-1)*(ein-0.5*vin*min)
+	echo --------
+	#Downstream parameters from Rankine-H. conditions:
+	set mdown=mup set vdown=mdown/rhodown 
+	set pdown=pup+vup*mup-vdown*mdown            echo pressure_dn= $(pdown)
+	set edown=0.5*vdown*mdown+pdown/(gamma-1)    echo energy_dn=   $(edown)
+	#Outflow conditions:
+	echo -------
+	set rhoout=0.8 set kout=k[20]               echo rho_out=     $(rhoout)
+	set mout=mdown*kup/kout set vout=mout/rhoout echo momentum_out=$(mout)
+	set econs=vdown*(gamma*edown-(gamma-1)/2*vdown*mdown)*kup
+	set eout=(econs/vout/kout+0.2*vout*mout)/1.4 echo energy_out=  $(eout)
+	echo econs=$(econs)
+	set pout=(gamma-1)*(eout-0.5*vout*mout)
+extravar
+	set v1=m1/rho
+	set p=0.4*e-0.2*v1*m1
+	set cs=sqrt(1.4*p/rho)

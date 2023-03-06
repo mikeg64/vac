@@ -1,0 +1,490 @@
+<#@ 
+    do "Weblink/subroutines" if $develop || ! $initialized;
+    &initialize unless $initialized; 
+#>
+<HTML>
+<HEAD><TITLE>VAC WEB USER INTERFACE</TITLE></HEAD>
+
+<#@ $FRAME=$FORM{"FRAME"}; $PAGE=$FORM{"PAGE"} if $FORM{"PAGE"};#>
+<#! ($FRAME || $noframe) #>
+<FRAMESET COLS=20%,80%>
+<FRAME SRC="/Weblink/interface.html?FRAME=1" NAME="fr1">
+<FRAME SRC="/Weblink/interface.html?FRAME=2" NAME="fr2">
+</FRAMESET>
+<#/!#>
+
+<BODY>
+<#? $FRAME==2 && ! $noframe #><BODY BGCOLOR=#dddddd><#/?#>
+
+<!--################### PAGE SELECTION ##############################-->
+
+<#@ &mainpage if $FORM{"submain"}#>
+
+<#@
+   if   ($PAGE eq "MAIN")	{&mainpage}
+   elsif($PAGE eq "COVER PAGE")	{&coverpage}
+   elsif($PAGE eq "CUSTOMIZE")	{&customizepage}
+   elsif($PAGE eq "CONFIGURE")	{&configurepage}
+   elsif($PAGE eq "MAKE VACINI"){&makevacinipage}
+   elsif($PAGE eq "RUN VACINI")	{&runvacinipage}
+   elsif($PAGE eq "MAKE VAC")	{&makevacpage}
+   elsif($PAGE eq "RUN VAC")	{&runvacpage}
+   elsif($PAGE eq "RESULTS")	{&resultspage}
+   elsif($PAGE eq "EDIT")	{&editpage}
+
+#>
+<!--############### Common header for all pages #####################-->
+
+<#? $message && $FRAME!=1 #>
+   <IMG SRC=/Weblink/bluehorn.gif ALIGN=ABSMIDDLE> 
+   <#= $message#><#@ undef $message#>
+   <hr>
+<#/?#>
+<#? $showcurrent && $FRAME!=1 && $PAGE ne "COVER PAGE" #>
+   <#= $currentconfig#>
+   <hr>
+<#/?#>
+
+<#? $PAGE eq "MAIN" || $FRAME==1 ##########################################>
+
+<IMG SRC="/Weblink/vaclogosmall.gif" ALT="">
+<h2>USER INTERFACE</h2>
+<hr>
+<#= ;&page("COVER PAGE");#>
+<p>
+<IMG SRC=/Weblink/yellowb.gif> 
+<A HREF=../Man/Contents.html <#= 
+    $target=""; 
+    $target=" TARGET=manual" if $manwindow;
+    $target=" TARGET=fr2" unless $noframe || $manwindow; $target#>>MANUALS</A>
+<p>
+<#= ;&page("CUSTOMIZE");#>
+<hr>
+<#= ;&page("CONFIGURE");#>
+<p>
+<#= ;&page("MAKE VACINI");#>
+<p>
+<#= ;&page("RUN VACINI");#>
+<p>
+<#= ;&page("MAKE VAC");#>
+<p>
+<#= ;&page("RUN VAC");#>
+<p>
+<#= ;&page("RESULTS");#>
+<hr>
+<#! $_demo#><#= ;&page("EXIT");#><#/!#>
+<#? $_demo#>
+   <IMG SRC=/Weblink/yellowb.gif>
+   <A HREF="http://www.phys.uu.nl/~toth/" TARGET=_parent
+   >BACK to the VAC Home Page</A>
+<#/?#>
+
+<#/?#><#? $PAGE eq "COVER PAGE" && $FRAME!=1 ###############################>
+
+<#? $noframe#>
+<IMG SRC=/Weblink/yellowb.gif> 
+   <A HREF=/Weblink/interface.html?submit=BACK+TO+MAIN+MENU>Continue</A>
+<hr>
+<#/?#>
+
+<IMG SRC="/Weblink/vac_trans.gif" WIDTH=381 HEIGHT=488>
+<p><p>
+<ul>
+<li>VAC software by G. T&oacute;th, Astronomical Institute at Utrecht
+<p>
+<li>Maintained by G. T&oacute;th and R. Keppens
+<p>
+<li>Weblink server by J. Holl&oacute;si,
+    <#! $_agent eq "mosaic"#>&copy;<#/!#>WWLINK
+<p>
+<li>Logo design by G. Egedi
+</ul>
+
+<#/?#><#? $PAGE eq "CUSTOMIZE" && $FRAME!=1 ################################>
+
+<h2>CUSTOMIZATION</h2><hr>
+
+<#= ;&form("submit=CUSTOMIZE\&PAGE=CUSTOMIZE");#>
+
+<INPUT TYPE="checkbox" NAME="showmessage" VALUE="1" 
+   <#= 'CHECKED' if $showmessage#> > 
+ SHOW MESSAGES AT TOP OF THIS WINDOW<br>
+ (otherwise in the XTERMINAL FOR STDOUT)
+<p>
+<INPUT TYPE="checkbox" NAME="showcurrent" VALUE="1" 
+   <#= 'CHECKED' if $showcurrent#> > 
+ SHOW CURRENT CONFIGURATION OF VACPP
+<#! $mosaic#>
+   <p>
+   <INPUT TYPE="checkbox" NAME="manwindow" VALUE="1" 
+   <#= 'CHECKED' if $manwindow#> > 
+   OPEN EXTRA BROWSER WINDOW FOR MANUAL
+<#/!#>
+<#? $mosaic && $manwindow #>
+   <INPUT TYPE="hidden" NAME="manwindow" VALUE="1">
+<#/?#>
+<hr>
+BROWSER<br>
+(netscape, mosaic, shellscript, ...)<br>
+[<em>takes effect after SAVED and Weblink is restarted</em>]:<br>
+<INPUT NAME="browser" VALUE="<#= $browser#>" SIZE=30>
+<p>
+XTERMINAL FOR STDOUT<br>
+(original, xterm, dxterm, ...)<br>
+[<em>takes effect after SAVED and Weblink is restarted</em>]:<br>
+<INPUT NAME="stdout" VALUE="<#= $stdout#>" SIZE=30>
+<p>
+XTERMINAL FOR APPLICATIONS<br>
+(xterm, dxterm, xterm -T APPLICATION, ...):<br>
+<INPUT NAME="xterm" VALUE="<#= $xterm#>" SIZE=30>
+<p>
+EDITOR<br>
+(web, vi, emacs, xterm -e emacs -nw, ...):<br>
+<INPUT NAME="editor" VALUE="<#= $editor#>" SIZE=30>
+<p>
+<#= ;&button("APPLY","CHECKED");#>
+<#= ;&button("SAVE");#> 
+<#= ;&button("RESTORE");#>
+<#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+</FORM>
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "CONFIGURE" && $FRAME!=1 ##########################>
+
+<h2>CONFIGURATION</h2>
+
+<#= ;&form("submain=CONFIGURE");#>
+   <hr>
+   <INPUT TYPE="submit" VALUE="SET PROBLEM">
+   <INPUT NAME="problem" VALUE="<#= $problem#>" SIZE=15>
+   <hr>
+</FORM>
+<#= ;&form("PAGE=CONFIGURE");#>
+
+<#= ;&select("dimensions",$dc_,"D=1 C=1","D=1 C=2","D=1 C=3","D=2 C=2",
+            "D=2 C=3","D=3 C=3");#> 
+    are the number of dimensions and vector components
+<p>
+<#= ;&select("polarcoord",$phiz_,"PHI=0 Z=0","PHI=0 Z=2","PHI=2 Z=0",
+           "PHI=2 Z=3","PHI=3 Z=2");#> 
+    are the polar coordinate directions (0 for unused) 
+    <#= ;&manual("axial.html");#><br>
+<p>
+<INPUT TYPE="text" NAME="n1" VALUE=<#= 0+$n1_ #> SIZE=4>x
+<INPUT TYPE="text" NAME="n2" VALUE=<#= 0+$n2_ #> SIZE=4>x
+<INPUT TYPE="text" NAME="n3" VALUE=<#= 0+$n3_ #> SIZE=4>
+is the maximum grid size including ghost cells
+<p>
+Switch on modules you (may) need. <#= ;&manual("methods.html");#><br>
+Switch off unneeded modules to save compilation time and memory usage.<br>
+Modules:<br>
+<INPUT TYPE="checkbox" NAME="fct" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bfct\b/ #>> <b>FCT</b> scheme<br>
+<INPUT TYPE="checkbox" NAME="tvdlf" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\btvdlf\b/ #>> <b>TVDLF</b> scheme, 
+                                          also for <b>TVD-MUSCL</b><br>
+<INPUT TYPE="checkbox" NAME="cd" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bcd\b/ #>> Centered Difference scheme (<b>CD</b>), 
+                                       also for <b>TVD</b><br>
+<INPUT TYPE="checkbox" NAME="mc" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bmc\b/ #>> Mac Cormack scheme (<b>MC</b>), 
+                                       also for <b>TVD-MC</b><br>
+<INPUT TYPE="checkbox" NAME="tvd" VALUE="1"
+   <#= 'CHECKED' if $on_=~/\btvd\b/ #>> Riemann solver 
+                                        for <b>TVD, TVD-MUSCL, TVD-MC</b><br>
+<INPUT TYPE="checkbox" NAME="poisson" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bpoisson\b/ #>> Poisson solver 
+                                         (e.g. for projection scheme)<br>
+<INPUT TYPE="checkbox" NAME="ct" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bct\b/ #>> Constrained Transport (CT) 
+                              and Central Difference (CD) schemes for MHD<br>
+<INPUT TYPE="checkbox" NAME="gencoord" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bgencoord\b/ #>> Generalized coordinates<br>
+<INPUT TYPE="checkbox" NAME="resist" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bresist\b/ #>> Resistivity (for MHD, MHDISO)<br>
+<INPUT TYPE="checkbox" NAME="rk" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\brk\b/ #>> Runge-Kutta time integration<br>
+<INPUT TYPE="checkbox" NAME="impl" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bimpl\b/ #>> Implicit time integration (not with MPI!)<br>
+<INPUT TYPE="checkbox" NAME="mpi" VALUE="1" 
+   <#= 'CHECKED' if $on_=~/\bmpi\b/ #>> MPI parallelization (not with implicit!) <#= ;&manual("mpi.html");#><br>
+<p>
+<#= ;&fileselect("vacphys",$vacphys_,"src/vacphys.t.","*");#>
+    is the selected PHYSICS module <#= ;&manual("equations.html");#>
+<p>
+<#= @vacusr=&list("src/vacusr.t.","*");
+    foreach $f (@vacusr){$f.="+usrpar" if -e("src/vacusrpar.t.$f")};
+    &select("vacusr",$vacusr_,@vacusr)#> 
+is the selected VACUSR module  <#= ;&manual("vacusr.html");#><br>
+<INPUT NAME="newvacusr" VALUE="<#= $newvacusr_#>" SIZE=15> 
+is the name for a new VACUSR module
+<p>
+<#= ;&button("CREATE");#> the new module copied from the selected one<br>
+<#= ;&button("USRPAR");#> is added to the selected module 
+    <#= ;&manual("vacusr.html#Equation");#><br>
+Delete the selected VACUSR module: <#= ;&button("DELETE");#>
+    <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+<#= ;&button("DO CONFIGURATION","CHECKED");#>
+<#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+</FORM>
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "MAKE VACINI" && $FRAME!=1 ############################>
+
+<h2>MAKE VACINI</h2><hr>
+
+<#= ;&form("submit=EDIT+MAKEFILE\&PAGE=MAKE+VACINI");#>
+<INPUT TYPE="submit" VALUE="EDIT Makefile">
+</FORM>
+<#? $vacusr ne "nul" #>
+   <#= ;&form("submit=EDIT+VACUSR\&PAGE=MAKE+VACINI");#>
+   <INPUT TYPE="submit" VALUE="EDIT vacusr.t.<#= $vacusr#>">
+   <#= ;&manual("vacusr.html");#>
+   </FORM>
+   <#? $vacusrpar #>
+      <#= ;&form("submit=EDIT+USRPAR\&PAGE=MAKE+VACINI");#>
+      <INPUT TYPE="submit" VALUE="EDIT vacusrpar.t.<#= $vacusr#>">
+      <#= ;&manual("vacusr.html#Equation");#>
+   </FORM>
+   <#/?#>
+<#/?#>
+<#= ;&form("submit=CLEAN\&PAGE=MAKE+VACINI");#> 
+<INPUT TYPE="submit" VALUE="CLEAN"> source directory (if necessary).
+</FORM>
+<#= ;&form("submit=COMPILE\&PAGE=MAKE+VACINI");#>
+<INPUT TYPE="submit" VALUE="COMPILE">
+ <#= ;&select("vacini_make",$vacini_make,"vacini","vacini77","vacini90");#>
+ <#= ;&manual("USAGE.html#VACINI1");#>
+</FORM>
+<#= ;&form("submit=MOVE\&PAGE=MAKE+VACINI");#>
+<INPUT TYPE="submit" VALUE="MOVE"> 
+<#= @vacini=("vacini (compiled?)",&list("./","vacini_*"));
+    &select("vacini",$vacini_make,@vacini);#> to
+<b>vacini_</b><INPUT NAME="extension" VALUE="<#= $extension#>" SIZE=15>
+</FORM>
+   
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "RUN VACINI" && $FRAME!=1 ##########################>
+
+<h2>RUN VACINI</h2>
+
+<#= ;&form("submain=RUN+VACINI");#>
+   <hr>
+   <INPUT TYPE="submit" VALUE="SET PROBLEM">
+   <INPUT NAME="problem" VALUE="<#= $problem#>" SIZE=15>
+   <hr>
+</FORM>
+<#= ;&form("PAGE=RUN+VACINI");#>
+<#= ;&fileselect("inipar",$inipar,"inipar/","*");#>
+is the selected parameter file<br>
+<INPUT TYPE=TEXT NAME="newinipar" VALUE="<#= $newinipar#>" SIZE=15>
+is the name for a new parameter file
+<p>
+<#= ;&button("CREATE");#>
+   the new parameter file copied from the selected one<br>
+Delete the selected parameter file: <#= ;&button("DELETE");#>
+   <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+<#@ @vacini=&list("","vacini vacini_*");#>
+<#? $#vacini>=0 #>
+   <#= ;&button("EDIT");#> the selected parameter file 
+       <#= ;&manual("inipar.html");#> 
+   <hr>
+   <#= ;&select("vacini",$vacini,@vacini);#> 
+       is the selected executable code<br>
+   Remove the selected executable code: <#= ;&button("REMOVE");#>
+       <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+   <#= ;&button("RUN","CHECKED");#> the selected executable code
+				  with the selected parameter file<br>
+   <#= ;&button("MPIRUN");#> the selected executable code on
+       <INPUT TYPE=TEXT NAME="np" VALUE="<#= $np#>" SIZE=2> processors
+       with the selected parameter file
+   <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+<#/?#>
+<#? $#vacini<0 #>
+   <#= ;&button("EDIT","CHECKED");#> the selected parameter file
+       <#= ;&manual("inipar.html");#> 
+   <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+   <hr><strong>
+   No executable VACINI was found, select MAKE VACINI in the MAIN MENU</strong>
+<#/?#>
+</FORM>
+
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "MAKE VAC" && $FRAME!=1 ###############################>
+
+<h2>MAKE VAC</h2><hr>
+
+<#= ;&form("submit=EDIT+MAKEFILE\&PAGE=MAKE+VAC");#>
+<INPUT TYPE="submit" VALUE="EDIT Makefile">
+</FORM>
+<#? $vacusr ne "nul" #>
+   <#= ;&form("submit=EDIT+VACUSR\&PAGE=MAKE+VAC");#>
+   <INPUT TYPE="submit" VALUE="EDIT vacusr.t.<#= $vacusr#>">
+   <#= ;&manual("vacusr.html");#>
+   </FORM>
+   <#? $vacusrpar #>
+      <#= ;&form("submit=EDIT+USRPAR\&PAGE=MAKE+VAC");#>
+      <INPUT TYPE="submit" VALUE="EDIT vacusrpar.t.<#= $vacusr#>">
+      <#= ;&manual("vacusr.html#Equation");#>
+      </FORM>
+   <#/?#>
+<#/?#>
+<#= ;&form("submit=CLEAN\&PAGE=MAKE+VAC");#>
+<INPUT TYPE="submit" VALUE="CLEAN"> source directory (if necessary).
+</FORM>
+<#= ;&form("submit=COMPILE\&PAGE=MAKE+VAC");#>
+<INPUT TYPE="submit" VALUE="COMPILE">
+ <#= ;&select("vac_make",$vac_make,
+             "vac","vac77","vac90","vachpf","vacsmall");#>
+ <#= ;&manual("USAGE.html#VAC1");#>
+</FORM>
+<#= ;&form("submit=MOVE\&PAGE=MAKE+VAC");#>
+<INPUT TYPE="submit" VALUE="MOVE">
+<#= @vac=("vac (compiled?)",&list("./","vac_*"));
+    &select("vac",$vac_make,@vac);#> to
+<b>vac_</b><INPUT NAME="extension" VALUE="<#= $extension#>" SIZE=15>
+</FORM>
+
+<#= $backtomain #>
+
+<#/?#>
+
+<#? $PAGE eq "RUN VAC" && $FRAME!=1 ################################>
+
+<h2>RUN VAC</h2>
+
+<#= ;&form("submain=RUN+VAC");#>
+   <hr>
+   <INPUT TYPE="submit" VALUE="SET PROBLEM">
+   <INPUT NAME="problem" VALUE="<#= $problem#>" SIZE=15>
+   <hr>
+</FORM>
+<#= ;&form("PAGE=RUN+VAC");#>
+
+<#= ;&fileselect("par",$par,"par/","*","DEFAULT");#> 
+is the selected parameter file<br>
+<INPUT TYPE=TEXT NAME="newpar" VALUE="<#= $newpar#>" SIZE=15>
+is the name for a new parameter file
+<p>
+<#= ;&button("CREATE");#> 
+    the new parameter file copied from the selected one<br>
+Delete the selected parameter file: <#= ;&button("DELETE");#>
+    <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+<#@ @vac=&list("./","vac vac_*");#>
+<#? ($#vac>=0);#>
+   <#= ;&button("EDIT");#> the selected parameter file 
+       <#= ;&manual("par.html");#>
+   <hr>
+   <#= ;&select("vac",$vac,@vac);#> is the selected executable code<br>
+   Remove the selected executable code: <#= ;&button("REMOVE");#>
+       <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+   <#= ;&button("RUN","CHECKED");#> the selected executable code
+                                  with the selected parameter file<br>
+   <#= ;&button("MPIRUN");#> the selected executable code on
+       <INPUT TYPE=TEXT NAME="np" VALUE="<#= $np#>" SIZE=2> processors
+       with the selected parameter file
+   <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+<#/?#>
+<#? $#vac<0 #>
+   <#= ;&button("EDIT","CHECKED");#> the selected parameter file
+      <#= ;&manual("par.html");#>
+   <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+   <hr><strong>
+   No executable VAC was found, select MAKE VAC in the MAIN MENU</strong>
+<#/?#>
+</FORM>
+
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "RESULTS" && $FRAME!=1 ##############################>
+
+<h2>RESULTS</h2>
+
+<#= ;&form("submain=RESULTS");#>
+   <hr>
+   <INPUT TYPE="submit" VALUE="SET PROBLEM">
+   <INPUT NAME="problem" VALUE="<#= $problem#>" SIZE=15>
+   <hr>
+</FORM>
+<h3>Log file</h3>
+<#@ @log=&list("data/","*.log");#> 
+<#? $#log>=0 #>
+  <#= ;&form("PAGE=RESULTS")#>
+  <#= ;&select("log",$log,@log);#><br>
+  <#= ;&button("LOG HEAD","CHECKED");#>
+  <INPUT NAME="nloghead" VALUE="<#= $nloghead#>" SIZE=3>
+  <#= ;&button("LOG TAIL");#>
+  <INPUT NAME="nlogtail" VALUE="<#= $nlogtail#>" SIZE=3>
+  <#= ;&button("LOG DELETE");#>
+  <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE>
+  <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SHOW"> <#/?#>
+  <#? $logtext#><TEXTAREA COLS=60 ROWS=<#= $logtextlen#>
+  ><#= $logtext#></TEXTAREA><#/?#>
+  </FORM>
+  <hr>
+<#/?#>
+<#? $#log<0#>
+  <b>There are no *.log log files in the /data directory.</b>
+<#/?#>
+
+<h3>Data file</h3>
+<#= ;&form("PAGE=RESULTS");#>
+<#@ @data=(&list("data/","*.ini"),&list("data/","*.out")); @data=sort(@data);
+    @data=grep {not /_np\d+_\d\d\d\./ or /_np\d+_000\./} @data;
+    foreach $f (@data){
+       $f.= (-T "data/$f") ?  " (ascii)" : " (binary)";
+       $f =~ s/(_np\d+_)000\./$1*./;
+    }
+#>
+<#? $#data>=0 #>
+  <#= ;&select("data",$data,@data);#><br>
+  <#= ;&button("DATA HEAD","CHECKED");#>
+  <INPUT NAME="ndatahead" VALUE="<#= $ndatahead#>" SIZE=3>
+  <#= ;&button("DATA TAIL");#>
+  <INPUT NAME="ndatatail" VALUE="<#= $ndatatail#>" SIZE=3>
+  <#= ;&button("DATA DELETE");#>
+  <IMG SRC=/Weblink/caution_trans.gif ALIGN=ABSMIDDLE><br>
+  <#? $datatext#><TEXTAREA COLS=60 ROWS=<#= $datatextlen#>
+  ><#= $datatext#></TEXTAREA><br><#/?#>
+  <#= ;&button("REDISTRIBUTE");#> to 
+  <INPUT NAME="processormap" VALUE="<#= $processormap#>" SIZE=6>
+  processor map (e.g. "0202"). Use empty string to get a single file. 
+  <#= ;&manual("mpi.html#Distribution");#>
+  <#? $mosaic #><br><INPUT TYPE="submit" VALUE="SHOW"> <#/?#>
+<#/?#>
+<#? $#data<0 #>
+  <b>There are no *.ini or *.out data files in the /data directory.</b>
+<#/?#>
+<hr>
+<h3>Visualize</h3>
+<#= ;&button("START IDL");#> <#= ;&manual("idl.html");#>
+   <#= ;&button("START SuperMongo");#> <#= ;&manual("sm.html");#>
+   <#= ;&button("START MATLAB");#> <#= ;&manual("matlab.html");#>
+<#? $mosaic #><hr><INPUT TYPE="submit" VALUE="START"> <#/?#>
+</FORM>
+
+<#= $backtomain #>
+
+<#/?#><#? $PAGE eq "EDIT" && $FRAME!=1 ###################################>
+
+<h2>EDITOR</h2><hr>
+
+<b>File: <#= $file #></b><br>
+<#= ;&form("PAGE=EDIT")#>
+<TEXTAREA NAME="text" ROWS=24 COLS=80><#= $text #></TEXTAREA>
+<hr>
+<#= ;&button("SAVE FILE");#>
+<#= ;&button("SAVE AND EXIT","CHECKED");#>
+<#= ;&button("EXIT EDITOR");#>
+<#? $mosaic #><hr><INPUT TYPE="submit" VALUE="SUBMIT"> <#/?#>
+</FORM>
+
+<#/?#>
+<!--######################## The End ###############################-->
+<#? $develop #>
+   <hr>PAGE: <#= $PAGE#>; FORM:<br><#= join(",",%FORM);#><hr>
+<#/?#>
+</BODY>
+</HTML>

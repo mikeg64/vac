@@ -1,0 +1,33 @@
+!##############################################################################
+! include vacpar - nul
+
+! NAME OF EQUATION: LIST_OF_VARIABLES + LIST_OF_PARAMETERS
+
+CHARACTER*3,PARAMETER:: typephys='???'           ! VACPHYS module name
+CHARACTER*3,PARAMETER:: eqparname='???'          ! Equation parameter names
+
+! The flow variable index names have to contain e_,ee_,b0_ for compatibility
+! Set e_=0, ee_=1 if there is no energy variable, b0_=0 for no magnetic field
+
+!!!INTEGER,PARAMETER:: VAR1_=1, VAR2_=2,...      ! flow variables
+
+INTEGER,PARAMETER:: nw=0                         ! No. flow variables
+
+!!!INTEGER,PARAMETER:: CHAR1_=1, CHAR2_=2,...    ! Characteristic variables
+INTEGER,PARAMETER:: extremeLW_=1,extremeRW_=2    ! Potentially fastest charact.
+
+!!!INTEGER,PARAMETER:: VARr_=?,VARphi_=?,...     ! Polar variable names
+                                                 ! They have to contain mphi_
+
+INTEGER,PARAMETER:: nvector=0                    ! No. vector variables
+
+!!!INTEGER,PARAMETER:: EQPAR1_=1,EQPAR2_=2,...   ! equation parameters
+INTEGER,PARAMETER:: neqpar=0                     ! No. equation parameters
+
+!!!INTEGER,PARAMETER:: PROCPAR1_=1,PROCPAR2_=2,..! processing parameters
+INTEGER,PARAMETER:: nprocpar=1                   ! No. processing parameters
+                                                 ! (the minimus value is 1)
+! end include vacpar - nul
+!##############################################################################
+
+

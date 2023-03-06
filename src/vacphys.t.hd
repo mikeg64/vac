@@ -1,0 +1,223 @@
+!##############################################################################
+! module vacphys - hd
+
+INCLUDE:vacnul.addsource.t
+INCLUDE:vacnul.process.t
+INCLUDE:vacphys.hdroe.t^IFTVD
+!=============================================================================
+subroutine physini
+
+! Tell VAC which variables are vectors
+! Set default values for entropycoef for typeentropy='yee'
+
+include 'vacdef.f'
+
+integer:: il
+!-----------------------------------------------------------------------------
+
+iw_vector(1)=m0_
+
+! The values of the constants are taken from Ryu & Jones ApJ 442, 228
+! assuming that it works for HD just as well as for MHD.
+do il=1,nw
+   select case(il)
+   case(soundRW_,soundLW_)
+      entropycoef(il)= 0.2
+   case default
+      entropycoef(il)= -one
+   end select
+end do
+
+return
+end
+
+!=============================================================================
+subroutine getdt(w,ix^L)
+
+! There is no extra restriction on dt
+
+include 'vacdef.f'
+
+double precision:: w(ixG^T,nw)
+integer:: ix^L
+!-----------------------------------------------------------------------------
+
+return 
+end
+
+!=============================================================================
+subroutine getflux(w,ix^L,iw,idim,f,transport)
+
+! Calculate non-transport flux f_idim[iw] within ix^L.
+! Set transport=.true. if a transport flux should be added
+
+include 'vacdef.f'
+
+integer::          ix^L,iw,idim
+double precision:: w(ixG^T,nw),f(ixG^T)
+logical::          transport
+!-----------------------------------------------------------------------------
+
+if(iw==m0_+idim)then
+   ! f_i[m_i]=v_i*m_i+p
+   call getpthermal(.true.,w,ix^L,f)
+else if(iw==e_)then
+   ! f_i[e]=v_i*e+m_i/rho*p
+   call getpthermal(.true.,w,ix^L,f)
+   f(ix^S)=w(ix^S,m0_+idim)/w(ix^S,rho_)*f(ix^S)
+else
+   f(ix^S)=zero
+endif
+
+transport=.true.
+
+return
+end
+
+!=============================================================================
+subroutine addgeometry(qdt,ix^L,iws,w,wnew)
+
+! Add geometrical source terms to wnew
+
+include 'vacdef.f'
+
+integer::          ix^L,iws(niw_),ix,iiw,iw,idir
+double precision:: qdt,w(ixG^T,nw),wnew(ixG^T,nw)
+logical,parameter::simplep=.true.
+!-----------------------------------------------------------------------------
+
+oktest=index(teststr,'addgeometry')>=1
+if(oktest)write(*,*)'Addgeometry wold:',wnew(ixtest^D,iwtest)
+
+select case(typeaxial)
+   case('slab','test')
+       ! No source terms in slab symmetry
+   case('nozzle')
+      if(ndir>1)call die('Nozzle geometry for ndir>1 is not implemented')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         if(iw==mr_)then
+            ! Use tmp for pressure, OK since getpthermal does not use tmp
+            call getpthermal(.true.,w,ix^L,tmp)
+            forall(ix= ix^LIM1:) wnew(ix,ix^SE,iw)=wnew(ix,ix^SE,iw) &
+               +qdt*tmp(ix,ix^SE)*areaside(ix)
+         endif
+      enddo
+   case('sphere')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         select case(iw)
+         ! s[mr]=pthermal*2/r+(mphi**2/rho+mtheta**2/rho)/r
+         case(mr_)
+            call getpthermal(.true.,w,ix^L,tmp)
+            ! This discretization maintains an exact equilibrium for p=const.
+            ! areaside=(areaCi-areaCh)/areadx
+            forall(ix= ix^LIM1:) wnew(ix,ix^SE,iw)=wnew(ix,ix^SE,iw) &
+               +qdt*tmp(ix,ix^SE)*areaside(ix)
+            tmp(ix^S)=zero
+            do idir=2,ndir
+               tmp(ix^S)=tmp(ix^S)+w(ix^S,m0_+idir)**2/w(ix^S,rho_)
+            end do
+         ! s[mphi]=(-mphi*mr/rho)/radius and phi-->theta
+         {case(m^CE_)
+            tmp(ix^S)= -w(ix^S,m^CE_)*w(ix^S,mr_)/w(ix^S,rho_) \}
+         end select
+         ! Divide by radius and add to wnew for variables other than rho and e
+         if(iw/=rho_ .and. iw/=e_)&
+            wnew(ix^S,iw)=wnew(ix^S,iw)+qdt*tmp(ix^S)/x(ix^S,r_)
+         if(oktest.and.iw==iwtest)&
+            write(*,*)'Geometrical source:',tmp(ixtest^D)
+      end do
+   case('cylinder')
+      do iiw=1,iws(niw_); iw=iws(iiw)
+         select case(iw)
+         ! s[mr]=(pthermal+mphi**2/rho)/radius
+         case(mr_)
+            call getpthermal(.true.,w,ix^L,tmp)
+            if(.not.gencoord)then
+               ! For nonuniform Cartesian grid this provides hydrostatic equil.
+               if(simplep)then
+                  forall(ix= ix^LIM1:) wnew(ix,ix^SE,mr_)=wnew(ix,ix^SE,mr_) &
+                     +qdt*tmp(ix,ix^SE)*areaside(ix)
+               else
+                  if(it==itmin)write(*,*)'gradprfix'
+                  forall(ix=ixmin1+1:ixmax1-1)&
+                  wnew(ix,ix^SE,mr_)=wnew(ix,ix^SE,mr_)&
+                     +qdt/4*(tmp(ix-1,ix^SE)+2*tmp(ix,ix^SE)+tmp(ix+1,ix^SE))&
+                      *areaside(ix)
+                  wnew(ixmin1,ix^SE,mr_)=wnew(ixmin1,ix^SE,mr_)&
+                      +qdt*tmp(ixmin1,ix^SE)*areaside(ixmin1)
+                  wnew(ixmax1,ix^SE,mr_)=wnew(ixmax1,ix^SE,mr_)&
+                      +qdt*tmp(ixmax1,ix^SE)*areaside(ixmax1)
+               endif
+               tmp(ix^S)=zero
+            endif
+{^IFPHI
+            tmp(ix^S)=tmp(ix^S)+w(ix^S,mphi_)**2/w(ix^S,rho_)
+         ! s[mphi]=(-mphi*mr/rho)/radius
+         case(mphi_)
+            if(.not.angmomfix)tmp(ix^S)=-w(ix^S,mphi_)*w(ix^S,mr_)/w(ix^S,rho_)
+}
+         end select
+         ! Divide by radius and add to wnew
+         if(iw==mr_.or.(iw==mphi_.and..not.angmomfix))&
+            wnew(ix^S,iw)=wnew(ix^S,iw)+qdt*tmp(ix^S)/x(ix^S,r_)
+         if(oktest.and.iw==iwtest)&
+            write(*,*)'Geometrical source:',tmp(ixtest^D)
+      end do
+end select
+
+if(oktest)write(*,*)'Addgeometry wnew:',wnew(ixtest^D,iwtest)
+
+return
+end
+
+!=============================================================================
+INCLUDE:vacproc.positive.t
+
+subroutine keeppositive(ix^L,w)
+
+! Keep pressure and density positive and/or represent vacuum (following D.Ryu)
+
+include 'vacdef.f'
+
+integer::          ix^L
+double precision:: w(ixG^T,nw)
+logical:: toosmallp
+!-----------------------------------------------------------------------------
+
+if(vacuumrho<zero)then
+   ! Keep density positive
+   call keeppositive_rho(ix^L,w)
+else
+   ! Where rho is small use vacuum state: rho=vacuumrho, v=0, p=smallp
+   where(w(ix^S,rho_)<smallrho)
+      w(ix^S,rho_)=vacuumrho
+      ^C&w(ix^S,m^C_)=zero;
+      w(ix^S,e_)=smallp/(eqpar(gamma_)-one)
+   endwhere
+endif
+
+! Calculate pressure without clipping (.false.) too small values 
+call getpthermal(.false.,w,ix^L,tmp)
+
+toosmallp=any(tmp(ix^S)<max(zero,smallp))
+
+if(toosmallp)then
+   nerror(toosmallp_)=nerror(toosmallp_)+1
+   if(nerror(toosmallp_)==1)then
+      write(*,'(a,i2,a,i7)')&
+         'Too small pressure (code=',toosmallp_,') at it=',it
+      write(*,*)'Value < smallp: ',minval(tmp(ix^S)),smallp
+!      write(*,*)'Location: ',minloc(tmp(ix^S)) !F77_
+      {write(*,*)'Processor:',ipe ^IFMPI}
+   endif
+   if(smallp>zero)&
+      w(ix^S,e_)=max(tmp(ix^S),smallp)/(eqpar(gamma_)-1)+&
+         half/w(ix^S,rho_)*(^C&w(ix^S,m^C_)**2+)
+endif
+
+return
+end
+
+!=============================================================================
+! end module vacphys - hd
+!##############################################################################

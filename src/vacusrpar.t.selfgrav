@@ -1,0 +1,8 @@
+!##############################################################################
+! include vacusrpar - selfgrav
+
+INTEGER,PARAMETER:: grav_=neqpar+1, nspecialpar=1
+CHARACTER*4,PARAMETER:: specialparname='grav'
+
+! end include vacusrpar - selfgrav
+!##############################################################################

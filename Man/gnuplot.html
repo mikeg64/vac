@@ -1,0 +1,88 @@
+<HTML>
+<HEAD>
+<TITLE> Visualizing VAC data files with Gnuplot </TITLE>
+</HEAD>
+<BODY>
+<h1>VISUALIZING WITH GNUPLOT</h1>
+
+This document briefly describes the use of Gnuplot for plotting results 
+from VAC. Gnuplot is a free software produced by the GNU project.
+
+<H2>Installation of cutpict</H2>
+
+   You can visualize <b>only ASCII</b> VAC data files with Gnuplot via the 
+   <b>cutpict</b> Perl script. If the results are in binary format, first
+   convert to ASCII format using <A HREF=#Convertdata>convertdata</A>.
+<p>
+   You may or may not want to copy the <b>cutpict</b> script into the
+   <b>data/</b> directory. It simplifies the use of Gnuplot somewhat, 
+   on the other hand, the data directory is not supposed to contain programs.
+   To do the copying type
+<pre>
+cp Gnuplot/cutpict data/
+</pre>
+
+<h2>Running Gnuplot</H2>
+
+   To start GNUPLOT type
+<pre>
+cd data
+gnuplot
+</pre>
+   For help type <b>help</b> and to exit, type
+<pre>
+exit
+</pre>
+
+<H2>Plotting</H2>
+
+   To plot a <b>1D</b> data, type at the <b>gnuplot&gt;</b> prompt
+<pre>
+plot '&lt; cutpict -n=NPICT filename' using 1:NCOL with lines
+</pre>
+   where NPICT is a positive integer, the number of the snapshot to be
+   plotted, and NCOL is another positive integer between 2 and <b>nw+1</b>,
+   the number of the coloumn containing the variable to plot. 
+   The 1 refers to the first column which contains the coordinate. 
+   NCOL=2 is usually density, NCOL=3 is the momentum in X direction etc. 
+   If you omit the <b>-n=NPICT</b> flag, the first snaphsot will be read 
+   from the file.
+<p>
+   For <b>2D</b> rectangular grid you may use the "splot" command. It is
+   probably a good idea to set the following defaults:
+<pre>
+set hidden3d
+set data style lines
+</pre>
+   then to plot NCOL-th coloumn of the NPICT-th picture type
+<pre>
+splot '&lt; cutpict -n=NPICT filename' using NCOL
+</pre>
+   In 2D NCOL=3 is the density, since the first and second columns contain
+   the two coordinates.
+<p>
+   For 2D generalized coordinates only parametric surfaces can be drawn.
+<pre>
+set parametric
+set hidden3d
+set data style lines
+splot '&lt; cutpict -n=NPICT filename' using 1:2:ICOL
+</pre>
+   Please study the Gnuplot manual or on line help for more information 
+   on plotting options.
+<p>
+   You can use <b>cutpict</b> in the shell too, e.g.
+<pre>
+Gnuplot/cutpict &lt; data/exampleA22.ini &gt; data/exampleA22gnu.ini
+</pre>
+The header of the file will be echoed on the screen, and the resulting
+<b>data/exampleA22gnu.ini</b> can be viewed with Gnuplot directly.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th,
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>
+
+

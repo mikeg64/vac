@@ -1,0 +1,29 @@
+@(#)README	2.1
+This directory contains demos for the LOVER package.
+The demos are compiled automatically with the installation
+script. They can be compiled using the Makefile in this
+directory by providing the macros on the command line:
+
+        F77, F77FLAGS, LOVER, LIB, INCLUDE.
+
+F77 contains the name of the FORTRAN compiler, e.g. f77
+
+F77FLAGS contains the flags to be passed to the compiler, e.g. -O
+Remember that on workstations the autodbl flag has to be passed to 
+the compiler as LOVER itself is compiled with this flag.
+
+LOVER contains top directory name of the LOVER tree.
+
+LIB specifies where the library archive liblover.a has been placed.
+
+INCLUDE specifies where the lover include file lover.h has been placed.
+
+If you do not specify these last three macros they will default to:
+
+        LOVER   /usr/local
+        LIB     /usr/local/lib
+        INCLUDE /usr/local/include
+
+For example, on IBM RS6000 machines one could type:
+
+        make F77=xlf F77FLAGS="-qautodbl=dbl4" LOVER=$HOME/usr/local/lover

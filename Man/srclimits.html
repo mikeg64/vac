@@ -1,0 +1,117 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on Restrictions on the Source Language </TITLE>
+</HEAD>
+<BODY>
+<h1>RESTRICTIONS ON THE SOURCE LANGUAGE</h1>
+
+This document describes different limitations in the source language due to 
+the conformity requirements and bugs in the (pre)compilers. 
+<hr>
+This page:
+ [<A HREF="#VACPP">VACPP</A>]
+ [<A HREF="#F90TOF77">F90TOF77</A>]
+ [<A HREF="#SAVEMEM">SAVEMEM</A>]
+ [<A HREF="#DEC F77">DEC F77</A>]
+ [<A HREF="#HPF">HPF</A>]
+<hr>
+<H2><A NAME="VACPP">VACPP</A></h2>
+<dl>
+<dt>CAPITAL LETTERS
+<dd>	and lower case letters are distinguished by the preprocessor:
+	the patterns are in capital letters, while the Fortran 90 part is
+	expected to be in lower case. Please use lower case letters in the 
+	code, especially next to the VACPP patterns.
+</dl>
+<H2><A NAME="F90TOF77">F90TOF77</A></h2>
+
+<dl>
+<dt>STRING_VAR(1:30)
+<dd>    is incorrectly translated to a loop unless the name of the string 
+        variable is listed in the definition of <b>$stringvar</b> in 
+        <b>src/f90tof77</b>. You may add new string names by editing the 
+        script. Make sure that the string name does not coincide with an
+        array name somewhere else!
+<dt>a=b; a(:)=b(:)
+<dd>	where <b>a</b> and <b>b</b> are arrays cannot be translated by the 
+	<b>src/f90tof77</b> Perl script. Use explicit index sections: 
+	<b>a(1:nw)=b(1:nw)</b>. 
+<dt>include 'vacdef.f'
+<dd>	is needed in all subroutines and functions which use temporary 
+        index variables created by <b>f90tof77</b>. Alternatively you may
+        declare the index variables locally.
+<dt>write(*,*)a(1:10)+b(1:10)
+<dd>	does not translate to the correct F77 implied loops. Calculate 
+	array expressions for read and write statements in advance<br><kbd>
+        c(1:10)=a(1:10)+b(1:10)<br>
+	write(*,*)c(1:10)</kbd><br>
+	Note that <kbd>write(*,*)a(1:10),b(1:5)</kbd> translates correctly.
+</dl>
+<H2><A NAME="SAVEMEM">SAVEMEM</A></h2>
+
+<dl>
+<dt>double precision:: qq(ixG^T) ! a trailing remark
+<dd>	The Perl script <b>src/savemem</b>, used for producing the memory
+	efficient executable <b>vacsmall</b>, disregards 
+	variable declarations with comments in them. Avoid such trailing 
+	comments. Always use :: in declarations.
+<dt>double precision:: qq(MYPARAMETER)
+<dd>	Only parameters in the <b>src/vacpar.t</b> and <b>src/vacdef.t</b>
+	files are recognized by <b>savemem</b>, thus it will not get the 
+	correct size for this array. Use only those parameters in
+	local array declarations.
+</dl>
+<H2><A NAME="DEC F77">DEC</A> F77</h2>
+<dl>
+<dt>BACKSLASH
+<dd>	quoted in the source code does not work. \\ works but not standard.
+	Use char(39) instead.
+</dl>
+
+<H2><A NAME="HPF">XLHPF90</A></h2>
+<dl>
+<dt>case('nul'); case('something')
+<dd>	causes internal compiler error for the xlhpf90 compiler on the SP2
+        because of the empty case statement. The fix is to insert a dummy
+	line like this
+<pre>
+	case('nul')
+	   !HPF_ if(.false.)write(*,*)'Avoid XLHPF bug'
+	case('something')
+</pre>
+        The special !HPF_ string is removed by the <b>f90tohpf</b>
+        preprocessor and the remaining if statement keeps xlhpf90 happy.
+        This compiler bug has been reported to SARA under loghec 1196.
+<p>
+<dt>jx^L=ix^L+kr(idim,^D); a(jx^S)=b(ix^S)
+<dd>	This typical shifting operation works, but produces slow 
+	communication if the arrays <b>a</b> and <b>b</b> are distributed.
+	The fix is to insert special !SHIFT comments 
+<pre>
+	!SHIFT
+	jx^L=ix^L+kr(idim,^D);
+	!SHIFT BEGIN
+	a(jx^S)=b(ix^S)
+	!SHIFT END
+</pre>
+	which is translated by the <b>vacpp.pl -O | f90tohpf</b> 
+        precompilers to
+<pre>
+	jxmin1=ixmin1+kr(idim,1);jxmax1=ixmax1+kr(idim,1);
+	if (jxmin1==ixmin1+1) then
+	   a(ixmin1+1:ixmax1+1)=b(ixmin1:ixmax1)
+	else
+           IF(it==itmin)write(*,*)'Warning: SHIFT1 did not optimize!'
+	   a(jxmin1:jxmax1)=b(ixmin1:ixmax1)
+	endif
+</pre>
+	in 1D, for example. These shifts now compile to an efficient code.
+        See Man/<A HREF=source.html#Special>source</A> for more detail.
+
+</dl>
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, December 29 2003
+</ADDRESS>
+</BODY>
+</HTML>

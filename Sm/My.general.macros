@@ -1,0 +1,383 @@
+startup2
+	verbose 0
+	macro read "/home/gtoth/sm/surface.sm"
+	macro read "/home/gtoth/sm/accent.sm"
+	accents
+	verbose 1
+	overload ticksize 1
+	overload window 1
+	overload device 1
+	overload viewpoint 1
+	overload surface 1
+	window 1 1 1 1
+	expand 1.0001
+	foreach 0 {white black red green blue cyan magenta yellow}{
+	    macro $0 <ctype $0>
+	}
+	if(is_file("default"))   {macro read default}
+	if(is_file("Sm/default")){macro read "Sm/default"}
+	if(is_macro(startup3)) { startup3 }  # if startup3 is defined, execute
+x
+	device x11 -bg black
+	ctype white
+inic 11
+	if(!$?1){define 1 default}
+	if(is_file("$!1"))   {macro read "$!1"}
+	if(is_file("Sm/$!1")){macro read "Sm/$!1"}
+	# The extra line for SM
+vt100
+	! set term=vt100
+e	1
+	echo $($1)
+ticksize 4
+	#smallx bigx smally bigy
+	#Same as TICKSIZE but if smallx=0 and bigx>0 it puts bigx number of
+	#big ticks along the x axis. Same works for y.
+	set _sx=$1 set _bx=$2 set _sy=$3 set _by=$4
+	if (_sx==0&&_bx>0) {getticks $fx1 $fx2 _sx _bx}
+	if (_sy==0&&_by>0) {getticks $fy1 $fy2 _sy _by}
+	TICKSIZE $(_sx) $(_bx) $(_sy) $(_by)
+device	1
+	define device $1
+	DEVICE $1
+port	102
+	if (!$?2) {define 2 " "}
+	define _olddevice "$device"
+	device postport
+	$1 $2
+	device $_olddevice
+square	102
+	if (!$?2) {define 2 " "}
+	define _olddevice "$device"
+	device postscript
+	$1 $2
+	device $_olddevice
+land	102
+	if (!$?2) {define 2 " "}
+	define _olddevice "$device"
+	device postland
+	$1 $2
+	device $_olddevice
+color	102
+	if (!$?2) {define 2 " "}
+	define _olddevice $device
+	device post_colour cp
+	$1 $2
+	device $_olddevice
+postfile	2
+	#device=land/script/port, filename
+	device post$1 ":SY=echo File is \$F:OF=$!2:"
+ask 23
+	#Variable default <prompt> (prompt=(Variable ?) if no prompt is given
+	if(!$?3){define 3 "<$!1 ?>"}
+	define $1 "$!2"
+	define $1 ? $3
+	set _i_=index('$$1','~')
+	if(_i_==0){define $1 ('$2'+substr('$$1',1,0))}
+	if(_i_>0) {define $1 (substr('$$1',0,_i_)+'$2'+substr('$$1',_i_+1,0))}
+	delete _i_
+Smooth 3
+	# Usage: smooth vector answer filter_size
+	# This is an improvement on SM-s smooth function, this is faster.
+	if($3<6){smooth $1 $2 $3 return}
+	set _in=$1 set _len=dimen(_in) set _boxlen=$3 
+	if (_len<=(_boxlen+1)/2) {return}
+	set _half1=int(_boxlen/2) set _half2=_boxlen-_half1
+	set dimen(_alias)=$(_boxlen)
+	set _boxdiff=(_in concat _alias)-(_alias concat _in)
+	set dimen(_out)=$(_len)
+	do i=0,_half2-1 {set _out[0]=_out[0]+_in[$i]}
+	do i=0,_len-2 {
+	    set _out[1+$i]=_out[$i]+_boxdiff[_half2+$i]
+	}
+	set _maxboxlen=(_len>_boxlen)?_boxlen:_len
+	set _width1=_half2,_maxboxlen-1 set _width2=_maxboxlen,_half1+1,-1
+	set dimen(_width0)=$(_len-dimen(_width1)-dimen(_width2))
+	set _width0=_width0+_maxboxlen
+	set _width=_width1 concat _width0 concat _width2
+	set $2=_out/_width
+Int	1
+	set $0=(abs($1)>2e9)? $1:int($1)
+min	1
+	set __MIN=$1 sort{__MIN} set $0=__MIN[0] delete __MIN
+max	1
+	set __MAX=$1 sort{__MAX} set $0=__MAX[dimen(__MAX)-1] delete __MAX
+Erase
+	if (!$?Noerase) {erase}
+eraseon
+	define Noerase delete
+eraseoff
+	define Noerase please
+Limits	24
+	# Usage: Limits x_var y_var
+	# or     Limits xmin xmax ymin ymax
+	if ($?Fixlimitx) {define _Limitx "$!Fixlimitx"
+	}else{if($?4){define _Limitx "$!1 $!2"}else{define _Limitx $1}}
+	if ($?Fixlimity) {define _Limity "$!Fixlimity"
+	}else{if($?4){define _Limity "$!3 $!4"}else{define _Limity $2}}
+	limits -1 1 -1 1
+	limits $_Limitx $_Limity
+	define _Limitx delete
+	define _Limity delete
+limitson
+	define Fixlimitx "$!fx1 $!fx2"
+	define Fixlimity "$!fy1 $!fy2"
+limitsoff
+	define Fixlimitx delete
+	define Fixlimity delete
+fix
+	limitson eraseoff
+fixx	2
+	define Fixlimitx "$!1 $!2"
+fixy	2
+	define Fixlimity "$!1 $!2"
+let
+	limitsoff eraseon
+Lweight	1
+	define W_ $1
+	if(!$?Nolweight){lweight $W_}
+lweighton
+	define Nolweight delete
+lweightoff
+	define Nolweight please
+Box
+	box $($Windowy==1) $(2*($Windowx==1)) 0 0
+window	4
+	define Windowx $3
+	define Windowy $4
+	WINDOW $1 $2 $3 $4
+Xlabel	102
+	if ($Windowy!=1) {return}
+	if (!$?2) {define 2 " "}
+	xlabel $1 $2
+Ylabel	102
+	if ($Windowx!=1) {return}
+	if (!$?2) {define 2 " "}
+	ylabel $1 $2
+mean	1
+	set $0=sum($1)/dimen($1)
+variance 1
+	set $0=sum($1**2)/dimen($1)-(sum($1)/dimen($1))**2
+diff	1
+ 	set $0=($1 concat {0 0})-({0 0} concat $1)
+ 	set _ix=2,dimen($1)-1
+	set $0=$0[2] concat $0[_ix] concat $0[dimen($1)-1]
+numeric	1
+	#Usage: numeric(stringvector)
+	#Converts stringvector into numeric vector
+	set dimen($0)=$(dimen($1))
+	do i=0,dimen($1)-1{
+	    set $0[$i]=$($1[$i])
+	}
+numstr	1
+	#Usage: numstr(stringvector)
+	#returns the numerically meaningful first parts of the strings or '0'
+	#e.g. set a=<1.23miles 1.4kg cc> set b=numstr(a) print {a b}
+	set _n=dimen($1)
+	set dimen(_i)=$(_n)
+	set _i=_i-1
+	for dimen(_num)=$(_n) sum(_num)>-_n \
+	    _num=index('0123456789.-',substr($1,_i,1)) next_i
+	set $0=(_i>0)? substr($1,0,_i-(substr($1,_i-1,1)=='.')) : '0'
+next_i
+	#Used by numstr
+	set _i=_i+(_num!=-1)
+split   1
+	#Usage: split string   Splits scalar string into an array of words.
+	#Similar effect can be achieved by set $1=<$($1)>. However
+	#for strings containing non-alphanumeric characters only this works. 
+	#Bug: Trailing spaces produce an empty last word.
+	define 3 (dimen($1)-1)
+	ltrim $1[$3]
+	if(strlen($1[$3])==0){return}
+	define 2 (index($1[$3],' '))
+	if($2==-1){return}
+	set $1=$1 concat substr($1[$3],$2,0)
+	set $1[$3]=substr($1[$3],0,$2)
+	split $1
+ltrim    1
+	#Usage: ltrim string      
+	#Remove leading spaces from string
+	if(strlen($1)==0){return}
+	if(substr($1,0,1)!=' '){return}
+	if(strlen($1)==1){set $1='' return}
+	set $1=substr($1,1,0)
+	ltrim $1
+makeimage 3
+	#Usage: makeimage array nx ny
+	if(dimen($1)!=$2*$3){echo The size of $1 is not $2 x $3 !
+			     return}
+	image($($2),$($3)) set ix_=0,$2-1
+	do iy_=0,$3-1{set image[ix_,$iy_]=$1[ix_+$2*$iy_]}
+	delete ix_
+takeimage 56
+	#Usage: takeimage array nx ny ixs iys [unit]
+	#extracts an image from the nx*ny size array at coordinates ixs, iys
+	#if unit is defined the image values will be scaled down accordingly 
+	if(dimen($1)!=$2*$3){echo The size of $1 is not $2 x $3 !
+			     return}
+	if(!$?6){define 6 1}
+	define NX (dimen($4)) define NY (dimen($5)) image($NX,$NY)
+	set ix_=0,$NX-1
+	do iy_=0,$NY-1{set image[ix_,$iy_]=$1[$4+$2*$5[$iy_]]/$6}
+	delete ix_ delete iy_
+Contour	11
+	#Usage: Contour [nlevel]
+	#Slightly more intelligent than contour by setting levels
+	if(!$?1){define 1 10}
+	getlevels levs_ $1 levels levs_
+	Limits 0 $($NX-1) 0 $($NY-1)
+	contour
+Greyscale 15
+	#Usage: Greyscale [nlevel [npx [npy [maxweight [dmargin]]]]]
+	#Slightly more intelligent than greyscale by setting glevels
+	if(!$?1){define 1 20}
+	do i_=2,5{if(!$?$i_){define $i_ " "}}
+	getlevels levs_ $1 glevels levs_
+	if($?Fixlimitx){define Limx_ "$!Fixlimitx"
+	}else{define Limx_ "0 $!($NX-1)"}
+	if($?Fixlimity){define Limy_ "$!Fixlimity"
+	}else{define Limy_ "0 $!($NY-1)"}
+	limits $Limx_ $Limy_
+	greyscale $2 $3 $4 $5
+Colormap 15
+	#Usage: Colormap [nlevel [npx [npy [maxweight [dmargin]]]]]
+	#Slightly more intelligent than colormap by setting clevels
+	#and resetting default colors and ctype.
+	if(!$?1){define 1 40}
+	do i_=2,5{if(!$?$i_){define $i_ " "}}
+	getlevels levs_ $1 clevels levs_
+	define ctype | setcolors
+	if($?Fixlimitx){define Limx_ "$!Fixlimitx"
+	}else{define Limx_ "0 $!($NX-1)"}
+	if($?Fixlimity){define Limy_ "$!Fixlimity"
+	}else{define Limy_ "0 $!($NY-1)"}
+	limits $Limx_ $Limy_
+	colormap $2 $3 $4 $5
+	defaultcolors ctype $ctype
+vectorfield	45
+	# Usage: vectorfield x y vx vy [size]
+	# Plots arrows at the locations (x,y) in the direction atan2(vx,vy)
+	# If size > 0, the length is proportional to size*|v|, and
+        # if size < 0, the length is proportional to size. Default size=1.
+	if(!$?5){define 5 1}
+	set _angle=atan2($4,$3)*180/pi
+	set _strength=($3**2+$4**2)**0.5
+	set _strength=_strength/max(_strength)
+	angle _angle
+	if ($5>0) {expand _strength*$5}else{expand $(-$5)}
+	#Erase
+	Limits $1 $2
+	ptype {d 500 0 d 400 100 m 400 -100 d 500 0}
+	points $1 $2
+	expand 1.001 angle 0 ptype 4 0
+	delete _angle delete _strength
+getlevels 2
+	#Usage: getlevels levels nlevel
+	define NX image define NY image
+	if(!$?NX){
+	    echo Image is not defined
+	    return
+	}
+	minmaxlim 0 $NX 0 $NY min_ max_
+	if($min_==$max_){
+	    echo Image=$min_ everywhere, no levels
+	    set $1=$min_
+	    return
+	}
+	if($2<1){echo Number of levels must be > 0
+	define 2 1}
+	set $1=$min_,$max_,($max_-$min_)/($2+1)
+cshift 2
+	#Usage: cshift array shift
+	#Shifts array to the right by shift
+	set _ix0=0,dimen($1)-$2-1 set _ix1=dimen($1)-$2,dimen($1)-1
+	set $1=$1[_ix1] concat $1[_ix0]
+	delete _ix1 delete _ix0
+clevels		# Set color levels. Usage: clevels expr
+		SET clevel_vec=
+cmap		# Draws a colormap of an image with default settings 
+		define NX image define NY image limits 0 $($NX-1) 0 $($NY-1)
+		minmax Min Max
+		setcolors
+		clevels $Min*0.999,$Max*1.0001,($Max-$Min)/50
+		colormap 137 137 7
+		defaultcolors
+setcolors	# Color settings for colormap
+		set blue=250,1,-1
+		#set green=30,154.5,0.5
+		set red=1,250
+		ctype=int(red+256*256*blue)
+defaultcolors   #ctype=default,white,black,red,green,blue,cyan,magenta,yellow
+		set blue =<250 250 0 0 0 250 250 250 0>
+		set green=<250 250 0 0 250 0 250 0 250>
+		set red  =<250 250 0 250 0 0 0 250 250>
+		ctype=red+256*green+256*256*blue
+colormap 14     # Draw a colormap image.
+                # Usage: colormap [npx npy maxweight dmargin]
+                # where npx and npy are the number of points in x and y,
+                # and maxweight is the lweight to use. dmargin is used
+                # to fiddle how close the points get to the edge of the box
+                # The greylevels to use are set by clevels
+                if(!is_set(clevel_vec,3)) {
+                   echo Please set levels with the `clevels' command
+                   return
+                }
+                if(dimen(clevel_vec) < 1) {
+                   echo You need at least one level
+                   return
+                }
+                define NX image
+                if(!$?NX) {
+                   echo Image is not defined
+                   return
+                }
+                if(!$?1){ define 1 137 }
+                if(!$?2){ define 2 137 }
+                if(!$?3){ define 3 10 }
+                if(!$?4){ define 4 0.25 }
+                set _npx=$1
+                set _npy=$2
+                define lweight |
+		lweight $3
+                set _pxy=0,_npx*_npy-1
+                set _py=int((_pxy+0.000001)/_npx)
+                set _px=_pxy-_npx*_py
+                define X0 image define X1 image define Y0 image define Y1 image
+                if($X0<$fx1){ define X0 $fx1 }
+                if($X1>$fx2){ define X1 $fx2 }
+                if($Y0<$fy1){ define Y0 $fy1 }
+                if($Y1>$fy2){ define Y1 $fy2 }
+                set _px=($X1 - $X0)/(_npx + 2*$4 - 0.5)*\
+                    (_px+$4) + $X0
+                set _py=($Y1 - $Y0)/(_npy + 2*$4 - 0.5)*\
+                    (_py+$4) + $Y0
+                set _pz=image(_px,_py)
+                ptype 0 0
+                minmax _Min _Max
+		define _Min ($_Min-0.0001*($_Max-$_Min))
+		define _Max ($_Max+0.0001*($_Max-$_Min))
+                set _lev=clevel_vec
+                sort{_lev}
+                set _lev=$_Min concat _lev concat $_Max
+                set _lev=_lev if(_lev>=$_Min&&_lev<=$_Max)
+                if(dimen(_lev)>2){
+                  set _color=5,250,245/(dimen(_lev)-1)
+		  set _color=int(_color)
+                }else{
+                  set _color=125
+                }
+                # colors>250 are special
+                do i=0,dimen(_lev) - 2 {
+                   ctype $(_color[$i])
+                   points _px _py if($(_lev[$i+1]) > _pz && _pz >= $(_lev[$i]))
+                }
+                lweight $lweight
+                foreach 0 {_px _py _pxy _pz _npx _npy _maxweight _lev _color}{
+                    delete $0
+                }
+                foreach 0 {X0 X1 Y0 Y1 _Max _Min lweight}{
+                    define $0 delete
+                }
+
+

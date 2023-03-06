@@ -1,0 +1,1411 @@
+<HTML>
+<HEAD>
+<TITLE>VAC Manual on the PAR Parameter Files for VAC </TITLE>
+</HEAD>
+<BODY>
+<h1>PARAMETERS FOR VAC</h1>
+
+This document describes how the <b>par/PROBLEM</b> parameter files for VAC
+should be used. Some parameters control the 
+Constrained Transport/Central Difference schemes for maintaining div B=0.
+These algorithms will become public when the paper 
+<A HREF=http://hermes.elte.hu/~gtoth/Papers/vac.html#Divb>
+The div B=0 Constraint in Numerical Magnetohydrodynamics</A>
+gets published. Therefore configure VAC with <b>setvac -off=ct</b>.
+if you wish to obtain the proper <b>src/vacproc.constrainb.t</b> file
+before publication.
+<hr>
+This page:<br>
+ [<A HREF="#NAMELISTS">NAMELISTS</A>]:
+ [<A HREF="#Testlist">Testlist</A>]
+ [<A HREF="#Filelist">Filelist</A>]
+ [<A HREF="#Savelist">Savelist</A>]
+ [<A HREF="#Stoplist">Stoplist</A>]
+ [<A HREF="#Methodlist">Methodlist</A>]
+ [<A HREF="#Boundlist">Boundlist</A>]
+ [<A HREF="#Paramlist">Paramlist</A>]
+ [<A HREF="#Extra">Extra input</A>]
+ [<A HREF="#Example">EXAMPLES</A>]
+<hr>
+<H2><A NAME="NAMELISTS">NAMELISTS</A></h2>
+
+The parameter file consists of a sequence of namelists. A namelist consists
+of an opening line, variable definitions and a closing line:
+<pre>
+ &amp;LISTNAME
+     ...VARIABLE DEFINITIONS...
+ &amp;end
+</pre>
+The Fortran 90 standard for the closing line is a single slash <b>/</b>, 
+while some Fortran 77 compilers prefer <b>&amp;end</b>. 
+The <b>Fix/end2slash</b> end <b>Fix/slash2end</b> Perl scripts are 
+provided to ease the conversion. The text between too namelists are 
+usually ignored, but on some machines (e.g. the Cray C90) 
+such text results in a run time error. This is compiler dependent.
+<p>
+Variables in a namelist can be defined by any of the following statements:
+<pre>
+     varname=value
+     arrayname(index1,index2,..)=value
+     arrayname=value1,value2,value3,...
+     arrayname=multiple1*value1,multiple2*value2,...
+</pre>
+where multiple is a positive integer number. If you do not define a variable
+the default value is used. 
+<p>
+The Fortran 90 standard for logical variable values is either <b>T</b> and
+<b>F</b> or <b>.true.</b> and <b>.false.</b>, but some compilers accept only 
+one of them. The <b>Fix/T2true</b> and <b>Fix/true2T</b> Perl scripts are 
+provided to ease the conversion.
+<p>
+The default values of scalar parameters are defined in the file
+<b>par/DEFAULT</b>, while the arrays are initialized in the subroutine 
+<b>readparameters</b> in file <b>src/vacio.t</b>. You may customize 
+<b>par/DEFAULT</b>
+by changing the default values, however you should always use the same
+default values so that you can reproduce  earlier results. The problem
+dependent parameters should therefore be given in the <b>par/PROBLEM</b> file.
+<p>
+The following namelist examples contain all the possible variables to set,
+choices are indicated by <b>|</b>. The first choice is the default value
+if there is any. In an actual file only the parameters 
+different from or without default need to be set. 
+Constant names that should be replaced by the actual values are in 
+capital letters. The <b>...</b> indicates optional extra elements for
+arrays, or extra words in strings. After each namelist a discussion follows.
+
+<ol><H3><A NAME="Testlist"><li>Testlist</A></h3>
+
+<pre>
+ &amp;testlist
+	teststr='SUBROUTINE1 SUBROUTINE2 ... '
+	ixtest1=INTEGER ixtest2=INTEGER ixtest3=INTEGER
+	iwtest=INTEGER
+	idimtest=INTEGER
+ &amp;end
+</pre>
+Setting <b>teststr</b> causes some information printed to the standard output 
+from the subroutines listed in <b>teststr</b>. The output refers to the 
+location set by ixtest1 (ixtest2,ixtest3), but remember that these are real 
+indices where the boundary layers also count, so the first index of the MESH 
+is typically 3, which is the default value for ixtest1 (ixtest2, ixtest3).
+<p>
+The variable to be tested is iwtest (default 1), and the direction is 
+idimtest (default 1). To see what output you will get, please find all 
+occurancies of <b>oktest</b> in the tested subroutine(s) in the source code.
+Some examples are 'timeproc' to time the projection scheme, 'readfileini'
+to check things while the input file is read, 'readparameters' to see the
+value of all the parameters, 'advect1' to check the evolution of a 
+variable iwtest at the grid cell defined by ixtest^D, 'getdt' to print
+out information on the calculation of the time step etc, etc. You can
+combine these diagnostics arbitrarily by putting them into <b>teststr</b>.
+They only have an effect if written in small case.
+<p>
+You can use these variables to debug your VACUSR subroutines.
+
+<H3><A NAME="Filelist"><li>Filelist</A></h3>
+
+<pre>
+ &amp;filelist
+	filenameini='data/FILEININAME'
+	filename=   'data/FILELOGNAME',
+                    'data/FILEOUTNAME'
+	snapshotini=INTEGER
+	snapshotout=INTEGER
+	typefileini='auto' | 'ascii' | 'binary' | 'special'
+	typefileout='auto' | 'ascii' | 'binary' | 'special'
+	typefilelog='default' | 'special'
+	fullgridini=F | T
+	fullgridout=F | T
+        dixBmin1   =INTEGER
+        dixBmax1   =INTEGER
+        dixBmin2   =INTEGER
+        dixBmax2   =INTEGER
+        dixBmin3   =INTEGER
+        dixBmax3   =INTEGER
+ &amp;end
+</pre>
+The filenames have no default values, they have to be defined.
+You may use an existing output file as an input file. By default the last 
+saved snapshot is used as initial data, but you may set e.g. 
+<b>snapshotini=2</b> to read the second snapshot from the file.
+The evolution will be continued from that point. By default the output
+data file is a single file named as the second string in the <b>filename</b>
+array.
+If <b>snapshotout</b> is set to a positive integer, the number of snapshots
+in each output file will be limited to that, and a new file is started
+with the name extended with the number of the first snapshot in it. 
+E.g. <b>snapshotout=3</b> results in files <b>filename, filename4, filename7,
+...</b> each containing 3 snapshots, the last one may contain less.
+<em>Note that the log and output files will overwrite existing files!</em>
+<p>
+If <b>typefileini</b> has the default 'auto' value, the file format is 
+automatically determined by VAC. This procedure may fail on some machines 
+(e.g. Cray), where the type of the input file should be set explicitly. 
+If <b>typefileout</b> has the default 'auto' value, the output data file will 
+have the same type as the input file. 
+The logfile is usually saved as an ASCII file, so here the 
+<b>default</b> type refers to the default content, which gives timestep, time,
+and volume averages for each conservative variable, and the normalized
+change relative to the previous time step <b>residual</b> if either
+<b>residmin</b> or <b>residmax</b> is set in the <b>&amp;stoplist</b>.
+For these three files the <b>special</b> type results in subroutine calls to 
+<b>readfileini_special</b>, <b>savefileout_special</b>, and 
+<b>savefilelog_special</b>, respectively. 
+These subroutines are defined in the <A HREF=vacusr.html#Specialio>
+VACUSR module</A> giving an opportunity for user-defined content and format.
+If the library subroutines for REAL*4 data are compiled in, the 'special'
+value can be used to read or write single precision data files.
+See Man/<A HREF=convert.html>convert</A> for details.
+<p>
+If <b>fullgridini</b> is set, the coordinates for the ghost cells are taken 
+from the input data, and also the values of the variables within <b>fixed</b> 
+boundary regions, instead of using extrapolation. <b>fullgridout</b> results 
+in output files containing the ghost cells. The <b>dixB...</b> parameters 
+determine the width of the boundary layers surrounding the grid, their default
+values are 2, and currently all the methods assume that the default is used.
+
+<H3><A NAME="Savelist"><li>Savelist</A></h3>
+
+<pre>
+ &amp;savelist
+	ditsave(FILEINDEX)=INTEGER
+	dtsave(FILEINDEX)=DOUBLE
+	itsave(SAVEINDEX,FILEINDEX)=INTEGER
+	tsave(SAVEINDEX,FILEINDEX)=DOUBLE
+ &amp;end
+</pre>
+You can specify the frequency or the actual times of saving results into the 
+log and output files, which are identified by their FILEINDEX 1 and 2, 
+respectively. The times can be given in timesteps or physical time.
+Typical examples: <b>ditsave=1,10</b> saves results into the log file 
+at every timestep, and into the output file every 10-th step. 
+<b>dtsave=0.1,12.5</b> saves into the log file at times 0.1,0.2,...  
+and into the output file at time 12.5,25,37.5,... , 
+assuming that the input file contained t=0. 
+<b>ditsave(1)=10 tsave(1,2)=5.2 tsave(2,2)=7.</b>
+will save info into the log file every 10-th timestep and 
+snapshots into the output file at t=5.2 and 7. 
+Actually, the first timestep when physical time is 
+greater than 5.2 (or 7.0) is saved. Mixing itsave and tsave is possible,
+mixing dtsave (or ditsave) with tsave (or itsave) for the same file should be
+done with care, since dtsave (and ditsave) will be offset by any intervening 
+tsave (and itsave). However, one may want to save snapshots more frequently
+at the beginning of the simulation. E.g. <b>tsave(1,2)=0.1 tsave(2,2)=0.25
+tsave(3,2)=0.5 dtsave(2)=0.5</b> could be used to save snapshots at times
+0.1, 0.25, 0.5, 1, 1.5, ... etc.
+<p>
+If no save condition is given for a file you get a warning,
+but <em>the final output is always saved</em> after the stop condition has been
+fulfilled. If <b>itsave(1,2)=0</b> is set, the initial state is saved before 
+advancing. 
+This may be useful for checking boundary conditions with <b>fullgridout=T</b> 
+set, to see the pure effect of the <b>subroutine process</b> with 
+<b>nproc(4)=1</b> set, or to have the initial condition and the results in 
+the same file, e.g. for animation.
+
+<H3><A NAME="Stoplist"><li>Stoplist</A></h3>
+
+<pre>
+ &amp;stoplist
+	itmax	  =INTEGER
+	tmax	  =DOUBLE
+	tmaxexact =F | T
+	cputimemax=DOUBLE
+	dtmin	  =DOUBLE
+	residmin  =DOUBLE
+	residmax  =DOUBLE
+	it	  =INTEGER
+	t	  =DOUBLE
+ &amp;end
+</pre>
+You may use an upper limit <b>itmax</b> for the number of timesteps and/or 
+the physical time, <b>tmax</b>. If <b>tmaxexact=T</b> is set, the last 
+time step will be reduced so that the final time 't' is exactly 'tmax'.
+In addition the execution time can be limited by <b>cputimemax</b> given
+in seconds. This is useful for batch jobs limited in execution time,
+because this way VAC can save the final step before it would get killed.
+Note that you should allow for the time of completing and saving the final
+time step, so 'cputimemax' should be set to a somewhat smaller value than the 
+time limit for the batch job.
+<p>
+Numerical or physical instabilities may produce huge changes or very small
+time steps depending on the way <b>dt</b> is determined. These breakdowns
+can be controlled by either setting a lower limit <b>dtmin</b> for the 
+physical time step, which is useful when <b>dt</b> is determined from the 
+<b>courantpar</b> parameter, and/or by setting an upper limit <b>residmax</b> 
+on the total relative change relative to the previous time step. 
+If VAC stops due to <b>dt &lt; dtmin</b> or <b>resid &gt; residmax</b>,
+a warning message is printed.
+The exact definition of the <b>resid</b> variable is
+<pre>
+                                                      2
+     2    1          Sum_ix [ w(ix,iw) - wold(ix,iw) ]
+resid = ---- Sum_iw -----------------------------------
+         nw                                 2
+                            Sum_ix  w(ix,iw)
+</pre>
+If the denominator happens to be zero for some iw, it is replaced by one.
+<p>
+The <b>residmin</b> parameter should be set for <em>steady state</em>
+calculations. The stopping condition is <b>resid &lt; residmin</b>.
+Note that <b>resid</b> is a dimensionless measure of the temporal evolution, 
+but it is proportional to the time step <b>dt</b>, so a very small time step
+(due to some reason) may result in very small residual. 
+<p>
+You have to specify at least one of <b>tmax, itmax</b>, and <b>residmin</b>. 
+VAC stops execution when any of the limits are exceeded. 
+The initial <b>t</b> and <b>it</b> values read from the inifile may be 
+overwritten here, for example when the result of another calculation is used
+as the initial condition, but usually they should be left unchanged.
+
+<H3><A NAME="Methodlist"><li>Methodlist</A></h3>
+
+<pre>
+&amp;methodlist
+
+<A HREF=#varnames>varnames</A>=       'STRING'
+wnames=		'STRING'
+fileheadout=	'STRING'
+eqpar=          DOUBLE, DOUBLE, DOUBLE ...
+
+<A HREF=#typeadvance>typeadvance</A>='twostep' | 'onestep' | 'adams2' | 
+            'threestep' | 'fourstep' | 'sterck' | 'jameson'
+
+typefull='tvdlf','tvdmu','tvd','tvd1','tvdmc','mc','fct','cd','cd4',
+         'tvdlf1',tvdmu1','source','nul',...
+typepred='default','hancock','fct','cd','nul',...
+
+typeimpl='tvdlf1','tvdmu1','cd','source','nul' ...
+implmrpc= F | T
+
+typefilter='nul','tvd1','tvdmu','tvdlf','tvdmu1','tvdlf1' ...
+fourthorder= F | T
+
+<A HREF=#typelimiter>typelimiter</A>='minmod','woodward','superbee','roe','superroe',
+            'zalesakC5','zalesakD9','zalesakE10'...
+
+typelimited='original' | 'previous' | 'predictor'
+
+useprimitive=   F | T
+
+muscleta=	DOUBLE
+musclomega=	DOUBLE
+
+artcomp=	F, T, ...
+
+<A HREF=#acmcoef>acmcoef</A>=	DOUBLE, DOUBLE, DOUBLE, ....
+acmexpo=	DOUBLE
+acmwidth=	INTEGER
+acmnolim=	F | T
+
+<A HREF=#typeentropy>typeentropy</A>=	'nul','powell','harten','ratio','yee' ...
+entropycoef=	DOUBLE, DOUBLE, DOUBLE, ....
+
+<A HREF=#typetvd>typetvd</A>=	'roe' | 'yee' | 'harten' | 'sweby' | 'symmetric'
+typefct=	'etbfct' | 'ydfct'
+
+typepoisson=	'default' | 'cg' | 'bicgstab' | 'minres'
+
+<A HREF=#typeaxial>typeaxial</A>=	'slab' | 'cylinder' | 'sphere' | 'nozzle'
+
+angmomfix=	F | T
+
+<A HREF=#sourcesplit>sourcesplit</A>=	F | T
+sourceunsplit=  T | F
+dimsplit=	T | F
+
+typesourcesplit='sfs' | 'sf' | 'ssfss' | 'ssf'
+typedimsplit=   'xyyx'| 'xy'
+
+<A HREF=#divbfix>divbfix</A>=	T | F
+divbwave=	T | F
+
+divbconstrain=	F | T
+typeconstrain=  'EfieldCD' | 'fieldCD' | 'fluxCD' | 
+                'EfieldCT' | 'fieldCT' | 'fluxCT' | 'trfluxCT' |
+                'EfieldWCD' | 'EfieldCD1' | 'EfieldWCD1' |'fieldCD1' | 'nul'
+
+compactres=     F | T
+
+<A HREF=#nproc>nproc</A>=		INTEGER, INTEGER, INTEGER, INTEGER
+procpar=	DOUBLE,	DOUBLE,	DOUBLE
+
+<A HREF=#smallfix>smallfix</A>=	F | T
+smallrho=	DOUBLE
+smallrhocoeff=	DOUBLE
+vacuumrho=	DOUBLE
+smallp=		DOUBLE
+smallpcoeff=	DOUBLE
+
+&amp;end
+</pre>
+<ol><h4><li><A NAME=varnames>varnames</A>, wnames, fileheadout, eqpar</h4>
+
+<b>varnames</b> is a string of coordinate, variable, and equation parameter 
+names used in the input and output data file headers. Usually, the output 
+file should simply use the same string as read from the input file. 
+Exceptionally, one may need to use different names in the input and 
+output files, e.g. for different number of special user defined equation 
+parameters, extra or missing vector components, or one may read the HD part of 
+MHD input, etc. In these cases <b>varnames</b> has to be given.
+<p>
+<b>wnames</b> is a string of variable names used in the log file header, e.g.
+'rho m1 m2 e b1 b2' for MHD with 2 vector components, and it is also useful
+as a reference for other settings. The 'residual' column is automatically 
+added when the <b>residual</b> is written in the logfile.
+<p>
+<b>fileheadout</b> is the header line in the output file, its default value is
+the line read from the initial file, but it may be overwritten to contain 
+additional information on the parameters defined in this file for the 
+simulation.
+<p>
+The <b>eqpar</b> equation parameters are read from the inifile too, but they 
+can be modified. There are <b>neqpar</b> parameters depending on the physics 
+and defined in <b>src/vacpar.t</b>, and another <b>nspecialpar</b> parameters 
+depending on the problem, defined in <b>src/vacusrpar.t</b>, in this order. 
+The outfile will contain the modified equation parameters which are used 
+by VAC.
+
+<h4><li><A NAME=typeadvance>typeadvance</A>, typefull, typepred, typeimpl, 
+      implmrpc, typefilter, fourthorder</h4>
+
+The <b>typeadvance</b> variable determines the time integration procedure.
+The default procedure is a second order predictor-corrector type 'twostep'
+scheme for the TVDLF, TVD-MUSCL, and FCT schemes, and a simple 'onestep'
+algorithm for the temporally second order TVD, TVD-MacCormack, and MacCormack 
+methods. The temporally first order but spatially second order TVD1 algorithm
+is best suited for steady state and/or implicit calculations as
+a 'onestep' scheme. The TVDLF, TVD-MUSCL, and FCT schemes can also be forced
+to be first order, and linear in the time step, which is good for getting 
+a steady state, by  setting <b>typeadvance='onestep'</b>. The 'adams2'
+time integration scheme uses the previous time step to achieve second order
+accuracy, therefore it is only second order after the second time step.
+Moreover it requires a smaller time step for stability (by about a factor of 2)
+than a twostep Runge-Kutta or predictor corrector scheme, so it is not more 
+efficient computationally. It is only available if the implicit module is on.
+The 'adams2' scheme might be useful in combination with MR-PC.
+<p>
+The other time integration procedures are higher order Runge-Kutta type 
+methods. They are probably more stable, but also more expensive than the
+'onestep' and the predictor-corrector type 'twostep' schemes. 
+They can be most useful in conjunction with higher order spatial
+discretizations like the fourth order central difference scheme <b>cd4</b>.
+The high order Runge-Kutta schemes only work if VAC is configured with
+<b>setvac -on=rk</b>.
+See also Man/<A HREF="discretization.html#Methods">discretization</A>.
+<p>
+The array <b>typefull</b> defines the <A HREF=methods.html>methods</A> used 
+for the time integration for each variable separately. The same method must 
+be used for all variables, with the possible exception of setting the 
+<b>nul</b> method for variables, which are not to be advanced in time. 
+For example in 1D MHD, the x-component of the magnetic field does not change 
+in time. Setting <b>typefull</b> to <b>'source','source',...</b> means that 
+only the source terms are added by VAC. This can be useful for testing 
+source terms or to save computations when fluxes are known to be zero.
+<p>
+The <b>typepred</b> array is only used when <b>typeadvance='twostep'</b>.
+It has a default value depending on the full step, namely <b>tvdlf</b> and 
+<b>tvdmu</b> require <b>hancock</b> predictor, <b>fct</b> uses itself as a 
+predictor step, and all the other methods need no predictor, i.e. <b>nul</b>. 
+Thus <b>typepred</b> need not be defined in most cases, 
+however <b>typefull</b> should always be defined. 
+<p>
+The <b>typeimpl</b> array determines which part of the equation should be
+treated implicitly. If typeimpl='nul' for a variable (while typefull isn't),
+it is treated explicitly. When only the sources are to be integrated 
+implicitly, <b>typeimpl='source',..</b> should be set for the variables
+to which the source terms are added. Otherwise, typeimpl determines
+what method should be used to calculate the Jacobian dR_impl/dU_impl.
+When the Jacobian matrix elements are calculated (usually whenever
+<b>implmrpc=F</b>), methods with a compact stencil, i.e. TVDLF1, TVDMU1, or 
+possibly centered differences, are allowed only.
+However, the MR-PC integration scheme, <b>implmrpc=T</b>, is usually
+combined with a matrix-free approach, thus it allows any method 
+listed for <b>typefull</b> to be used in <b>typeimpl</b> as well.
+The implicit and MR-PC methods allow bigger time steps than the
+explicit time integration scheme, but the computational cost per time step
+is also larger. Based on the number of dimensions, on the values of 
+<b>residmin</b> (positive for steady state calculation), 
+<b>typeimpl</b>, and <b>implmrpc</b>, VAC tries to find the optimal
+settings for the parameters governing the (semi)implicit/MR-PC time 
+integration. These settings can be changed in the 
+<A HREF=#Paramlist>paramlist</A> as explained there.
+Implicit and MR-PC time integrations only work if the VACIMPL module is 
+switched on.
+<p>
+The results of a full explicit step can be <em>filtered</em> by
+the dissipative flux of the TVD/TVD-MUSCL/TVDLF schemes
+based on Helen Yee's ideas by setting e.g. <b>typefilter='tvd1',...</b>.
+Note that only the dissipative part of the schemes are applied
+and the limiters are based on the result of the <em>base scheme</em>,
+which is typically <b>typefull='cd4'...</b> and <b>typeadvance='fourstep'</b>
+for fourth order accuracy. You should not use dimensional splitting if 
+fourth order accuracy is required (set <b>dimsplit=F</b>). 
+In (isothermal) MHD the divergence of the magnetic field will be conserved
+if the base scheme is a simple center differencing and the dissipative
+filter flux is not applied on the magnetic field variables. 
+To achieve this, set e.g. <b>typefilter=5*'tvdmu',3*'nul'</b> in 3D MHD. 
+<p>
+Another way to maintain small divergence B is to use the projection scheme.
+To force the fourth order expression of div B to be limited, set 
+<b>fourthorder=T</b>. Besides the projection scheme, the setting
+'fourthorder=T' has other effects: Powell's source terms
+are calculated with the fourth order div B, and heat conduction sources
+will also use a fourth order expression.
+<p>
+The dissipative filter flux is only second order accurate in space, but its 
+magnitude can be reduced significantly by an ACM switch. 
+The parameters of this switch are described <A HREF=#acmcoef>below</A>.
+<p>
+<b>Fourth order methods are only implemented for uniform Cartesian grid
+with slab symmetry!</b>
+
+<h4><li><A NAME=typelimiter>typelimiter</A>, typelimited, useprimitive,
+   muscleta, musclomega, and artcomp</h4>
+
+For the TVDLF and TVD-MUSCL methods different limiter functions can be 
+defined for each conservative variable, and for the TVD and TVD-MacCormack 
+methods, for each characteristic variable. 
+See the <b>src/vacpar.t</b> file for the order of the characteristic variables.
+For <b>typetvd='symmetric'</b> the limiters are not really the same as for 
+other TVD variants, but their diffusiveness has the same order. 
+The default limiter is the most diffusive 'minmod' limiter, but in our
+experience it is usually best to use <b>typelimiter='woodward',...</b>.
+<p>
+For dimensionally split FCT, the limiter is always the original SHASTA limiter,
+which is referred to as a minmod limiter, though it is not exactly the same.
+For multidimensional FCT, ie. <b>typefull='fct'</b> with <b>dimsplit=F</b>, 
+there are many options for <b>typelimiter</b>. The <b>minmod</b> limiter 
+gives the default behaviour, otherwise the name may contain one of the 
+letters 'C','D' and 'E', and one of the numbers '5', '9' and '10'. 
+The default is 'E10' presently.
+'C' refers to Zalesak's cosmetic corrections, 'D' is DeVore's intermediate
+correction, 'E' is the extra safe correction also due to Zalesak.
+'5', '9' and '10' refer to 5, 9 and 10 point limiters (counted in 2D). 
+The 10 point limiter includes 5 old and 5 diffused values of <b>w</b>.
+<p>
+The <b>typelimited</b> variable tells the TVD type methods what should be used
+as a basis for the limiting. By default, the <b>original</b> value is used in 
+1D and for dimensional splitting, while for dimensionally unsplit 
+multidimensional case (dimsplit=F), TVDLF and TVD-MUSCL uses the 
+<b>previous</b> value from <b>wold</b> for limiting. Setting 
+<b>typelimited='predictor'</b> means that the result of the predictor
+step (e.g. Hancock) is used as a basis of limiting. This choice
+makes the method non-TVD even for the scalar advection equation, 
+but according to H. Yee it may be useful for strong source terms.
+<p>
+The <b>useprimitive</b> variable decides whether TVDLF and TVDMUSCL schemes
+should limit the slopes of the <em>primitive</em> or <em>conservative</em>
+variables. The default behaviour is limiting the conservative variables,
+which follows strictly the total variation diminishing principles, and it
+is slightly faster than limiting the primitive variables, since the latter
+requires conversions. However, numerical experience shows that setting 
+<b>useprimitive=T</b> can often prevent the erroneous creation of negative 
+temperature or density. For the onestep TVD scheme the 'useprimitive'
+parameter determines how the pressure jump is calculated in the 
+approximate Riemann solver. For the default false value the jump is calculated
+from the jumps in the conservative variables following strictly the TVD
+algorithm, while for the true value the jump is approximated by the pressure 
+difference, which is simpler and slightly faster. This subtle change does not
+seem to influence the results obtained by the TVD scheme significantly.
+<p>
+The <b>muscleta</b> and <b>musclomega</b> parameters are effective for the 
+TVD-MUSCL, <b>typefull='tvdmu'...</b>, scheme only with <b>musclomega&gt;1</b>.
+Then the <b>weighted minmod limiter</b> is used irrespective of typelimiter. 
+Otherwise these parameters have no effect. Setting <b>muscleta=1/3</b> and 
+<b>musclomega=(3-muscleta)/(1-muscleta)=4</b> should produce a spatially 3rd 
+order scheme, however this is not useful at the moment. 
+See Man/<A HREF="bugs.html">bugs</A> for an explanation. 
+The default values are <b>0</b> for both parameters, which gives a second 
+order TVD-MUSCL scheme and the limiters are set by <b>typelimiter</b>.
+<p>
+Harten's artificial compression was implemented by M.Nauta for VAC.
+It can only be used in combination with the non-MUSCL TVD schemes 
+(typefull='tvd', 'tvdmc', or 'tvd1'). If <b>artcomp=T,..</b> is set
+for any variable, automatically <b>typetvd='harten'</b> is selected.
+Harten's original TVD scheme corresponds to typefull='tvd',.., 
+typelimited='minmod'..., and artcomp=T,.. for all variables. In practice, 
+Harten's TVD method is much more complicated than Roe's TVD scheme 
+(typetvd='roe'), which together with the Woodward limiter 
+(typelimiter='woodward',...) seems to perform very similarly
+in terms of resolution and robustness, while it is somewhat faster.
+The default value for <b>artcomp</b> is false for all variables.
+
+<h4><li><A NAME=acmcoef>acmcoef</A>, acmexpo, acmwidth, acmnolim</h4>
+
+The dissipative TVD/TVD-MUSCL/TVDLF flux 
+can be reduced by the <b>acmcoef</b> coefficients for each characteristic
+wave (or each variable in case of TVDLF and TVDLF1) separately. 
+Typically use 0.7 (e.g. 'acmcoef=6*0.7' in 2D MHD).
+The dissipative TVD flux is further reduced in smooth regions by a term
+approximating the second derivative of the characteristic variable
+(this term is taken from Harten's artificial compression method (ACM)).
+The exponent of this term is <b>acmexpo</b>, which should typically be 1 
+or maybe 2. Both 'acmcoef' and 'acmexpo' require explicit setting
+otherwise they have a negative value and they are not applied.
+<p>
+The width of the stencil over which the ACM switch operates is determined
+by <b>acmwidth</b>. By default only one cell on each side of the interface
+is taken (acmwidth=1). Setting 'acmwidth' to 2 or 3 will increase the number
+of cells on both sides accordingly resulting in more diffusion in the vicinity
+of sharp gradients.
+<p>
+In case the ACM switch reduces the TVDLF flux,
+i.e. the 'typefilter' (or the 'typefull') array is set to 'tvdlf', then
+set <b>acmnolim=T</b> to base the ACM switch on  the second order 
+derivatives of the original conservative variables rather than on 
+the 2nd order interpolation. The default value is 'acmnolim=F'.
+This switch has no effect on any other shemes. 
+
+<h4><li><A NAME=typeentropy>typeentropy</A>, entropycoef</h4>
+
+For Riemann solver based methods, such as TVD, TVD-MacCormack, and TVD-MUSCL 
+(but not TVDLF), an entropyfix may be applied to avoid unphysical solutions. 
+The fix is applied to the characteristic variables, their order
+is defined in <b>src/vacpar.t</b>. The default entropy fix is <b>nul</b>, 
+i.e. no entropy fix. When an expansion shock is formed, the entropy fix
+should be applied to the non-degenerate characteristic waves, i.e.
+waves that can form shocks (sound waves, fast and slow magnetosonic waves).
+The most powerful entropy fix is called 'powell'. In practice, one may apply 
+an entropy fix to all characteristic waves, usually the slight extra
+diffusion makes the schemes more robust. For Yee's entropyfix the
+minimum characteristic speed (normalized by dt/dx) can be set for
+each characteristic wave using the <b>entropycoef</b> array. 
+The default values are defined in the vacphys.t.EQUATION files.
+Setting a coefficient to a negative value means that no entropy fix
+is applied on that wave (same as setting 'nul' for typeentropy).
+The other types of entropy fixes calculate the minimum speed using local 
+information.
+
+<h4><li><A NAME=typetvd>typetvd</A>, typefct, and typepoisson</h4>
+
+Both <b>tvd</b> and <b>fct</b> have a few variants, these can be set in 
+the constants (not arrays) <b>typetvd</b> and <b>typefct</b>, with defaults 
+'roe' and 'etbfct', respectively. The default <b>typetvd='roe'</b> is the 
+fastest of the four upwind types. For dimensionally split calculations 
+'ydfct' may be preferred to 'etbfct', since it can use a larger Courant number.
+<p>
+The iterative solver, used e.g. by the projection scheme, can be selected
+by setting <b>typepoisson</b>. The 'default' value results in calling the
+Conjugate Gradient ('cg') method for Cartesian slab symmetric grids, 
+otherwise the stabilized Bi-Conjugate Gradient ('bicgstab') iterative
+scheme is used. For non-uniform Cartesian grids the CG method may not work,
+then set <b>typepoisson='bicgstab'</b>. It is also possible that the CG scheme
+works, and is more efficient than BiCGSTAB, for a non-Cartesian and/or 
+non slab symmetric grid, then set the value 'cg'. In some cases the
+'minres' algorithm might be useful.
+
+<h4><li><A NAME=typeaxial>typeaxial</A> and angmomfix</h4>
+
+<b>typeaxial</b> defines the symmetry of the grid. In 1D all types are 
+meaningful, in 2D 'slab' and 'cylinder', in 3D only the 'slab' symmetry makes 
+sense, however a polar grid can be used with the <b>-phi=2</b> configuration
+in both 2D and 3D with 'cylinder' set. The default is <b>slab</b> symmetry. 
+Please read <b>Man/<A HREF="axial.html">axial</A></b> before you try to
+do simulations in non-slab symmetry.
+<p>
+When <b>angmomfix</b> is true, the momentum equation in the <b>phi</b>
+direction is discretized such that the angular momentum <b>r*m_phi</b>
+is conserved. The fix works when <b>phi</b> is an ignored direction
+(cylindrical symmetry) or when a polar grid is used.
+
+<h4><li><A NAME=sourcesplit>sourcesplit</A>, sourceunsplit, 
+        dimsplit, typesourcesplit, typedimsplit</h4>
+
+The sources, if any, can be added in a split or unsplit way according to the 
+variables <b>sourcesplit</b> and <b>sourceunsplit</b>. If both of these 
+variables are false, no sources are added at all. Beside this,
+no source terms are added to variables with <b>typefull='nul'</b> set. 
+If <b>sourcesplit=T</b>, <b>sourceunsplit=F</b> is set automatically, 
+and the split sources are added according to <b>typesourcesplit</b>.
+The meaning of the different options for <b>typesourcesplit</b>
+is described in 
+Man/<A HREF="discretization.html#Splitting">discretization</A>.
+<p>
+In multidimensional calculations dimensional splitting <b>dimsplit=T</b>
+is used with an alternating order of the sweeps <b>typedimsplit='xyyx'</b>
+by default. The limitations on using dimensionally unsplit methods is 
+described in Man/<A HREF="methods.html">methods</A>.
+
+<h4><li><A NAME=divbfix>divbfix</A>, divbwave, divbconstrain, compactres</h4>
+
+<b>divbfix</b> is a switch for Powell's source terms for multidimensional 
+MHD simulations. It is most useful for the Riemann type solvers, ie. 
+TVD-type methods except TVDLF, but seems to be helpful for FCT and TVDLF 
+as well. The default is thus <b>T</b>, true. Set it to false if the 
+<A HREF=methods.html#Constrain>Constrained Transport and 
+Central Difference type schemes</A> are used by
+setting <b>divbconstrain=T</b>. The default method is the electric field 
+averaged central difference (field-CD) scheme that corresponds to 
+<b>typeconstrain='EfieldCD'</b>.
+The CT and CD schemes listed in the 3rd line above are experimental. 
+Most of the CT and CD schemes are implemented for 2D Cartesian and 
+generalized grids only, however,
+the default field-CD scheme should work in 3D as well. 
+The most general way of removing the divergence of the magnetic field is
+by the  <A HREF=methods.html#Projection>projection scheme</A>.
+For implicit time integration Powell's terms may be useful even if the
+projection scheme is used after each implicit time step.
+The <b>divbwave</b> switch is effective for the Riemann type solvers for 
+multi-D MHD only. The default true value corresponds to Powell's
+<i>divergence wave</i> which stabilizes the Riemann solver. 
+Although in principle <b>divbfix=F</b> should imply <b>divbwave=F</b>, 
+in practice no adverse effect of leaving <b>divbwave=T</b> all the time
+was observed. Naturally, if Powell's source terms are to be added, 
+either <b>sourceunsplit</b> or <b>sourcesplit</b> has to be true.
+<p>
+The compact non-conservative formulation of resistive source terms
+may only be needed if the resistive source terms are treated implicitly.
+The compact formulation is used to calculate the Jacobian matrix, and
+for consistency, it may be necessary to set <b>compactres=T</b>
+for the explicit right hand side as well. For explicit calculations the
+default <b>compactres=F</b> setting is always preferred.
+
+<h4><li><A NAME=nproc>nproc</A> and procpar</h4>
+
+Certain problems may require to process the variables before each time step. 
+Currently the only built in processing is the projection scheme for 
+multidimensional MHD simulations. (The user can also define an arbitrary 
+preprocessing procedure in the <b>specialbound</b> subroutine using 
+<b>extraB=T</b> in the boundlist.) The projection scheme can 
+eliminate the numerically produced divergence B. The number of calls to
+<b>subroutine process</b> is controlled by the <b>nproc(1:nfile+2)</b> array. 
+The 1st element refers to processing before the full time step, 
+the 2nd to processing before subsequent substeps of predictor-corrector or
+Runge-Kutta type schemes, while the 3rd and 4th elements refer to processing 
+done before saving the results into the logfile and outfile, respectively. 
+<p>
+When nproc=0,0,0,0 (the default), no processing is done. For the first two 
+elements <b>nproc&lt;0</b> means processing before every sweep in dimensionally
+split calculations, while <b>nproc&gt;0</b> results in a call for the 
+subroutine <b>process</b> in every nproc-th time step before the first sweep. 
+For the files <b>nproc</b> having any non zero value results in a call to 
+<b>process</b> before saving into that file. Parameters for the processings 
+are in array <b>procpar</b>, their meaning is defined in the 
+<b>src/vacpar.t</b> file. The default values are -1, which can be overwritten 
+in the first call of the <b>process</b> subroutine.
+<p>
+Although the concept of processing is general, in VAC the only application
+is the <A HREF=methods.html#Projection>projection scheme</A>, 
+which can remove numerically generated divergence B in multidimensional
+MHD simulations. For the projection scheme, the typical settings are 
+<b>nproc=1,0,0,0</b> or <b>nproc=1,0,0,1</b>, which implies a projection
+before every time step. The latter setting also removes div B before the data
+is saved into the output file. The accuracy of the projection is 
+determined by the <b>procpar</b> array as described in 
+Man/<A HREF=methods.html#Projection>methods</A> in detail.
+
+<h4><li><A NAME=smallfix>smallfix</A>, smallrho, smallrhocoeff, 
+    vacuumrho, smallp, smallpcoeff</h4>
+
+Negative pressure or density caused by the numerical approximations
+can make the code crash.
+The <b>getpthermal</b> subroutines in <b>src/vacphys.t.hd</b> and
+<b>src/vacphys.t.mhd</b> replace negative thermal pressures
+derived from the conserved variables by the value of <b>smallp</b>. 
+By default, <b>smallp</b> 
+is calculated as the minimum pressure of the initial state multiplied by 
+<b>smallpcoeff</b>, but it can be defined explicitly as well. 
+<p>
+In some cases, a more drastic measure is required to maintain
+positivity. Setting <b>smallfix=T</b> results in a call to the
+<b>keeppositive</b> subroutine in <b>src/vacphys.t</b>, which replaces
+densities less than <b>smallrho</b> by its value, and increase the
+total energy so that the pressure is everywhere above <b>smallp</b>.
+This means that mass and thermal energy are added, but in some cases,
+e.g. for steady state calculations, this may be acceptable.
+<p>
+Representing vacuum is difficult due to possible undershoots by the code.
+Setting <b>vacuumrho</b> to a small positive value in combination with
+<b>smallfix=T</b> makes VAC replace density by <b>vacuumrho</b>, 
+velocity by zero, and thermal pressure (for the HD and MHD equations only) 
+by <b>smallp</b> wherever density is below <b>smallrho</b>. The magnetic
+field, if present, is not changed. Note that the cutoff density is determined
+by <b>smallrho</b>, which should be bigger than <b>vacuumrho</b>, but
+much smaller than typical non-vacuum densities. 
+<em>This vacuum representation was suggested by D. Ryu</em>.
+</ol>
+<p>
+You may find related information in Man/<A HREF="methods.html">methods</A>.
+
+<H3><A NAME="Boundlist"><li>Boundlist</A></h3>
+
+<pre>
+ &amp;boundlist
+	typeB=  'cont','cont1','grad1','fixed','fixed1',
+	        'symm','symm0','asymm','periodic','special',...
+
+        extraB= F | T
+	typeBscalar= 'nul','grad0','cont','cont1','asymm','symm','periodic',...
+ &amp;end
+</pre>
+The boundary types are defined for each variable at each edge of the grid, i.e.
+for 2D adiabatic hydrodynamics they are in the order:
+rho,m1,m2 at the left boundary;  rho,m1,m2 at the right;
+rho,m1,m2 at the bottom, finally rho,m1,m2 at the top boundary. 
+In general, the order is xmin, xmax, ymin, ymax, zmin, and zmax.
+<p>
+The default boundary type is <b>cont</b> for all variables and edges, it means 
+that the gradient is kept zero by copying the variable values from the 
+edge of the mesh into the ghost cells. <b>cont1</b> uses linear extrapolation,
+but this usually leads to numerical instability. <b>grad1</b> is similar to
+<b>cont1</b> in the sense that it keeps the <i>initial</i> extrapolated 
+gradient relative to the cell at the edge. <b>grad1</b> is stable and preferred
+to <b>cont1</b>. It the initial gradient is 0, <b>grad1</b> and <b>cont</b> are
+identical.
+<p>
+In the first time step <b>fixed</b> and <b>fixed1</b> extrapolate the same 
+way as <b>cont</b> and <b>cont1</b>, but later the values in the ghost cells 
+are frozen in. When <b>fullgridini=T</b> in the <b>&amp;filelist</b>, the 
+<b>fixed, fixed1</b> and <b>grad1</b> boundary types use the initial 
+values in the ghost cells read from the inifile, and there is no need for 
+extrapolation. 
+<p>
+The <b>symm, symm0</b>, and <b>asymm</b> types are mostly used for reflective 
+boundaries, typically the momentum orthogonal to the given boundary should be 
+antisymmetric (<b>asymm</b>), the rest of the variables <b>symm</b>
+or rather <b>symm0</b>. The 'symm0' boundary condition ensures that the flux
+through the boundary is exactly zero simply by cancelling all the fluxes
+explicitly. The simpler <b>symm</b> relies on the numerical scheme to 
+make the flux zero due to the symmetry, which would hold if only
+the physical fluxes were considered. However, there may remain some
+numerical fluxes that vanish only as <b>dx^2</b> with <b>dx --> 0</b>.
+This may happen when (a) not all the variables are symmetric (e.g. the magnetic
+field is 'fixed', and the other variables are symmetric) and a Riemann solver
+is used, or (b) when generalized coordinates are used.
+Symmetric boundaries work the same way in generalized coordinates, since 
+the vector variables are rotated into the local coordinate system,
+i.e. it is always the first momentum which is orthogonal in the 1st and 2nd
+boundary regions. These boundary types can also be used to represent
+a perfectly conducting wall (the orthogonal component of the magnetic field
+should be antisymmetric, the transverse component symmetric) or the
+physical symmetry of the physical problem (then 'symm' should be used and not
+'symm0').
+<p>
+The <b>special</b> type is used for time dependent or more complicated 
+boundary conditions, it results in a call to the <b>specialbound</b> 
+subroutine which has to be provided by the user in the 
+<A HREF=vacusr.html#Specialbound>VACUSR module</A>. For non-FCT methods
+the variables with <b>special</b> boundary type are updated last 
+within a given boundary region, thus the subroutine may use the updated
+values of the other variables. In case of FCT there are calls to the 
+getboundary subroutine with individual variables thus this convenient
+reordering is not possible, and the variables are updated in the order 
+of their <b>iw</b> indices.
+<p>
+Setting the <b>extraB</b> parameter to true results in a 
+<b>call specialbound</b> at the beginning of the <b>getboundary subroutine</b>.
+This happens before any boundary would be updated. For this extra call the
+parameters contain the mesh as the region (ix^L is set to ixM^L),
+while the boundary and variable indices are set to zero (iB=0,iw=0). 
+The purpose of using <b>extraB</b> can be some kind of arbitrary 
+processing of the variables <b>w</b>, e.g. to avoid non-physical values.
+<p>
+The <b>typeBscalar</b> array defines boundary conditions for the 
+Poisson problem, but normally this is done by the subroutine calling
+the Poisson solver. For example, the library routine in 
+<b>src/vacusr.selfgrav.t</b> (which calculates the 
+gravitational potential by the Poisson solver) reads the
+boundary conditions from an <A HREF=#Extra>extra</A> namelist 
+<A HREF=vacusr.html#Gravlist>&amp;gravlist</A>, 
+while the projection scheme determines the boundary conditions 
+of its Poisson problem from the boundary conditions on the magnetic field 
+defined by <b>typeB</b>. 
+The meaning of <b>'cont', 'cont1', 'periodic', 'symm', 'asymm'</b>
+are the same for <b>typeBscalar</b> as for <b>typeB</b>. The value 
+<b>'grad0'</b> means that the <i>gradient</i> of the solution should be 
+exactly zero in both directions using central differences, so the scalar
+function is set to zero in the inner row of ghost cells and it is a copy of 
+the mesh edge in the outer row of ghost cells. The <b>'nul'</b> value
+means that the scalar function is zero in the ghost cells.
+<p>
+When the boundary regions do not coincide with the edges, a full description
+is necessary. The example below, taken from <b>par/reflect22</b>, defines 5 
+boundary regions.
+<pre>
+ &amp;boundlist
+	nB=5
+	typeB =	4*'fixed',  4*'cont',  4*'fixed',  2*'symm',
+						 'asymm','symm',4*'special'
+	ixBmin=	  1,  1,    123,  1,	  1,  1,     8,  1,	  1, 33
+	ixBmax=	  2, 34,    124, 34,	  7,  2,   124,  2,	124, 34
+	idimB =   1,          1,          2,         2,           2
+	upperB=   F,          T,	  F,         F,		  T
+ &amp;end
+</pre>
+<b>ixBmin</b> and <b>ixBmax</b> give the grid coordinates for the region, 
+<b>idimB</b> the orthogonal direction, and <b>upperB</b> is false when the 
+boundary is at the minimal indices, and true when it is at the maximal 
+indices in the <b>idimB</b> direction. 
+The example above breaks the lower boundary  into two parts,
+for ix1=1..7 it is fixed and  for ix1=8..124 it is reflective.
+With the full specification it is possible to define shifted 
+periodic boundaries by simply offsetting the ixBmin and ixBmax coordinates
+for the corresponding periodic boundary regions. If there are more than two
+periodic boundary regions, VAC matches the ones that have the same sizes
+and orthogonal directions. In case of ambiguity, one can always tell VAC
+explicitly which boundary regions are paired by setting
+<pre>
+	ipairB=	INTEGER, INTEGER, ...
+</pre>
+where the first integer defines the index of the region wich is a
+periodic pair of the first boundary region etc. A zero value can be set
+for non-periodic regions.
+<p>
+One may also define 
+boundary regions being partially or fully inside the mesh, e.g. an obstacle.
+
+<H3><A NAME="Paramlist"><li>Paramlist</A></h3>
+
+<pre>
+ &amp;paramlist
+	dtpar=		DOUBLE
+	courantpar=	DOUBLE
+	dtdiffpar=	DOUBLE
+	dtcantgrow=	F
+	slowsteps=	INTEGER
+
+	implmrpcpar=	4 | -1 | 0 | 1 | 2 | 3 | 5 
+
+	impl3level=	T | F
+	implpar=	DOUBLE
+
+	typeimpliter=	'tridiag'   | 'vac_mrpc' | 'vac_cg' | 'vac_bicg'  | 
+			'vac_gmres' | 'vac_bicgl' | 'vac_gcr' | 'vac_gmresr'
+	typeimplinit=	'nul'  | 'explicit' | 'explicit2'
+	typeimplmat=	'prec' | 'with' | 'free'
+
+	implrelax=	DOUBLE
+	impldiffpar=	DOUBLE
+	implerror=	DOUBLE
+	impldwlimit=	DOUBLE
+
+	implrestart=	INTEGER
+	implrestart2=   INTEGER
+	impliter=	INTEGER
+	impliternr=	INTEGER
+
+	implnewton=	F | T
+	implnewmat=     F | T
+	implconserv=	F | T
+	implcentered=	F | T
+	implpred=	F | T
+
+	impljacfast=	F | T
+	implsource=     T | F
+ &amp;end
+</pre>
+Except for the first group, all these parameters are relevant for the
+(semi-)implicit and MR-PC time integration schemes only, which require 
+the VACIMPL module to be switched on (setvac -on=impl).
+Many of the parameters get a default value based on the number of spatial
+dimensions and the value of the above <b>residmin, typeimpl, implmrpc</b>, and
+<b>sourceunsplit</b> parameters. These settings can be overwritten here, but in
+most cases it is not necessary. An important exception is the optional
+<A HREF="#Impljacfast"><b>impljacfast=T</b></A> setting, which can improve 
+the speed of the Jacobian matrix calculation significantly, but it can only 
+be used if certain conditions are met.
+Limiting the number of iterations with 
+<A HREF="#Impliter"><b>impliter</b></A> can also improve performance.
+
+<ol><h4><li>dtpar, courantpar, dtdiffpar, dtcantgrow, slowsteps, and
+implmrpcpar</h4>
+
+If <b>dtpar</b> is positive, it sets the timestep <b>dt</b>, 
+otherwise <b>courantpar</b> is used to limit the time step based on the 
+Courant condition. The default is <b>dtpar=-1.</b> and <b>courantpar=0.8</b>. 
+TVD-type methods calculate the Courant condition for the next time step. 
+They also check if the condition <b>cmax*dt/dx&lt;1</b> is met <em>during</em>
+the time step, and if not, a warning message is produced.
+The other methods, FCT and MacCormack, calculate the Courant condition 
+before the time step in the <b>getdtcourant</b> subroutine of 
+<b>src/vac.t</b>, and for generalized coordinates the <b>cmax</b> and 
+<b>dx</b> directions are misaligned.
+<p>
+For resistive MHD, the time step is also limited by the diffusion time:<br>
+<b>dt &lt; dtdiffpar*dx^2/eta</b>. The default is <b>dtdiffpar=0.5</b>.
+Further restrictions on the time step can be put in the <b>getdt_special</b>
+subroutine in the <A HREF=vacusr.html#Specialsource>VACUSR module</A>.
+The library routines for thermal conduction, viscosity, and diffusion,
+all use the coefficient <b>dtdiffpar</b> in their stability conditions.
+<p>
+In steady state calculations, a dynamically varying time step control
+may lead to unwanted oscillations. Beside using a fixed time step,
+which would require knowledge of the stability criterion in advance,
+there is an option of not letting the time step grow by setting
+<b>dtcantgrow=T</b>. This should converge to the largest allowable
+fixed time step. The default value for <b>dtcantgrow</b> is, of course, false,
+which is appropriate for time dependent calculations.
+<p>
+When the MR-PC time integration is used, i.e. <b>implmrpc=T</b> is set
+in the <A HREF=#Methodlist>methodlist</A>, the time step is further limited
+by the stability restriction calculated by the scheme. The integer parameter
+<b>implmrpcpar</b> determines how strict the stability condition is.
+The value -1 means no stability checking at all, the bigger the number,
+the stricter the stability control becomes (up to 5). The default setting is 4.
+<p>
+If the <b>slowsteps</b> parameter is set to an integer value &gt; 1, 
+then in the first <b>slowsteps-1</b> time steps <b>dt</b> is further 
+reduced according to the
+<pre>
+                                  2
+dt'= dt * [ 1 - (1-step/slowsteps)  ]
+</pre>
+formula, where <b>step=1..slowsteps-1</b>. 
+This reduction can help to avoid problems resulting from numerically
+unfavourable initial conditions, e.g. very sharp discontinuities.
+<p>
+An exceptional usage is <b>slowsteps=1</b>, which uses the value of
+<b>dtpar</b> for the first timestep, and then it switches to the
+value determined by the CFL condition, the diffusion time scale or MR-PC.
+This can be used to continue a simulation smoothly, since the time step
+adjustment in the first time step is not the same as during the run. Simply use
+the same <b>courantpar</b> and <b>dtdiffpar</b> as before, and set 
+<b>dtpar</b> to the time step value used at the end of the previous run 
+as recorded in the log file, and set <b>slowsteps=1</b>.
+
+<h4><li>impl3level and implpar</h4>
+
+For steady state calculations, which is indicated by <b>residmin&gt;0</b>
+in the <A HREF=#Stoplist>stoplist</A>, the backward Euler method is used,
+which is a fully implicit (<b>implpar=1</b>) two-level scheme 
+(<b>impl3level=F</b>). For time accurate calculations
+with semi-implicit sources, indicated by <b>typeimpl='source'...</b>
+in the <A HREF=#Methodlist>methodlist</A>, the trapezoidal scheme is 
+selected by VAC with <b>implpar=0.5, impl3level=F</b>. Finally, 
+time-accurate (<b>residmin&lt;0</b>) implicit or MR-PC calculations 
+require the second order BDF2 scheme for which <b>impl3level=T</b>,
+and the initial value of <b>implpar</b> (used in the first two-level
+time step only, the default value is 1, i.e. backward Euler) 
+is overwritten by the BDF2 scheme.
+
+<h4><li>typeimpliter, typeimplinit, and typeimplmat</h4>
+
+In one dimension, the linearized implicit scheme can be solved
+directly with the block tridiagonal solver, which corresponds to
+<b>typeimpliter='tridiag'</b>. The Jacobian matrix needs to be calculated
+of course (<b>typeimplmat='with'</b>), but no initial guess is
+required, i.e. <b>typeimplinit</b> has no effect in this case.
+<p>
+For the MR-PC method (<b>implmrpc=T</b> in the 
+<A HREF=#Methodlist>methodlist</A>) the matrix free Jacobian evaluation
+<b>typeimplmat='free'</b> is selected. For steady state calculations
+(<b>residmin&gt;0</b>) there is no predictor step (<b>typeimplinit='nul'</b>),
+while for time accurate calculations a second order explicit predictor
+step (<b>typeimplinit='explicit2'</b>) is selected. The actual choice of the
+second order scheme depends on <b>typeadvance</b>, the usual values
+are <b>twostep</b> and <b>adams2</b>.
+<p>
+The matrix free evaluation is selected for implicitly treated source
+terms (<b>typeimpl='source'..</b>) as well. In this case the trapezoidal
+scheme is solved by an iterative method, the default is the Bi-CGSTAB 
+(<b>typeimpliter='vac_bicg'</b>) method. For symmetric 
+matrices the Conjugate Gradient method ('vac_cg') is preferred.
+Usually the default <b>typeimplinit='explicit'</b>
+initial guess is the best to quickly find the solution. 
+<p>
+In case of multi-dimensional implicit time integration, when not only
+the source terms are implicit, the Jacobian matrix is calculated, and the
+linear problem is preconditioned (<b>typeimplmat='prec'</b>) with the
+MBILU preconditioner. By default, the preconditioned system is solved by the 
+Bi-CGSTAB method (<b>typeimpliter='vac_bicg'</b>) with zero initial guess
+<b>typeimplinit='nul'</b>.
+
+<h4><li>implrelax, impldiffpar, implerror, and impldwlimit</h4>
+
+<b>implrelax</b> is the relaxation parameter for the Gustaffson modification
+of the MBILU preconditioner, in our experience the default -0.5 value is
+always close to the optimal value. The <b>impldiffpar</b> parameter
+defines the round off error for the numerical derivatives, the default
+1D-12 value is appropriate for REAL*8 floating point operations. 
+<p>
+When an iterative scheme is used to solve the linear system, the iteration 
+is stopped when the relative or absolute error drops below <b>implerror</b>. 
+The default value is <b>residmin</b> for steady state calculations, 
+1D-5 for implicitly treated source terms, and 1D-3 for other time 
+accurate problems. The <b>impldwlimit</b> parameter is only used for
+steady state calculations, namely the pseudo-timestep is reduced 
+if necessary so that the change in any normalized variable
+is not more than the value of <b>impldwlimit</b>. This restriction
+may help to avoid overshoots towards unphysical states.
+
+<h4><li><A NAME="Impliter">implrestart</A>, implrestart2, impliter, and impliternr</h4>
+
+For iterative methods, i.e. when <b>typeimpliter</b> is not <b>'tridiag'</b>,
+the maximum number of iterations allowed is <b>impliter</b>. The number
+of outer Newton-Raphson iterations, only applied if <b>implnewton=T</b>,
+is at most <b>impliternr</b>. The GMRES scheme restarts after 
+building up an <b>implrestart</b> dimensional Krylov subspace. 
+The GMRESR scheme does not restart, instead it always remembers the
+last <b>implrestart</b> base vectors. The inner GMRES routine in
+GMRESR and BiCGstab(l) uses a Krylov subspace of <b>implrestart2</b>
+dimensions.
+<p>
+The correct values of these parameters are clearly dependent on the
+iterative scheme used. For the MR-PC scheme (<b>implmrpc=T</b>)
+the default setting by VAC is <b>impliter=1</b> and <b>implrestart=5</b>, 
+which implies one GMRES(5) iteration per time step. 
+<p>
+For implicit multidimensional calculations the default 
+iterative scheme is BiCGSTAB (<b>typeimpliter='vac_bicg'</b>). 
+For steady state calculations, limiting the number of iterations with e.g. 
+<b>impliter=5</b>, can improve the speed of convergence in terms
+of CPU time.
+
+<h4><li>implnewton, implnewmat, implconserv, implcentered, and implpred</h4>
+
+These logical parameters all have a default value false. 
+<b>implnewton=T</b> means that a Newton-Raphson iteration is required.
+The Jacobian matrix is calculated in every NR iteration if <b>implnewmat=T</b>.
+This is usually necessary, but expensive unless a matrix-free method is used.
+In our experience there is no advantage of using a Newton-Raphson iteration.
+<p>
+The iterative scheme returns an approximate solution, which is generally not 
+conservative. An extra substitution into the original equation makes
+the scheme exactly conservative if <b>implconserv=T</b> is set.
+In practice, we did not find this procedure to improve the accuracy, and
+in case of large pseudo time steps, numerical problems may occur due to
+round off errors.
+<p>
+For the matrix free method there are two ways of calculating a directional
+derivative. The default first order method takes a one sided difference,
+while the second order centered method, for <b>implcentered=T</b>, uses
+a two-sided difference. The latter method requires two explicit evaluations,
+while the first one only one. In practice the first order method seems to be
+accurate enough, so it is more efficient. Note that the order here is with
+respect to the very small perturbation parameter, typically h=1D-6, 
+so even a first order difference formula can be very accurate.
+<p>
+One way to achieve second order time accuracy for implicitly treated 
+source terms is to set <b>implpred=T</b> which results in an implicit
+predictor step followed by an explicit corrector step. This method seems
+to work quite well for elliptic type source terms. The default method is,
+however, an explicit two step scheme for fluxes combined with a trapezoidal 
+scheme for the source terms.
+
+<h4><li><A NAME="Impljacfast">impljacfast</A> and implsource</h4>
+
+When the Jacobian matrix elements are calculated (<b>typeimplmat='with' or
+'prec'</b>), the fastest method is the efficient Jacobian calculation,
+which can be requested by <b>impljacfast=T</b>. This is automatically
+selected if the numerical scheme used for the Jacobian calculation
+is one of TVDLF1 or the centered difference schemes (<b>typeimpl='tvdlf1',..
+or 'cd',..</b>) and there are no unsplit source terms (<b>sourceunsplit=F</b>).
+However, one can use the efficient algorithm even in the presence of
+source terms, provided that all the sources are local, i.e. only information
+from the local cell is used. The only exceptions are Powell's source terms,
+which are not local, but the efficient Jacobian algorithm takes that
+into account.
+<p>
+The default value of <b>implsource</b> is set by <b>sourceunsplit</b>,
+since unsplit sources are generally treated implicitly. When 
+<b>impljacfast=T</b> is used and there are no source terms (not even
+Powell's source terms), setting <b>implsource=F</b> will save
+some computation. Another, more important, application is for weak sources,
+which may not have to be treated implicitly. In this case setting
+<b>implsource=F</b> can make it possible to use <b>impljacfast=T</b>
+even when the weak source terms are non-local.
+
+</ol>
+
+<H3><A NAME="Extra"><li>Extra Input</A></h3>
+
+The <b>readparameters</b> subroutine of the VACIO module returns 
+after reading the <b>&amp;paramlist</b> from the parameter file. 
+However, the special subroutines in the VACUSR module may read further input. 
+An example for this can be found in the <b>src/vacusr.selfgrav.t</b> library, 
+which reads the namelist <A HREF=vacusr.html#Gravlist>&amp;gravlist</A>, 
+from the parameter file to determine the parameters for the iterative 
+Poisson solver.
+Another example is described in Man/<A HREF=vacusr.html#Input>vacusr</A>.
+
+</ol>
+<hr>
+<H2><A NAME="Example">Examples</A></h2>
+
+Here are some example parameter files. They demonstrate some typical
+combinations of the parameters. For each example the meaning of the
+parameter settings is first described by words then the actual file is shown.
+We show parameter files for a <A HREF=#MHD1>1D</A> and a <A HREF=#MHD2>2D</A> 
+time accurate MHD simulation, and for an <A HREF=#Steady>explicitly</A>
+and an <A HREF=#Implicit>implicitly</A> solved steady state problem.
+
+<h4><A NAME=MHD1>One</A> dimensional MHD shock tube</h4>
+
+The parameter file for running the 1.5D MHD Brio and Wu shock tube problem.
+The parameters are written back when the code is run, because the 
+<b>teststr</b> is set, the statistics are saved at every 
+<b>t=0.01,0.02,..,0.09,0.1</b> into the <b>data/brio12.log</b> file, and the 
+result at <b>t=0.05,0.1</b> into <b>data/brio12.out</b>. The problem
+is solved by the TVD method, but 'b1' is not advanced, since it does not 
+change in one dimensional MHD. The Woodward limiter is applied to all 
+characteristics.
+The boundary conditions are continuous for all boundaries and all variables.
+The time step is determined by the Courant condition, with the Courant 
+parameter set to 0.8.
+<pre>
+ &amp;testlist
+	teststr='readparameters'
+ &amp;end
+
+ &amp;filelist
+	filenameini='data/brio12.ini',
+	filename=   'data/brio12.log',
+		    'data/brio12.out'
+ &amp;end
+
+ &amp;savelist
+	dtsave=0.01,0.05
+ &amp;end
+
+ &amp;stoplist
+	tmax=0.1
+ &amp;end
+
+ &amp;methodlist
+	wnames=		'rho m1 m2 e b1 b2'
+	typefull=	4*'tvd','nul','tvd'
+	typelimiter=	6*'woodward'
+ &amp;end
+
+ &amp;boundlist
+	typeB=		6*'cont',
+			6*'cont'
+ &amp;end
+
+ &amp;paramlist
+	courantpar=	0.8
+ &amp;end
+</pre>
+
+<h4><A NAME=MHD2>Two</A> dimensional MHD</h4>
+
+This parameter file can be used to solve the Orszag-Tang vortex problem.
+The file types are given explicitly (although this is not necessary),
+the output file will contain the ghost cells too. Information is
+saved into the log file at every time step. Snapshots are saved at 
+t=0, 1, 2, 3, and 3.14, which is the exact final time when
+the simulation stops. The TVD method with the Woodward limiters is used in a 
+dimensionally split fashion. The divergence of B is reduced below 0.01 by the 
+projection scheme in every time step and before the snapshots are saved.
+The periodic boundary conditions are applied on the magnetic field 
+after the projection. A fixed time step is used.
+
+<pre>
+ &amp;testlist /
+
+ &amp;filelist
+	filenameini='data/orszag22.ini',
+	filename=   'data/orszag22tvd.log',
+		    'data/orszag22tvd.out'
+	typefileini='binary'
+	typefileout='binary'
+	fullgridout=T
+ /
+
+ &amp;savelist
+        ditsave(1)=1
+	itsave(1,2)=0
+        dtsave(2)=1.0
+ /
+
+ &amp;stoplist
+	tmax=3.14
+	tmaxexact=T
+ /
+
+ &amp;methodlist
+	wnames=		'rho m1 m2 e b1 b2'
+	typefull=	6*'tvd'
+        typelimiter=    6*'woodward'
+	divbfix=	F
+	divbwave=	F
+	nproc=		1,0,0,1
+	procpar=	0.,0.01,1.
+ /
+
+ &amp;boundlist
+	typeB=6*'periodic'
+	      6*'periodic'
+	      6*'periodic'
+	      6*'periodic'
+ /
+
+ &amp;paramlist
+	dtpar=0.01
+ /
+
+</pre>
+
+<h4><A NAME=Steady>Steady</A> state HD problem</h4>
+
+This parameter file is used to find the steady state solution for an 
+accretion problem in the R-Z plane. Axial symmetry is taken in the Phi 
+direction. There is a gravitational force pointing towards R=Z=0, which is 
+defined in a VACUSR file.
+<p>
+The initial condition contains the ghost cells too, because they define
+the inflow values at large R. The ghost cell values are also saved into
+the output file so that the computation can be continued from any snapshot.
+The logfile info is saved at every 10th time step, while full snapshots are
+recorded at t=0,5,25,50,100,500,900,...etc. The steady state solution is
+found when the residual becomes less than 1.D-8. If the time step becomes
+too small (usually due to numerical problems), the simulation stops.
+The calculation is stopped in any case if the time exceeds 20000.
+<p>
+The dimensionally unsplit TVD-MUSCL scheme is used to solve
+this steady state problem. It is sufficient to use a first order 'onestep'
+time integration. The most robust minmod limiter is applied on the 
+primitive variables to avoid numerical problems. The entropy fix
+also helps. Part of the computational domain contains <i>vacuum</i>.
+This is modelled by a small density, small pressure gas. To avoid
+excessive acceleration of this low density medium, the density,
+pressure, and velocity are set to fixed vacuum values where the density
+becomes lower than some threshold. The angular momentum is exactly conserved.
+<p>
+The boundary conditions are supersonic outflow at small R, supersonic 
+inflow at the outer radius, there is a symmetry at Z=0, and there is
+a non-reflecting boundary at the top of the computational domain.
+The Courant number is 0.5, which is appropriate for the dimensionally
+unsplit TVD-MUSCL scheme.
+<pre>
+ &amp;testlist
+ &amp;end
+
+ &amp;filelist
+	filenameini='data/accrete23.ini',
+	filename=   'data/accrete23.log',
+		    'data/accrete23.out'
+	fullgridini=T
+	fullgridout=T
+ &amp;end
+
+ &amp;savelist
+        ditsave(1)=10
+	itsave(1,2)=0
+	tsave(1,2)=5. tsave(2,2)=25. tsave(3,2)=50. tsave(4,2)=100.
+	dtsave(2)=400.
+ &amp;end
+
+ &amp;stoplist
+	dtmin=1.D-3
+	tmax=20000
+	residmin=1.D-8
+ &amp;end
+
+ &amp;methodlist
+	wnames=		'rho mr mz mphi e'
+	typeadvance=	'onestep'
+	typefull=	5*'tvdmu'
+	typelimiter=	5*'minmod'
+	typeentropy=	5*'powell'
+	useprimitive=	T
+	dimsplit=	F
+
+	typeaxial=	'cylinder'
+	angmomfix=	T
+
+	smallfix=	T
+	smallp=		2.8D-9
+	smallrho=	1.D-4
+	vacuumrho=	1.D-6
+ &amp;end
+
+ &amp;boundlist
+	typeB=		5*'cont'
+			5*'fixed'
+			'symm','symm','asymm','symm','symm'
+			5*'cont'
+ &amp;end
+
+ &amp;paramlist
+	courantpar=0.5
+ &amp;end
+
+</pre>
+
+<h4><A NAME=Implicit>Implicitly</A> solved problem</h4>
+
+This parameter file is used to find the steady state 2D MHD flow around a 
+perfectly conducting cylinder. The generalized grid has the shape of a 
+quarter of a ring: the cylinder is at the inner radius, while the flow enters 
+at the outer radius. A bow shock is formed, which is symmetric to the
+lower boundary (Y=0), and it intersects the vertical boundary (X=0).
+The fluxes of density, energy, and tangential components of momentum and
+magnetic field are exactly zero through the surface of the cylinder and the 
+symmetric boundary.
+<p>
+The third snapshot is read from the output of an explicit scheme.
+Running an explicit scheme for a few hundred time steps
+avoids the difficulties which arise for an implicit solver
+during the initial transients.
+Logfile info is saved in every time step, and a snapshot is 
+made at every 50th step including the initial state.
+The simulation is stopped when the residual is below 1.D-9, but at
+most 1000 implicit steps are made (an implicit step is much
+more costly CPU-wise than an explicit step).
+<p>
+The backward Euler time discretization is used for steady state problems.
+The spatially second order dimensionally unsplit TVD-MUSCL scheme with the
+minmod limiter applied to the primitive variables is used for the 
+discretization of the final solution (right hand side), 
+but the simple first order TVDLF1 scheme is used for calculating
+the Jacobian for the implicit timestepping (left hand side). 
+The divergence B problem is handled by Powell's fix.
+<p>
+The Jacobian can be calculated with the most efficient method,
+because the only (non-local) source terms are Powell's source terms.
+For the implicit scheme the time step is set by Courant number C=100.
+<pre>
+ &amp;testlist
+ /
+
+ &amp;filelist
+        snapshotini=3
+	filenameini='data/cyl22.out'
+	filename=   'data/cyl22impl.log',
+                    'data/cyl22impl.out'
+ /
+
+ &amp;savelist 
+	itsave(1,2)=0  ditsave=1,50
+ /
+
+ &amp;stoplist
+        itmax=1000 residmin=1.D-90
+ /
+
+ &amp;methodlist
+ 	wnames=		'rho  	 m1  	 m2  	 e	b1	b2'
+ 	dimsplit=	F
+ 	typefull=	6*'tvdmu'
+	typeimpl=	6*'tvdlf1'
+
+ 	typelimiter=	6*'minmod'
+	useprimitive=	T
+
+	divbfix=	T
+ /
+
+ &amp;boundlist
+	typeB =		'symm0','asymm','symm0','symm0','asymm','symm0'
+			6*'fixed'
+			'symm0','symm0','asymm','symm0','symm0','asymm'
+			6*'cont'
+ /
+
+ &amp;paramlist
+	courantpar=	100.0
+	impljacfast=	T
+ /
+
+</pre>
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

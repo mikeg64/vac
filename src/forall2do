@@ -1,0 +1,145 @@
+#!/usr/bin/perl -s
+# Translate FORALL statements to DO loops. The translated lines in the DO 
+# loop will be kept shorter than the value of the maxlen parameter, 
+# but other lines are not checked.
+# Also correct references to includefiles. 
+# Usage is preferably via the Makefile, or like this:
+#
+# forall2do < FILE_FORALL.f90 > FILE_DOLOOP.f90
+# forall2do -maxlen=72 < FILE_FORALL.f90 > FILE_DOLOOP.f90
+
+$maxlen=78 unless $maxlen;
+# Three spaces per extra indentation
+$sss=' 'x3;
+
+while(<>){
+    &forall;
+}
+exit 0;
+
+#===========================================================================
+sub contline{
+    # Join continuation lines into a single line. Uses global $contline
+    if(/\&$/){$contline.=$_}else{$_=$contline.$_;s/\&\n *//g;$contline=""}
+}
+
+#===========================================================================
+sub forall{
+   #Replace FORALL by do loop. The body of the FORALL is a single line
+   local($head,$indent,$range,$body,$tail,$do,$enddo);
+
+   # Check for lines with simple if statement containing forall
+   if(/^(( *)if *\(.+)forall\b/i){
+       $simpleif=1;
+       print "$1then\n";
+       $_="$2   forall$'";
+       $indentif=$2;
+   }
+   if(/^( *)forall\b/i){
+       while(&contline){
+	  $_=<STDIN>;
+       }
+       /^( *)forall/;
+       $head=$`; $indent=$1; $range=&argument($',$tail); 
+       $do=$indent."do "; $enddo=$indent."enddo\n";
+       # Separate body of FORALL from the consecutive lines  
+       $tail=~s/ *(.*\n)//; $body=$1;
+       # Replace commas of FORALL by start of new DO loop
+       $range=~s/,/\n$do/g;
+       # Replace colons of FORALL by commas of DO loops
+       $nloop=$range=~s/:/,/g;
+       # Form line with DO loop
+       $_="$head$indent"."do $range\n$indent$sss$body". $enddo x $nloop .$tail;
+       &printline;
+       if($simpleif){
+	   print $indentif,"end if\n";
+	   $simpleif=0;
+       }
+   }else{
+       print
+   };
+};
+
+#===========================================================================
+sub argument{
+   ($lin,$tail)=@_;
+   $left=index($lin,'(')+1; $right=&match($left);
+   $tail=substr($lin,$right);
+   substr($lin,$left,$right-$left-1);
+}
+
+#===========================================================================
+sub match{
+   local($p,$l)=@_;
+   if($p && ($l=1+index($lin,'(',$p))<($p=1+index($lin,')',$p)) && $l){
+      &match(&match($l))
+   }else{
+      $p
+   }
+};
+
+#============================================================================
+sub printline{
+    local($line,$comment);
+
+    # PRINT FORMATTED OUTPUT LINE BY LINE
+    while(s/(.*)\n//){
+       $line=$1;
+       # PUT TRAILING COMMENTS INTO $comment
+       if($line=~s/ *!.*//){
+           $comment=$&;
+           # If line is longer than $maxlen, try reducing length of comment
+           if(length("$line$comment")>$maxlen){$comment=~s/ *! */ !/}
+       }else{$comment=""};
+       # Print full line
+       print &format90($line),"$comment\n";
+    }
+}
+
+#===========================================================================
+sub format90 {
+   local($line)=@_;
+
+   # If line is not too long return
+   return($line) if length($line)<=$maxlen;
+
+   # BREAK LONG LINES INTO CONTINUATION LINES AND/OR REDUCE INDENTATION
+   local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
+
+   # Determine line indentation. If too much, reduce it to maximum.
+   $maxindent=int(0.6*$maxlen);
+   $line=~s/^( {0,$maxindent}) */$1/; $indent=$1;
+
+   # We are happy if the length of the line is between $goodlen and $maxlen
+   $goodlen=$maxlen-20;
+
+   # Start breaking line
+   while(length($line)>$maxlen){
+       # Check for semicolon
+       if(($len=rindex($line,';',$maxlen-1))>=0){
+          $answer.=substr($line,0,$len)."\n";
+          $line=substr($line,$len+1); $line=~s/^ */$indent/;
+          next;
+       }
+       # Find best breakpoint after indentation but before $maxlen-2
+       $line=~/^ */; 
+       $bestlen=$indentnow=length($&);
+       foreach $c ('+','-','/','**','*','.or.','.and.','>','<','==','=',
+                   ',',' ','(',')'){
+          if(($len=rindex($line,$c,$maxlen-2))>=0){
+             $len+=length($c) if ($c eq ',' || $c eq ')');
+             $bestlen=$len if $len>$bestlen;
+             last if $bestlen>$goodlen;
+          }
+       }
+       if($bestlen>$indentnow){
+          # Collect broken parts in $answer, and break the continuation further
+          $answer.=substr($line,0,$bestlen)."&\n";
+          $line="$indent$sss".substr($line,$bestlen);
+       }else{
+          # No break was found. Remove indentation if there is any or die.
+          $line=~s/^ +// || die "Couldn't break line: $line"
+       }
+   }
+   $answer.=$line;
+}

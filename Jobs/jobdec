@@ -1,0 +1,5 @@
+# This is a shell script to run VAC in the batch on a DEC workstation (ruunf3)
+#
+#QSUB  -q long
+#QSUB
+vac_example < par/exampleA22

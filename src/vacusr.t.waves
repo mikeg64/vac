@@ -1,0 +1,42 @@
+!##############################################################################
+! module vacusr - waves
+
+INCLUDE:vacnul.specialbound.t
+!INCLUDE:vacnul.specialini.t
+INCLUDE:vacnul.specialsource.t
+INCLUDE:vacnul.specialio.t
+
+!=============================================================================
+subroutine specialini(ix^L,w)
+
+! Smooth test problem for the explicit/implicit paper
+! Perturb by, bz, p (and rho) with smooth waves within xLeft<x<xRight
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^T,nw)
+double precision:: p0, rho0, amplitude(ixG^T)
+double precision,parameter:: xLeft=-30.0D0, xRight=-10.0D0
+double precision,parameter:: pPert=0.1D0, bPert=0.001D0
+!-----------------------------------------------------------------------------
+p0   = w(ixmin^D,p_)
+rho0 = w(ixmin^D,rho_)
+amplitude(ix^S) = sin(pi*(x(ix^S,1)-xLeft)/(xRight-xLeft))**2
+
+write(*,*)'Running specialini, bpert, ppert=', bpert, ppert
+
+where(x(ix^S,1) > xLeft .and. x(ix^S,1) < xRight)
+   w(ix^S,b2_)  = w(ix^S,b2_)+ bPert*amplitude(ix^S)
+   w(ix^S,b3_)  = w(ix^S,b3_)+ bPert*amplitude(ix^S)
+   w(ix^S,p_)   = w(ix^S,p_) + pPert*amplitude(ix^S)
+   w(ix^S,rho_) = rho0*(w(ix^S,p_)/p0)**(1/eqpar(gamma_))
+endwhere
+
+return
+end
+!=============================================================================
+
+
+! end module vacusr - waves
+!##############################################################################

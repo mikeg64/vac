@@ -1,0 +1,44 @@
+extravar
+	set v1=m1/rho set v2=m2/rho
+	set p=2/3*(e-0.5*(b1**2+b2**2+m1*v1+m2*v2))
+	set mach=rho/p
+extraarr
+	define Extra_Var "p divb"
+	set Ap=2/3*(Ae-0.5*(Ab1**2+Ab2**2+(Am1**2+Am2**2)/Arho))
+	set Amach=Arho/Ap
+	set Adivb=gradx(Ab1)+grady(Ab2)
+figure
+	erase
+	location 3500 31000 1500 29000
+	define y_gutter 0.5 define x_gutter 0.5
+	lweight 2
+	define Plotmode "Contour 15"
+	data "data/Orszag22.ini"
+	getpict 1 0
+	set Av=sqrt(Am1**2+Am2**2)/Arho
+	plot1 Av 2 2 1 2 1. 1. Velocity
+	limits 0 1 0 1 relocate 0.5 1.05 putlabel 5 Initial condition
+	set Ab=sqrt(Ab1**2+Ab2**2)
+	plot1 Ab 2 2 1 1 1. 1. "Magnetic field" x
+	data "data/Orszag22c.out"
+	getpict 1 0
+	lweight 1
+	plot1 Ap 2 2 2 2 1. 1. " "
+	lweight 2
+	ylabel Pressure
+	limits 1 192 1 192 relocate 1 60 draw 192 60
+	limits 0 1 0 1 relocate 0.5 1.05 
+	putlabel 5 t=$(int(time*10+0.5)/10) (step=$(it))
+	getpict 0 60
+	fixx 0 $(x[n1-1]) fixy 0 4
+	plot1  p 2 4 2 2 1. 1. Pressure
+	let
+	xlabel x
+	window 1 1 1 1
+	lweight 3 expand 1.5 RELOCATE (17600 32000)
+	##putlabel 5 MHD vortex with TVD Lax-Friedrich on 192\times 192 grid
+	#putlabel 5 MHD vortex with TVD-Yee on 192\times 192 grid
+	define x_gutter delete define y_gutter delete
+	lweight 1 expand 1.0001
+	location 3500 31000 3500 31000
+

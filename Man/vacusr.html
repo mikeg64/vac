@@ -1,0 +1,788 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on the VACUSR Module </TITLE>
+</HEAD>
+<BODY>
+<h1>VACUSR MODULE</h1>
+
+This document describes how the <b>src/vacusr.t.PROBLEM</b> and the optional
+<b>src/vacusrpar.t.PROBLEM</b> files should be written for user defined
+initial and boundary conditions, input and output file formats, and source 
+terms. It is also shown how the library source term routines 
+<b>src/vacusr.LIBRARY.t</b> can be included into the VACUSR module. 
+The libraries (gravity, thermcond, radloss, etc) are self-documented 
+and their individual usage is demonstrated in the 
+<b>src/vacusr.t.LIBRARY</b> and <b>src/vacusrpar.t.LIBRARY</b> files.
+<hr>
+This page:
+ [<A HREF="#Purpose">Purpose</A>]<br>
+ [<A HREF="#Library">Library</A>]<br>
+    [<A HREF="#Diffusion">Diffusion</A>]
+    [<A HREF="#Viscosity">Viscosity</A>]
+    [<A HREF="#Thermal">Thermal conduction</A>]
+    [<A HREF="#Radiative">Radiative loss</A>]
+    [<A HREF="#Gravity">Gravity</A>]
+    [<A HREF="#Real4">Real*4 I/O</A>]<br>
+ [<A HREF="#Creating">Creating</A>]:
+    [<A HREF="#Specialini">Initial</A>]
+    [<A HREF="#Specialio">I/O</A>]
+    [<A HREF="#Specialbound">Boundary</A>]
+    [<A HREF="#Specialsource">Source</A>]<br>
+ [<A HREF="#Equation">Equation parameters</A>]<br>
+ [<A HREF="#Input">Input parameters</A>]
+<hr>
+<H2><A NAME="Purpose">Purpose</A> and Use</h2>
+
+The VACUSR modules contain the problem dependent user written subroutines
+both for VAC and VACINI. Since there can be several different versions of 
+the VACUSR module, one has to select the appropriate module before compilation.
+Usually a single VACUSR module can be used for both VAC and VACINI, but in
+some cases it may be necessary to compile VAC and VACINI with different VACUSR
+modules, e.g. when the module uses subroutines of VAC which are not present in
+VACINI.
+<p>
+The selected module is represented by two symbolic links, <b>src/vacusr.t</b> 
+and <b>src/vacusrpar.t</b> linked to the specific <b>src/vacusr.t.PROBLEM</b> 
+and <b>src/vacusrpar.t.PROBLEM</b> files, respectively. The links can be set 
+via the Weblink interface, or in the shell by
+<pre>
+setvac -u=PROBLEM
+</pre>
+The <b>src/vacusr.t.PROBLEM</b> file has to exist, but the 
+<b>src/vacusrpar.t.PROBLEM</b> file is optional. If it does not exist, 
+the <b>src/vacusrpar.t</b> link will point to the <b>src/vacusrpar.t.nul</b> 
+file. If you do not need any user written subroutines, use 
+<pre>
+setvac -u=nul
+</pre>
+If you cannot run <b>src/setvac</b> since you have no Perl, you can set the 
+symbolic links by typing
+<pre>
+ln -s vacusr.t.PROBLEM vacusr.t
+ln -s vacusrpar.t.PROBLEM vacusrpar.t
+</pre>
+If your operating system does not support links you should copy the specific 
+files into the generic files by a copy command.
+
+<H2><A NAME="Library">VACUSR</A> Library</H2>
+
+Various source terms and the REAL*4 I/O subroutines are available as 
+library subroutines.
+If you only need a single library, and there is no need
+for any special VACUSR subroutines, simply configure VAC with
+<pre>
+setvac -u=LIBRARY
+</pre>
+where LIBRARY is the name of the library file, e.g. 
+<pre>
+setvac -p=hd -u=viscosity
+</pre>
+will solve the compressible Navier-Stokes equations.
+<p>
+When more than one libraries are used, or when a library is combined
+with other user written subroutines, a new VACUSR module needs to be created.
+To include a library into the <b>src/vacusr.t.MYPROBLEM</b> file,
+comment out the <b>INCLUDE:vacnul.specialsource.t</b> line,
+insert the content of <b>vacnul.specialsource.t</b> into the file,
+include the library by a line
+<pre>
+INCLUDE:vacusr.LIBRARY.t
+</pre>
+and call the appropriate library routines from the subroutines
+<b>specialsource</b> and <b>getdt_special</b> according to the
+description of the library file. It is also possible to insert 
+the libraries into <b>src/vacusr.t.MYPROBLEM</b> directly and modify
+them as necessary. The parameters of the library should be defined in the 
+<b>src/vacusrpar.t.MYPROBLEM</b> file according to the description 
+given in the library file. You should check the <b>src/vacusr.t.LIBRARY</b>
+and <b>src/vacusrpar.t.LIBRARY</b> files to get a hint.
+
+<h4><A NAME=Diffusion>Diffusion:</A> src/vacusr.diffusion.t</h4>
+
+Diffusion of density is described by the source term in
+<p>
+<IMG SRC=eq.diffusion.gif>
+<p>
+where the diffusion coefficients are given by <b>eqpar(diff1_),
+eqpar(diff2_),...</b> for each dimension. 
+It is also possible to use a spatially (and temporally) varying diffusion
+coefficient, but this requires the use of an array <b>diff(ixG^T,ndim)</b> 
+and <b>subroutine setdiff(...)</b>, which are commented out in the library.
+The simple use of the library is demonstrated in <b>src/vacusr.t.diffusion</b>.
+Combined with the advection equation (setvac -p=rho -u=diffusion) 
+the diffusion-convection equation is obtained.
+
+<h4><A NAME=Viscosity>Viscosity:</A> src/vacusr.viscosity.t</h4>
+
+The viscosity source terms modify the momentum equation and 
+(if present) the energy equation:
+<p>
+<IMG SRC=eq.viscosity.gif>
+<p>
+The <i>dynamic pressure tensor</b> is the traceless part of the symmetrized
+velocity gradient matrix. The magnitude of viscosity is defined by
+<b>eqpar(nu_)</b> or it can be given by the array <b>nu(ixG^T)</b> and 
+<b>subroutine setnu(...)</b>.
+
+<h4><A NAME=Thermal>Thermal</A> conduction: <br>
+    src/vacusr.thermcond.t, src/vacusr.thermcondmhd.t</h4>
+
+There are two versions of the thermal conduction library. 
+The <b>src/vacusr.thermcond.t</b> implements an isotropic thermal conduction
+term into the energy equation according to 
+<p>
+<IMG SRC=eq.thermcond.gif>
+<p>
+Note the simplified definition of temperature. 
+All the constants are merged into a single equation parameter 
+<b>eqpar(kappa_)</b>. If the thermal conduction coefficient is a function
+of other variables, the <b>kappa(ixG^T)</b> array must be defined in 
+<b>subroutine setkappa</b>.
+<p>
+In MHD, heat conduction is not isotropic: it is usually negligible
+in the direction orthogonal to field lines. The equations implemented in
+<b>src/vacusr.thermcondmhd.t</b> (<i>by S. Beli&euml;n</i>) are 
+<p>
+<IMG SRC=eq.thermcondmhd.gif>
+<p>
+where the magnitude of the <i>thermal conduction tensor</i> depends
+on the 2.5th power of temperature and <b>eqpar(kappa_)</b>
+denoted as kappa_parallel in the equation above.
+
+<h4><A NAME=Radiative>Radiative</A> losses: vacusr.radloss.t</h4>
+
+<i>Implemented and tested by S. Beli&euml;n</i>
+<p>
+An optically thin gas cools due to radiative losses. This involves the
+energy equation only:
+<p>
+<IMG SRC=eq.radloss.gif>
+<p>
+The thermal energy loss is proportional to density squared and a complicated 
+function of the temperature. The special equation parameters 
+<b>eqpar(qcoef_)</b> and <b>eqpar(tunit_)</b> depend on the average
+particle mass, the density, energy density, and 
+temperature units. Both the functions <b>chi</b> and <b>alpha</b> 
+are complicated functions of temperature.
+Two different stepwise constant functions are implemented,
+which can be selected by the third parameter <b>eqpar(qhow_)=1 or 2</b>. 
+The two approximations use 9 and 3 temperature intervals, respectively.
+
+<h4><A NAME=Gravity>Gravity:</A> src/vacusr.gravity.t, src/vacusr.selfgrav.t
+</h4>
+
+Gravitational force affects the momentum and energy equations:
+<p>
+<IMG SRC=eq.gravity.gif>
+<p>
+For an external gravitational field, use <b>src/vacusr.gravity.t</b>,
+which implements the above equations, and the gravitational force is
+defined either by the equation parameters <b>eqpar(grav1_), eqpar(grav2_),
+...</b> or by the array <b>grav(ixG^T,ndim)</b> and <b>subroutine 
+setgrav(...)</b>.
+<p>
+For a self-gravitating gas, the gravitational force is calculated from the
+gradient of the gravitational potential whose Laplace is proportional to 
+density:
+<p>
+<IMG SRC=eq.selfgrav.gif>
+<p>
+Note that the coefficient <b>eqpar(grav_)</b> includes the usual 1/(4 pi) 
+factor. The Poisson equation is solved by some iterative scheme of
+the VACPOISSON module, so configure VAC by 'setvac -on=poisson'.
+The iterative scheme can be selected by the <b>typepoisson</b>
+parameter in the <A HREF=par.html#Methodlist>&amp;methodlist</A>.
+The boundary conditions of the Poisson equation and the parameters for the
+iterative solver can be set in the &amp;gravlist, which should be appended
+to the end of the parameter file. It has the following form:
+<pre>
+<A NAME=Gravlist>&amp;gravlist</A>
+        typeBgrav= 'nul','grad0','symm','asymm','periodic','cont','cont1'...
+        typestop=  'max' | 'rel' | 'abs'
+        tolerance= DOUBLE
+        matvecmax= INTEGER
+        useoldphi= T | F
+/
+</pre>
+The <b>typeBgrav</b> array should be defined for each boundary region.
+The meaning of the different values 
+is described in Man/<A HREF=par.html#Boundlist>par.html</A>
+for <b>typeBscalar</b>. In particular, the default value 'nul' means that
+the boundary is taken to be the 0 potential, which can be a reasonable
+approximation if the boundaries are far away from the density variations. 
+A fixed velocity field at the boundary corresponds to zero gradient 
+('grad0') of Phi, but note that it also sets Phi=0 in the first row of ghost
+cells, so an equipotential is taken.
+Periodic boundaries in all directions are impossible, because then the 
+integral of Laplace(phi) over the computational domain would be zero, 
+while it must be equal to the total-mass/eqpar(grav_), which is always 
+positive. Using continuous ('cont') or linearly extrapolated ('cont1')
+boundary conditions for all boundaries is numerically unstable
+since the zero point of the gravitational potential is not fixed.
+Probably some new boundary types will be needed for real problems.
+<p>
+An iterative scheme solves the Poisson problem to a certain accuracy,
+which is defined in terms of the residual
+<pre>
+R = div grad (phi) - eqpar(grav_)*rho
+</pre>
+The default setting is <b>typestop='max'</b>, which requires that 
+<b>max(abs(R)) &lt; tolerance</b>. An accurate solution is obtained if
+<b>tolerance &lt;&lt; eqpar(grav_)*rho</b>, thus the default value
+for tolerance is <b>0.005*eqpar(grav_)*rho_average</b>.
+For <b>typestop='rel'</b> the stopping condition is 
+<b>||R||/||R_0|| &lt; tolerance</b>, where ||R||=sqrt(sum(R^2)) is the second 
+norm of R, and R_0 is the initial residual. For <b>typestop='abs'</b> the
+condition is <b>||R|| &lt; tolerance</b>. Note that ||R|| is proportional
+to the square root of the number of grid points. 
+<p>
+The <b>matvecmax</b> parameter sets the maximum number of iterations.
+The default value is 100.
+The <b>useoldphi</b> parameter determines whether the initial guess for
+Phi is taken from the previous solution. The default value is true, which
+is highly recommended for sake of efficiency.
+
+<h4><A NAME=Real4>REAL*4</A> I/O: vacusr.real4io.t</h4>
+
+The <b>src/vacusr.real4io.t</b> library file can be used to 
+read and write single precision 
+<A HREF=convert.html#Real4>REAL*4 binary data files</A>
+instead of the usual double precision REAL*8 files. 
+This may be useful for saving disk space for huge simulations.
+Simply set <b>typefileini</b> and/or <b>typefileout</b> to the
+value <b>'special'</b> in the parameter file. 
+Note that the inner representation of reals is always 
+double precision (8 byte), so some accuracy is lost
+by using 4 byte reals in the data files, but this can be 
+acceptable for visualization.
+
+<H2><A NAME="Creating">Creating</A> a New Module</h2>
+
+Start by copying the <b>src/vacusr.t.nul</b> file (or another similar file)
+into the new <b>src/vacusr.t.PROBLEM</b> file. It consists of a few include 
+statements.
+The included <b>vacnul.special*.t</b> files contain the default subroutines,
+they either contain a stop statement, or return without any action, however
+the arguments are declared and the purpose of the subroutines is described.
+Comment out the <b>INCLUDE:vacnul.specialSUBROUTINE.t</b> statement(s) for the 
+subroutine(s) that you intend to write, and replace the "- nul" string by
+"- PROBLEM" at the beginning and at the end of the module for clarity.
+Your file should look something like this:
+<pre>
+!##############################################################################
+! module vacusr - PROBLEM
+
+INCLUDE:vacnul.specialbound.t
+! INCLUDE:vacnul.specialini.t
+INCLUDE:vacnul.specialsource.t
+INCLUDE:vacnul.specialio.t
+
+! end module vacusr - PROBLEM
+!##############################################################################
+</pre>
+Now insert the <b>vacnul.specialSUBROUTINE.t</b> file(s) below the include 
+statements and edit it (them) according to your needs.
+<p>
+You can write the subroutine(s) either in the dimension independent notation,
+described in <b>Man/<A HREF="source.html">source</A></b>, or in the limited 
+Fortran 90 (see <b>Man/<A HREF="srclimits.html">srclimits</A></b>)
+if the number of dimensions is fixed for your PROBLEM. If you do not want to 
+run the code on a parallel computer, you might go back all the way to 
+Fortran 77, however this is not recommended.
+<p>
+Below some help is provided for writing new subroutines, the examples can also
+be found in the <b>src/vacusr.t.example</b> and <b>src/vacusrpar.t.example</b>
+files.
+
+<H2><A NAME="Specialini">SPECIALINI</A> Subroutine</h2>
+
+When the general purpose subroutines provided by VACINI are not sufficient,
+you need to initialize the variables in the <b>specialini</b> subroutine.
+The subroutine will be called when VACINI finds the <b>special</b> action in 
+the <b><A HREF="inipar.html">inipar/PROBLEM</A></b> parameter file. 
+The input parameters read by the subroutine should be in the consecutive lines.
+Below a simple example follows first in the dimension independent notation, 
+then in Fortran 90 for 2D.
+<pre>
+!##############################################################################
+! module vacusr - EXAMPLE
+
+INCLUDE:vacnul.specialbound.t
+! INCLUDE:vacnul.specialini.t
+INCLUDE:vacnul.specialsource.t
+INCLUDE:vacnul.specialio.t
+
+!=============================================================================
+subroutine specialini(ix^L,w)
+
+! This subroutine puts a density blob into w(ixS,rho_).
+
+include 'vacdef.f'
+
+integer:: ix^L
+double precision:: w(ixG^LL:,nw)
+
+double precision:: rhoin,xcent^D,radius
+!-----------------------------------------------------------------------------
+
+write(*,*)'DENSITY BLOB'
+write(*,*)'Density inside blob:'
+read(*,*) rhoin
+write(*,*)'Radius and center coordinates:'
+read(*,*) radius,xcent^D
+
+where(radius**2 &gt; ^D&amp;(x(ix^S,^D)-xcent^D)**2+ )
+   w(ix^S,rho_)=rhoin
+endwhere
+
+return
+end
+!=============================================================================
+
+! end module vacusr - EXAMPLE
+!##############################################################################
+</pre>
+Note the use of the <kbd>rho_</kbd> index name. It is clear that the <b>x</b> 
+coordinates have to be defined by some action before <b>special</b> is called 
+in the <b>inipar/PROBLEM</b> file, and here the other variables, 
+or the equation parameters were not defined either. The subroutine above works 
+in 1, 2 or 3D.
+<p>
+Here is the Fortran 90 version of the same subroutine for 2D only:
+<pre>
+!=============================================================================
+subroutine specialini(ixmin1,ixmin2,ixmax1,ixmax2,w)
+
+! This subroutine puts a density blob into w(ixS,rho_).
+
+include 'vacdef.f'
+
+integer:: ixmin1,ixmin2,ixmax1,ixmax2
+double precision:: w(ixGlo1:ixGhi1,ixGlo2:ixGhi2,nw)
+
+double precision:: rhoin,xcent1,xcent2,radius
+!-----------------------------------------------------------------------------
+
+write(*,*)'DENSITY BLOB'
+write(*,*)'Density inside blob:'
+read(*,*) rhoin
+write(*,*)'Radius and center coordinates:'
+read(*,*) radius,xcent1,xcent2
+
+where(radius**2 &gt; (x(ixmin1:ixmax1,ixmin2:ixmax2,1)-xcent1)**2+&amp;
+   (x(ixmin1:ixmax1,ixmin2:ixmax2,2)-xcent2)**2 )
+   w(ixmin1:ixmax1,ixmin2:ixmax2,rho_)=rhoin
+endwhere
+
+return
+end
+!=============================================================================
+</pre>
+This subroutine is called in <b>inipar/exampleB22</b> with
+<pre>
+special
+1.3                                     -rho inside
+0.1     0.5     0.5                     -radius,xcent1,xcent2
+</pre>
+Since VACINI compiles the VACPHYS0 module, subroutines in that module
+can be used. For example <b>subroutine getpthermal(..)</b> may be useful. 
+
+<H2><A NAME="Specialio">SPECIALIO</A> Subroutines</h2>
+
+The user has the option to change the content and/or format of the input
+and output datafiles, or of the logfile by writing the 
+<b>readfileini_special, savefileout_special</b>, and <b>savefilelog_special</b>
+subroutines in the VACUSR module. The subroutines are called if 
+<b>typefileini, typefileout</b>, or <b>typefilelog</b> are set to 
+<b>'special'</b>, respectively, in the parameter files for VAC and/or VACINI.
+<p>
+A simple example for using a special logfile may be to save the potential 
+enstrophy and the mean absolute value of the transverse momentum. 
+The <b>savefile</b> subroutine is 
+always called right after <b>getboundary</b> thus we may use the ghost cells 
+for calculating derivatives for the enstrophy. For simplicity a 2D Cartesian 
+grid is assumed here, but in general the <b>gradient</b> subroutine with the
+Levi-Civita symbols <b>lvc</b> should be used like in the <b>addsource_res</b>
+subroutine in <b>src/vacphys.mhd0.t</b> where <b>J=curl B</b> is calculated.
+<p>
+Here are the subroutines, first the unused <b>readfileini_special</b> and 
+<b>savefileout_special</b> simply taken from <b>src/vacnul.specialio.t</b>:
+<pre>
+!=============================================================================
+subroutine readfileini_special(w)
+include 'vacdef.f'
+double precision:: w(ixG^T,nw)
+stop 'Special readfileini is not defined'
+end
+!=============================================================================
+subroutine savefileout_special(qunit,w,ix^L)
+include 'vacdef.f'
+integer:: qunit,ix^L
+double precision:: w(ixG^T,nw)
+stop 'Special savefileout is not defined'
+end
+!=============================================================================
+</pre>
+then the new subroutine modified from <b>savefilelog_default</b> in <b>src/vacio.t</b>:
+<pre>
+!=============================================================================
+subroutine savefilelog_special(qunit,w,ix^L)
+
+! The average potential enstrophy (1/V)*Integral dV*(curl v)**2/rho and
+! the average ABSOLUTE transverse momentum (1/V)*Integral dV*|m2|
+! are calculated and saved.
+
+include 'vacdef.f'
+
+integer:: qunit,ix^L,jx1^L,jx2^L,hx1^L,hx2^L
+double precision:: w(ixG^T,nw),denstrophy(ixG^T),enstrophy,meanabsm2
+logical:: fileopen
+!-----------------------------------------------------------------------------
+
+if(gencoord.or.ndim/=2)stop 'Enstrophy for 2D Cartesian grid only'
+
+inquire(qunit,opened=fileopen)
+if(.not.fileopen)then
+    open(qunit,file=filename(filelog_),status='unknown')
+    write(qunit,'(a)')fileheadout
+    write(qunit,'(a)')'it   t    dt     enstrophy      abs_m2'
+endif
+
+! Shift indices and calculate curl v = dv2/dx1-dv1/dx2, velocity=momentum/rho
+jx1^L=ix^L+kr(^D,1);jx2^L=ix^L+kr(^D,2);
+hx1^L=ix^L-kr(^D,1);hx2^L=ix^L-kr(^D,2);
+denstrophy(ix^S)=half*(&
+  (w(jx1^S,m2_)/w(jx1^S,rho_)-w(hx1^S,m2_)/w(hx1^S,rho_))/dx(ix^S,1)-&
+  (w(jx2^S,m1_)/w(jx2^S,rho_)-w(hx2^S,m1_)/w(hx2^S,rho_))/dx(ix^S,2))
+
+! Calculate local potential enstrophy density
+denstrophy(ix^S)=denstrophy(ix^S)**2/w(ix^S,rho_)
+
+! Average potential enstrophy over the volume
+enstrophy=sum(dvolume(ix^S)*denstrophy(ix^S))/volume
+
+! Calculate average absolute value of m2
+meanabsm2=sum(dvolume(ix^S)*abs(w(ix^S,m2_)))/volume
+
+write(qunit,'(i7,4(1pe13.5))')it,t,dt,enstrophy,meanabsm2
+
+return
+end
+!=============================================================================
+</pre>
+Note the use of the Kronecker delta <b>kr</b> and the grid related global
+variables <b>dx, dvolume</b>, and <b>volume</b>. 
+
+<H2><A NAME="Specialbound">SPECIALBOUND</A> Subroutine</h2>
+
+When the predefined boundary types provided by VAC are not sufficient
+the <b>specialbound</b> subroutine can solve the problem. It is called for
+each boundary region and variable for which the boundary type 
+<b>typeB='special'...</b> is selected. It is likely that you can use the 
+predefined boundary types for at least some of the variables and/or regions.
+The <b>specialbound</b> subroutine is called <i>after</i> the variables
+with predefined boundary types have been updated in the ghost cells. 
+This is only approximately true for FCT, where the boundaries are calculated
+for each variable separately in the algorithm at the diffusion stage, 
+but most probably that will not cause severe errors.
+<p>
+The following example defines a time dependent boundary for the <b>rho</b>
+and <b>m1</b> variables in the <b>iB=1</b> boundary region:
+<pre>
+!=============================================================================
+subroutine specialbound(qt,ix^L,iw,iB,w)
+
+! qt is the time, the iB-th boundary region is in the ix^L region,
+! and the subroutine should provide the values for w(ix^S,iw).
+
+! Normal velocity and density are driven at the left boundary by a
+! rho=rho0+drho*sin(omega*t); v=dv*sin(omega*t) perturbation.
+
+include 'vacdef.f'
+
+integer:: ix^L,iw,iB
+double precision:: qt,w(ixG^T,nw),drho
+
+double precision, parameter:: rho0=1.D0, dv=0.01D0, omega=20.D0
+!-----------------------------------------------------------------------------
+
+drho=dv/sqrt(eqpar(adiab_)*eqpar(gamma_)/rho0)
+
+select case(iB)
+case(1)
+   select case(iw)
+   case(rho_)
+      w(ix^S,rho_)= rho0 + drho*sin(qt*omega)
+   case(m1_)
+      w(ix^S,m1_) = rho0 *   dv*sin(qt*omega)
+   case default
+      stop 'Special boundary is not defined for iw=m2_'
+   end select
+case default
+   stop 'Special boundary is defined for iB=1 region only'
+end select
+
+return
+end
+!=============================================================================
+</pre>
+If more variables and/or regions were assigned to the <b>special</b> type, 
+the subroutine could be extended easily by including more <b>case</b> statements.
+
+<H2><A NAME="Specialsource">SPECIALSOURCE</A> Subroutine</h2>
+
+There are lots of possible physical source terms for the same basic equation.
+Rather than writing a new physics module for each, it is simpler to define a
+problem dependent source term in the VACUSR module. More than one VACUSR
+modules may use the same source term if the 
+<b>INCLUDE:vacnul.specialsource.t</b> statement is replaced by one or more 
+<b>INCLUDE:vacusr.SOURCETERM.t</b> statements, and then the 
+<b>src/vacusr.SOURCETERM.t</b> file should contain the subroutines 
+which are called by <b>specialsource</b>. There are already a number
+of implemented source terms in the <A HREF=equations.html#Sources>
+src/vacusr.LIBRARY.t</A> files.
+The corresponding <b>src/vacusr.t.LIBRARY</b> files include these sources
+to help using the source terms by themselves (simply configure VAC with 
+<b>setvac -u=LIBRARY</b>) and to show an example of usage. 
+To combine library source terms with each other or with 
+other special subroutines, you will have to write a new VACUSR module,
+include the library files, and call the subroutines.
+<p>
+The <b>specialsource</b> subroutine is called at least 
+once in every time step by VAC. The number of calls depends on the time 
+integration scheme defined by <b>typeadvance</b>, the parameter 
+<b>sourcesplit</b> and also on the number of dimensions if the parameter 
+<b>dimsplit=T</b>.
+<p>
+In any case the subroutine should integrate <b>w</b> from time <b>qt</b> to 
+<b>qt+qdt</b> for the variables listed in <b>iws</b> 
+(typically iws will contain all the variable indices from 1 to nw) 
+in the region <b>ixO^S</b>. The source terms should be evaluated for
+the <b>wCT</b> array, which corresponds to the physical time <b>qtC</b>.
+In case of explicit time dependence, <b>qtC</b> should be used as time.
+Only elements within <b>ixI^S</b> can be used from <b>wCT</b>, 
+if the source terms need extra layers, the <b>ensurebound</b> 
+subroutine has to be used. 
+<p>
+The <b>getdt_special</b> subroutine can limit <b>dt</b> for numerical
+stability if the source term requires that. This subroutine is called 
+after the CFL condition <b>getdt_courant</b> and the <b>getdt</b> 
+subroutine of the VACPHYS module have been executed. In case of the 
+example VACUSR module this subroutine is left empty, but see e.g. 
+<b>src/vacusr.thermcond.t</b> for a possible use.
+<p>
+The <b>specialeta</b> subroutine is used for MHD or MHDISO to set the 
+resistivity array <b>eta</b> when it is not constant in time and/or space. 
+The <b>current</b> array is available since anomalous resistivity is often 
+described as a function of <b>J</b>. 
+<p>
+The following <b>specialsource</b> subroutine calculates the Coriolis 
+forces using a second order accurate pointwise implicit trapezoidal 
+integration scheme, which should be used with <b>splitsource=T</b> 
+set in the parameter file.
+<p>
+<em>I acknowledge here H. Oksuzoglu's contribution to this subroutine.</em>
+<pre>
+!=============================================================================
+subroutine specialsource(qdt,ixI^L,ixO^L,iws,qtC,wCT,qt,w)
+
+! Coriolis forces: SOURCE(m1)=f*m2; SOURCE(m2)=-f*m1 where f=eqpar(coriolis_)
+! This is a second order point-implicit trapezoidal scheme meant for split
+! source terms (sourcesplit=T) when wCT==w at input.
+
+include 'vacdef.f'
+
+integer:: ixI^L,ixO^L,iws(niw_)
+double precision:: qdt,qtC,qt,wCT(ixG^T,nw),w(ixG^T,nw)
+double precision:: fdt,fdthalf2
+
+integer:: iw,iiw
+!-----------------------------------------------------------------------------
+
+if(eqpar(coriolis_)==zero)return
+
+if(.not.sourcesplit)&amp;
+   stop 'This SpecialSource is designed for sourcesplit=T'
+
+if(it==itmin)write(*,*)'Coriolis forces are added'
+
+fdt     = eqpar(coriolis_)*qdt
+fdthalf2=(fdt*half)**2
+
+do iiw=1,iws(niw_); iw=iws(iiw)
+   select case(iw)
+   case(m1_)
+       w(ixO^S,m1_)=((1-fdthalf2)*wCT(ixO^S,m1_)+fdt*wCT(ixO^S,m2_))&amp;
+                    /(1+fdthalf2)
+   case(m2_)
+       w(ixO^S,m2_)=((1-fdthalf2)*wCT(ixO^S,m2_)-fdt*wCT(ixO^S,m1_))&amp;
+                    /(1+fdthalf2)
+   end select
+end do
+
+return
+end
+
+!=============================================================================
+</pre>
+You may have noticed that an equation parameter <b>eqpar(coriolis_)</b> 
+has been used. This leads us to the subject of the next section.
+
+<H2><A NAME="Equation">Special</A> Equation Parameters</h2>
+
+The user-defined source terms or boundary conditions may contain parameters
+which are often changed and have similar meaning to the equation parameters
+defined in the <b>src/vacpar.t.PHYSICS</b> files. 
+The <b>src/vacusrpar.t.PROBLEM</b>
+file allows the user to define extra, problem dependent, equation parameters.
+<p>
+The indexname and the number of the special equation parameters can be defined
+in the <b>vacusrpar.t.PROBLEM</b> file. The values of these parameters
+should be set in the <A HREF="inipar.html#Parameters">parameter file for 
+VACINI</A> when the <b>eqpar</b> array 
+is set, then it is stored in the <b>src/PROBLEM.ini</b> data file. It may then
+be overdefined by VAC if <b>eqpar</b> is set in the <b>&amp;methodlist</b> 
+namelist in the <A HREF="par.html#Methodlist">par/PROBLEM</A> parameter file, 
+and the new value will be written into <b>src/PROBLEM.out</b>.
+<p>
+To prepare a new <b>vacusrpar.t.PROBLEM</b> file, simply copy the 
+<b>vacusrpar.t.nul</b> file into <b>vacusrpar.t.PROBLEM</b> and edit it. 
+This file will be included into 
+the variable declaration part of all subroutines, thus it can also be used 
+for common variables to be shared by subroutines in the VACUSR module.
+<p>
+A simple example is the following file which tells VAC that there is an 
+extra equation parameter, indexed by <b>coriolis_</b>, and it also gives the 
+name as a string to be listed among the variable names in the data files.
+<pre>
+!##############################################################################
+! include vacusrpar - example
+
+! This file contains the parameters for the vacusr.t.example file,
+! namely the coefficient for the Coriolis forces
+
+INTEGER,PARAMETER:: coriolis_=neqpar+1, nspecialpar=1
+CHARACTER*8,PARAMETER:: specialparname='coriolis'
+
+! end include vacusrpar - example
+!##############################################################################
+</pre>
+Other examples are provided in the <b>src/vacusrpar.t.LIBRARY</b> files.
+
+<H2><A NAME="Input">Input</A> Parameters for the Special Subroutines</h2>
+
+The special user written subroutines may read input parameters
+from the parameter files. For <A HREF=#Specialini>specialini</A> 
+it is trivial to read the input parameters from the file 
+<b>inipar/PROBLEM</b>.
+<p>
+The <b>specialbound</b> and <b>specialsource</b> subroutines should read
+their input parameters from the end of the <b>par/PROBLEM</b> file,
+in this order. Since these subroutines are called several times in every
+time step, care should be taken that the input parameters are only 
+read for the first time. Since the <b>par/PROBLEM</b> file consists of
+namelists, it may be a good idea to provide the input parameters of the
+special subroutines in form of namelists too. The following example shows
+how the input parameters can be given default values, and how they can
+be read with a namelist: 
+<pre>
+!=============================================================================
+subroutine specialbound(qt,ix^L,iw,iB,w)
+
+! This is an example for using namelists for reading extra input parameters.
+! The type of the first boundary region is determined by qtype, values for
+! the variables are listed in qarray, and if there is a time dependence,
+! it is controlled by qpower. There could be many more parameters.
+
+include 'vacdef.f'
+
+! Variables
+integer:: ix^L,iw,iB
+double precision:: qt,w(ixG^T,nw)
+
+! Input parameters
+double precision:: qarray(nw)
+integer::          qpower
+character*3::      qtype
+
+! Save the array so it keeps its value for later calls to the subroutine
+save qarray
+
+! Default values for scalar parameters, also implies a save
+data qtype /'set'/
+data qpower /-1/
+
+! List all input variables in the SPECBOUND namelist
+namelist /specbound/ qarray, qpower, qtype
+
+! Status of reading the parameter file
+integer:: ios
+
+! Flag for initialization
+logical:: initialized
+data initialized /.false./
+!----------------------------------------------------------------------------
+if(.not.initialized)then
+   ! Default value for arrays
+   qarray(1:nw)= zero
+
+   ! Attempt reading input parameters
+   read(*,specbound,iostat=ios)
+
+   if(ios/=0)write(*,*)&amp;
+      'No SPECBOUND list in parameter file. Default values are used.'
+
+   ! Show the input parameters
+   write(*,specbound)
+
+   ! Initialization is done
+   initialized=.true.
+endif
+
+select case(iB)
+case(1)
+   select case(qtype)
+   case('set')
+      w(ix^S,iw)=qarray(iw)
+   case('exp')
+      w(ix^S,iw)=qarray(iw)*(qt+1)**qpower
+   case default
+      stop 'Incorrect value for qtype in SPECBOUND list'
+   end select
+case default
+   stop 'Special boundary is defined for 1st region only'
+end select
+
+return
+end
+</pre>
+Now the end of the parameter file that provides the input
+for the above subroutine may look like this:
+<pre>
+...
+&amp;boundlist
+   typeB=4*'special',4*'cont',4*'cont',4*'cont'
+/
+
+&amp;paramlist
+   courantpar=0.8
+/
+
+&amp;specbound
+   qtype= 'exp'
+   qarray=0.1,1.D-10,0.2,2.
+/
+</pre>
+Note that <b>qpower</b> is not defined in the namelist, 
+so the default value -1 is used.
+<p>
+The <b>src/vacusr.selfgrav.t</b> file contains a more complicated application
+for reading parameters for a source term.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June30 1999
+</ADDRESS>
+</BODY>
+</HTML>
+

@@ -1,0 +1,515 @@
+#!/usr/bin/perl -s
+###############################################################################
+# The f90tof77 script translates the following F90 syntax to F77:
+#
+# free format                   --> fixed format
+# F90 variable declarations     --> F77 declarations
+# >,<,>=,<=,/=                  --> .gt.,.lt.,...
+# SELECT CASE                   --> IF ELSE IF
+# DO loop with EXIT             --> GOTO statements
+# array segments                --> DO loops or loops for WRITE and READ
+# FORALL                        --> DO loops
+# WHERE                         --> DO loops with IF
+# MAXVAL, MINVAL, 
+# ANY, ALL, SUM, PROD           --> DO loops with appropriate statements
+#
+# It does not handle derived types, dynamic allocation, modules, 
+# array valued functions, array statements without segments specified, etc.
+#
+# If you need a complete F90-->F77 converter, the ADAPTOR code is available
+# by Thomas Brandle.
+#
+# The result of the f90tof77 script is much cleaner than ADAPTOR's output,
+# also the f90tof77 code is much shorter which explains why I use it 
+# instead of ADAPTOR.
+###############################################################################
+
+# Maximum line length unless given as a parameter, eg "f90tof77 -maxlen=66"
+$maxlen=78 unless $maxlen; 
+
+# Six spaces for fixed format indentation, three spaces per extra indentation
+$fix=6; $fixind=' 'x6; $sss=' 'x3;  $fixcom='*'.' 'x 5; $gotolabel=7700;
+# String variables for which sections should not be converted
+$stringvar='fileheadini,fileheadout,fhead,filenameout,varnames,name,nametail';
+
+while(<>){
+    # Check if this is the vacdef module
+    if(?^! include vacdef?){$vacdef=1};
+    # SPECIAL !F77_ COMMENTS ARE USED ACOORDING TO THIS RULE:
+    # f90source !_ f77source --> f77source
+    if(/!F77_ ?/){$_=$'};
+    # HIDE QUOTED TEXT FROM TRANSLATION
+    $_=&quotation($_);
+    # PRINT EMPTY AND COMMENT LINES AND DO NEXT, OR PRINT TRAILING COMMENTS 
+    next if &commentline;
+    # COLLECT CONTINUATION LINES
+    next if &contline;
+    # REPLACE CASE CONSTRUCTS BY IF-ELSEIF-ELSE-ENDIF CONSTRUCTS
+    next if &selectcase;
+    # REPLACE DO CONSTRUCTS WITH EXIT AND CYCLE BY CONTINUE AND GOTO STATEMENTS
+    next if &doconstruct;
+    # TRANSLATE LOGICAL OPERATORS
+    s/>=/.ge./g; s/<=/.le./g; s/>/.gt./g; s/</.lt./g; s/==/.eq./g; s|/=|.ne.|g;
+    # LINES WITH A COLON ARE EITHER ARRAY SECTIONS OR DECLARATIONS
+    if(/:/){
+        if(/::/){
+            # TRANSFORM DECLARATIONS WITH DOUBLE COLONS
+            &declaration;
+        }elsif(!/^ *common\b/i){
+            # COMMON BLOCK STATEMENTS ARE ALREADY IN FORTRAN 77 STYLE. OTHER
+            # EXPRESSIONS WITH ARRAY SECTIONS ARE REPLACED BY APPROPRIATE LOOPS
+	    &simpleif;
+            &forall;
+            &functions;
+            &where;
+            &sectiontoloop;
+	}
+    }
+    &printline;
+}
+&tmpvars if $vacdef;
+exit 0;
+
+#===========================================================================
+sub contline{
+    # Join continuation lines into a single line. Uses global $contline
+    if(/\& *$/){$contline.=$_}else{$_=$contline.$_;s/\& *\n *//g;$contline=""}
+}
+
+#===========================================================================
+sub commentline{
+    # Detect F90 COMMENTS, print out COMMENT or empty line, or trailing comment
+    # Return 1 if there is nothing left to do, return 0 for trailing comment
+    local($comment);
+    if(/^$/ || s/^!/\*/ || s/^( *)! */$fixcom$1/){
+        print &unquote($_); return(1)
+    }
+    if(s/ *! *(.*)//){
+       $comment=$1; /^ */; print "$fixcom$&".&unquote($comment)."\n"
+    }
+    0;
+}
+
+#===========================================================================
+sub selectcase{
+    # Look for select case($casevar) statements. Store casevar, return with 1,
+    # so no line is printed. Use $caselevel to count the nested case constructs
+    if(/select +case *\((.*)\) *$/){
+       $caselevel++; $casevar[$caselevel]=$1; 
+       $iforelseif='if'; $else=''; $endif='';
+       return(1)
+    };
+    # The first character type "case(..)" switch is replaced by an "if(..)then"
+    if($caselevel){
+        # CASE(..) is replaced by IF(CASEVAR.eq. ..) or ELSE IF(CASEVAR.eq. ..)
+	if(/^ *case *\(/){
+	    s/(   )?case/$iforelseif/; 
+            $iforelseif='else if'; $else='else'; $endif='end if';
+            s/,/.or.$casevar[$caselevel].eq./g;
+            s/\(/\($casevar[$caselevel].eq./;
+	    s/\n/then\n/;
+            return(0);
+        # END SELECT is replaced by an ENDIF and reduces the nesting level
+	}elsif(s/end *select/$endif/){$caselevel--}
+        # CASE DEFAULT is replaced by ELSE
+        else{s/(   )?case *default/$else/}
+    }
+    # Return with 0, since line needs to be printed
+    0;
+}
+
+#===========================================================================
+sub doconstruct{
+   # Replace do constructs with exit and cycle by appropirate goto statements
+   # Use $dolevel and $purelevel to count nested do loops, and pure do loops
+   # Use $gotolabel to count labels, $exitlabel[] and $cyclelabel[] for pures.
+   if(/^( *)do\b */){
+       $dolevel++; $puredo[$dolevel]=($' eq "\n");
+       if($puredo[$dolevel]){
+           $purelevel++;
+           $gotolabel++; $cyclelabel[$purelevel]="$gotolabel  ";
+           $gotolabel++; $exitlabel[$purelevel] ="$gotolabel  "; 
+           print "$cyclelabel[$purelevel]$1continue\n";
+           return(1)
+       }
+   }
+   if($dolevel){
+       if(/^( *)end ?do/){
+           $dolevel--;
+	   if($puredo[$dolevel+1]){
+               print "$fixind$1goto $cyclelabel[$purelevel]\n";
+               print "$exitlabel[$purelevel]$1continue\n";
+               $purelevel--;
+	       return(1);
+           }
+       }else{
+	   s/\bexit\b/goto $exitlabel[$purelevel]/ || 
+           s/\bcycle\b/goto $cyclelabel[$purelevel]/;
+       }
+   }
+   0;
+}
+#===========================================================================
+sub declaration{
+    # Change F90 declaration format to F77 format
+    local($dimension,$varlist,$assign);
+    if(/, *dimension(\S*) *::/){
+	$type=$`; $dimension=$1; $varlist=$';
+        $varlist=~s/(,|\n)/$dimension$1/g;
+        $_="$type$varlist";
+    }elsif(s/::/ /){
+       # Parameter declarations are split into declarations and assignments
+       if(s/, *PARAMETER//i){
+           $assign=$'; chop($assign);
+           # Eliminate assignments of the form "= -1.6e10" to form DECLARATION
+           s/=[^,]*//g;
+           # Form DECLARATION and PARAMETER assignment lines
+           $_.="\nPARAMETER($assign)\n"
+       }
+    }
+}
+
+#===========================================================================
+sub simpleif{
+   #Replace if( ) command_with_section by if( )then;command;endif
+   local($indent,$condition,$body,$tail);
+   if(/^( *)if/){
+      $indent=$1; $condition=&argument($',$tail);
+      # Separate body of IF statement from consecutive lines
+      $tail=~s/ *(.*\n)//; $body=$1;
+      if($body=~/:/){
+         $_="$indent"."if($condition)then\n$indent$sss$body$indent".
+                      "endif\n$tail"
+      }
+   }
+}
+#===========================================================================
+sub functions{
+   #Replace SUM or PROD functions by loops calculating their values
+   local($ifun,$fun,$funval,$arg,$calc,$indent,$head,$tail,%start);
+   # Determine start value for the temporary max_i or min_i variables
+   $start{sum}="0.";$start{prod}="1.";
+   $start{minval}="bigdouble";$start{maxval}="-bigdouble";
+   $start{all}=".true."; $start{any}=".false.";
+
+   # There can be many functions in a line. Index by $ifun.
+   while(/\b(sum|prod|minval|maxval|all|any)\b/){
+      $head=$`; $fun=$1; $ifun++; $funval=$fun."_$ifun";
+      unless($indent){$head=~/^ */;$indent=$&};
+      # Find argument for the function
+      $arg=&argument($',$tail);
+      # Form an appropriate assignment
+      if   ($fun eq "maxval"){$calc="$funval=max($funval,$arg)\n"}
+      elsif($fun eq "minval"){$calc="$funval=min($funval,$arg)\n"}
+      elsif($fun eq "sum"   ){$calc="$funval=$funval+$arg\n"}
+      elsif($fun eq "prod"  ){$calc="$funval=$funval*$arg\n"}
+      elsif($fun eq "all"   ){$calc="$funval=$funval .and. $arg\n"}
+      elsif($fun eq "any"   ){$calc="$funval=$funval .or. $arg\n"};
+      # Form full algorithm from e.g. x=sum(a(1:10))
+      #   sum_1=0;sum_1=tmp_1+a(1:10);x=sum_1
+      $_="$indent$funval=$start{$fun}\n$indent$calc$head$funval$tail";
+   }
+}
+
+#===========================================================================
+sub forall{
+   #Replace FORALL by do loop. The body of the FORALL is a single line
+   local($head,$indent,$range,$body,$tail,$do,$enddo);
+   if(/( *)forall\b/){
+       $head=$`; $indent=$1; $range=&argument($',$tail); 
+       $do=$indent."do "; $enddo=$indent."enddo\n";
+       # Separate body of FORALL from the consecutive lines  
+       $tail=~s/ *(.*\n)//; $body=$1;
+       # Replace commas of FORALL by start of new DO loop
+       $range=~s/,/\n$do/g;
+       # Replace colons of FORALL by commas of DO loops
+       $nloop=$range=~s/:/,/g;
+       # Form line with DO loop
+       $_="$head$indent"."do $range\n$indent$sss$body". $enddo x $nloop .$tail;
+   };
+};
+
+#===========================================================================
+sub where{
+   #Replace WHERE by IF, and WHERE CONSTRUCT by IF CONSTRUCT
+   local($open,$close);
+   if(s/\bwhere\b/$1if/){
+      $head=$`; $condition=&argument($',$tail);
+      # If the argument of WHERE is not followed by anything, it is a CONSTRUCT
+      if($tail=~/^ *\n/){
+         # Form IF THEN
+         $lines="$head"."if($condition)then";
+         # Read following lines until the END WHERE is found.
+         # Separate lines of the WHERE construct whith semicolons, thus
+         # there will be a single do loop around it. 
+         # Comments are printed before the do loop for simplicity.
+         do {
+            $_=<>;
+            unless(&contline || &commentline){chop; $lines.=";".&unquote($_)}
+         } until /end *where/;
+         $_=$lines;
+         # ELSE WHERE is replaced by ELSE and END WHERE by ENDIF
+         s/else *where/else/; s/end *where/endif/;
+      }
+   }
+}
+
+#===========================================================================
+sub sectiontoloop{
+   #Cut lines at \n-s before processing
+   @lines=split(/\n/,$_);
+   for $_ (@lines){$_.="\n";&section2loop};
+   $_=join("",@lines);
+}
+
+#===========================================================================
+sub section2loop{
+   #Identify array dimensions. A multidimension consists of one or more array
+   #dimensions, and at least one of them contains a colon, i.e. a section.
+
+   #!!!Sections containing parantheses are not found this way!
+   #!!!String sections are misinterpreted as array sections!
+
+   local($token)="#"; local(@mdim,@mvar);
+   #Find multidimension and replace it by token
+   while(s/(\w*)\(([^():]*:[^)]*)\)/$token/o){
+       push(@mvar,$1);push(@mdim,$2);
+   };
+
+   if(!@mdim){return};
+
+   $implied=/^ *(write|read)\b/;
+      
+   &makeloops($loophead,$looptail,$implied);
+
+   # Replace tokens by modified multivars and multidims one by one
+   for($imdim=0;$imdim<=$#mdim;$imdim++){
+      s/$token/$mvar[$imdim]\($mdim[$imdim]\)/
+   };
+   return if $implied;
+
+   # FORM LINE CONSISTING OF DO LOOPS COMMANDS ENDDOS WITH PROPER INDENTATION
+   /^ */; $indent=$&;
+   $_="$indent$loophead$sss$_$indent$looptail";
+};
+
+#===========================================================================
+sub makeloops{
+   # Replace sections by loop variables, and for $implied=0 form do loops 
+   # around the whole line, while for $implied=1 form implied do loops for
+   # each multidim variable. 
+   
+   ($loophead,$looptail,$implied)=@_; local($iloop,@dim);
+
+   for($imdim=0;$imdim<=$#mdim;$imdim++){
+      # Variables listed in $stringvar are strings, thus sections are left.
+      next if $stringvar=~/\b$mvar[$imdim]\b/;
+      $mdim[$imdim]=~s/ //g;
+      @dim=split(',',$mdim[$imdim]);
+      $loophead=$looptail="" if $implied;
+      $iloop=0; 
+      for($idim=0; $idim<=$#dim; $idim++){
+         # Dimensions with colons are sections. 
+         if($dim[$idim]=~/:/){
+            # The first colon is between the min and max of the loop, 
+            # the optional second colon is for the stride, it is kept together
+            # with $dimmax, only the ":" is changed to the "," of the do loop.
+            $iloop++; $dimmin=$`; $dimmax=$'; $dimmax=~s/:/,/;
+            die "Missing min and max at $ARGV:$." unless $dimmin ne "" 
+                                                      && $dimmax ne "";
+            # The first multidimension determines the loop structure
+            # For implied loops each multidimension generates loops
+            if($imdim==0 || $implied){
+               &getloopparams($iloop,$dimmin,$dimmax);
+            };
+            # Replace section by loop variable with possible shift
+            $dim[$idim]=&makeindex($loopvar[$iloop],$loopmin[$iloop],$dimmin);
+            # Form implied loop heads and tails
+            if($implied){
+              $loophead.="("; 
+              $looptail.="),$loopvar[$iloop]=$loopmin[$iloop],$loopmax[$iloop]"
+	    }
+         }
+      }
+      # Form the multidimensions from the modified dimensions 
+      $mdim[$imdim]=join(',',@dim);
+      if($implied){
+         # mvar ="((mvar" and mdim = "mdim),i_1=imin1,imax1),i_2=imin2,imax2"
+	 $mvar[$imdim]="$loophead$mvar[$imdim]"; $mdim[$imdim].="$looptail";
+      }
+   }
+   return if $implied;
+   $nloop=$iloop;
+   $loophead="";
+   for($iloop=$nloop;$iloop>0;$iloop--){
+      $loophead.="do $loopvar[$iloop]=$loopmin[$iloop],$loopmax[$iloop];";
+   };
+   $loophead=~s/;$/\n/;
+   $looptail= "enddo;" x $nloop;
+   $looptail=~s/;$/\n/;
+};
+
+#===========================================================================
+sub getloopparams{
+   # Determine loop parameters from array section
+   local($iloop,$dimmin,$dimmax)=@_;
+   # The loop variable name is 
+   # ix_1,ix_2,ix_3, or iw_1, iw_2, ... or idim_1, idim_2,... , or i_1,i_2,..
+   # It is mostly the upper limit $dimmax that contains the name
+   if($dimmax=~/ix/)        {$loopvar[$iloop]="ix_$iloop"}
+   elsif($dimmax=~/(w|dim)/){$loopvar[$iloop]="i$1_$iloop"}
+   else                     {$loopvar[$iloop]="i_$iloop"};
+   $loopmin[$iloop]=$dimmin;
+   $loopmax[$iloop]=$dimmax;
+};
+
+#===========================================================================
+sub makeindex{
+   # Replace array section by loopvariable+shift
+   # !!!Could be optimized for simple shifts
+   local($loopvar,$loopmin,$dimmin)=@_;
+   if($dimmin eq $loopmin[$iloop]){
+      #No shift if the start of section equals to start of loop 
+      "$loopvar";
+   }elsif($loopmin=~/[\+\-]/){
+      # If $loopmin is a sum or difference, it needs to have parens around
+      "$loopvar+($dimmin-($loopmin))";
+   }else{
+      # Loop variable plus shift
+      "$loopvar+($dimmin-$loopmin)";
+   };
+};
+
+#===========================================================================
+sub argument{
+   ($lin,$tail)=@_;
+   $left=index($lin,'(')+1; $right=&match($left);
+   $tail=substr($lin,$right);
+   substr($lin,$left,$right-$left-1);
+}
+
+#===========================================================================
+sub match{
+   local($p,$l)=@_;
+   if($p && ($l=1+index($lin,'(',$p))<($p=1+index($lin,')',$p)) && $l){
+      &match(&match($l))
+   }else{
+      $p
+   }
+};
+
+#===========================================================================
+sub printline{
+    # PRINT FORMATTED OUTPUT LINE BY LINE, SEMICOLON BY SEMICOLON
+    local($line,$indent,$labind);
+    s/;$//;
+    while(s/.*\n//){
+        $line=$&;
+	if($line=~s/^ *(\d+) *//){
+	    $labind=$1. ' ' x ($fix-length($1));
+	    $indent=' ' x length($&); $line=$indent.$line;
+	}else{
+	    $line=~/^ */;$indent=$&;$labind=$fixind;
+	}
+        #SUBSTITUTE SEMI COLONS BY NEW LINES WITH PROPER INDENTATION
+        $line=~s/ *;/\n$indent/g;
+        while($line=~s/(.*)\n//){
+            print &unquote(&format77($labind.$1)),"\n";
+        }
+    }
+}
+#===========================================================================
+sub format77 {
+   local($line)=@_;
+
+   # If line is not too long return
+   return($line) if length($line)<=$maxlen;
+
+   # BREAK LONG LINES INTO CONTINUATION LINES AND/OR REDUCE INDENTATION
+   local($bestlen,$goodlen,$len,$maxindent,$indent,$indentnow,$c,$answer);
+
+   # Determine line indentation. If too much, reduce it to maximum.
+   $maxindent=int(0.6*$maxlen);
+   $line=~s/^(.{$fix})( {0,$maxindent}) */$1$2/; $indent=$2;
+
+   # We are happy if the length of the line is between $goodlen and $maxlen
+   $goodlen=$maxlen-20;
+
+   # Start breaking line
+   while(length($line)>$maxlen){
+       # Find best breakpoint after indentation but before $maxlen
+       $line=~/^.{$fix} */; 
+       $bestlen=$indentnow=length($&);
+       foreach $c ('=','**','*','/','+','-','.or.','.and.','.lt.','.le.',
+                   '.gt.','.ge.','.eq.','.ne.',',',' ','(',')'){
+          if(($len=rindex($line,$c,$maxlen-length($c)))>=0){
+             $len+=length($c) if ($c ne '*' || substr($line,$len+1,1) ne '*');
+             $bestlen=$len if $len>$bestlen;
+             last if $bestlen>$goodlen;
+          }
+       }
+       if($bestlen>$indentnow){
+          # Collect broken parts in $answer, and break the continuation further
+          $answer.=substr($line,0,$bestlen)."\n";
+          $line="     &$indent$sss".substr($line,$bestlen);
+       }else{
+          # No break was found. Remove indentation if there is any or die.
+          $line=~s/^(.{$fix}) +/$1/ ||  
+          die "Couldn't break line:".&unquote($line) 
+       }
+   }
+   $answer.=$line;
+}
+#===========================================================================
+sub tmpvars{
+   # Declare temporary variables in vacdef module
+   print <<DECLARE;
+*##############################################################################
+* TEMPORARY VARIABLES USED BY THE FORTRAN 77 VERSION
+
+      integer          ix_1,ix_2,ix_3,ix_4,ix_5,ix_6,
+     &   idim_1,idim_2,idim_3,idim_4,idim_5,idim_6,
+     &   iw_1,iw_2,iw_3,iw_4,iw_5,iw_6,i_1,i_2,i_3,i_4,i_5,i_6
+      common /INTE77/  ix_1,ix_2,ix_3,ix_4,ix_5,ix_6,
+     &   idim_1,idim_2,idim_3,idim_4,idim_5,idim_6,
+     &   iw_1,iw_2,iw_3,iw_4,iw_5,iw_6,i_1,i_2,i_3,i_4,i_5,i_6
+
+      double precision maxval_1,maxval_2,maxval_3,maxval_4,
+     &   maxval_5,maxval_6,minval_1,minval_2,minval_3,minval_4,
+     &   minval_5,minval_6,sum_1,sum_2,sum_3,sum_4,sum_5,sum_6,
+     &   prod_1,prod_2,prod_3,prod_4,prod_5,prod_6
+      common /DOUB77/  maxval_1,maxval_2,maxval_3,maxval_4,
+     &   maxval_5,maxval_6,minval_1,minval_2,minval_3,minval_4,
+     &   minval_5,minval_6,sum_1,sum_2,sum_3,sum_4,sum_5,sum_6,
+     &   prod_1,prod_2,prod_3,prod_4,prod_5,prod_6
+
+      logical          all_1,all_2,all_3,all_4,all_5,all_6,
+     &        any_1,any_2,any_3,any_4,any_5,any_6
+      common /LOGI77/  all_1,all_2,all_3,all_4,all_5,all_6,
+     &        any_1,any_2,any_3,any_4,any_5,any_6
+DECLARE
+}
+#===========================================================================
+sub quotation{
+   # Hide quoted strings by converting them from 0-127 to 128-255 ASCII.
+   # Only matched quotation marks ( ' and " ) count.
+   local($line)=@_; local($head,$q);
+
+   # From left to right invert quoted text into $head. The rest is in $line.
+   while($line=~/(['"])/){
+      $head.=$`; $q=$1; $line=$';
+      # Check for matching quotation mark. If found, convert quoted part.
+      if($line=~/$q/){$q="$q$`$q"; $line=$'; $q=~tr/\x00-\x7f/\x80-\xff/;}
+      $head.=$q;
+   }
+   $head.$line;
+}
+#===========================================================================
+sub unquote{
+    # Uncover hidden quotations by deleting 8-th bit.
+    local($line)=@_;
+    $line=~tr/\x80-\xff/\x00-\x7f/;
+    $line;
+}
+
+

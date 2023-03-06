@@ -1,0 +1,32 @@
+#! /bin/sh
+# This is a shell script to run VAC in the NQS batch of a Cray C90
+# Usage: qsub jobc90
+
+# Job parameters (limit for memory and CPU time)
+# ==============
+#QSUB -lM 12.0mw
+#QSUB -lT 200
+#QSUB
+
+# Working directory    
+# =================
+cd $HOME/vac/
+
+# Set Unix Fortran binary format
+# ==============================
+assign -F f77 -N ieee_dp g:su
+
+# real*4 output:
+#assign -F f77 -N ieee g:su
+
+# Number of CPU-s (compile with "-O task3" to use more than 1 CPU-s)
+# ===============
+export NCPUS=1
+
+# Run
+# ===
+./vac_example < par/exampleA22
+
+# Run and measure performance with High Performance Monitor:
+#hpm vac_example < par/exampleA22
+

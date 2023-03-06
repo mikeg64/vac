@@ -1,0 +1,23 @@
+figure
+	inic mhdiso
+	erase lineon pointsoff lweight 2 fixx -200 4400 fixy -2.75 2.75
+	define y_gutter 0.5 ptype 4 1
+	location 3500 31000 10000 30500
+	data "data/Corona12.out"
+	getpict 2 1
+	plot1 v2 1 2 1 2 1e5 1e5 "Transverse velocity [km/s]"
+	plot1 v2 1 2 1 1 1e5 1e5 "Transverse velocity [km/s]" "Distance [km]"
+	lineoff pointson
+	data "data/corona12.out"
+	getpict 4 1
+	plot1 v2 1 2 1 2 1e5 1e5 " "
+	limits 0 1 0 1 relocate 0.45 0.85 label TVD-LF vs High resolution
+	data "data/corona12fct.out"
+	getpict 4 1
+	plot1 v2 1 2 1 1 1e5 1e5 " "
+	limits 0 1 0 1 relocate 0.45 0.85 label FCT-YD vs High resolution
+	let lineon pointsoff
+	expand 1.5 lweight 3 
+	toplabel Non-linear Alfv\'en waves
+	expand 1.0001 lweight 1 ptype 4 0 define y_gutter delete
+	location 3500 31000 3500 31000

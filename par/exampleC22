@@ -1,0 +1,41 @@
+ &testlist /
+
+ &filelist
+	filenameini='data/exampleC22.ini',
+	typefileini='ascii'
+	filename=   'data/example22.log',
+		    'data/example22.out'
+	typefileout='binary'
+	typefilelog='special'
+ /
+
+ &savelist
+	itsave(1,1)=0
+	itsave(1,2)=0
+	ditsave=1,5
+ /
+
+ &stoplist
+	itmax=100
+ /
+
+ &methodlist
+	wnames=		'h  	 m1  	 m2'
+	fileheadout=	'Example with Coriolis forces_hdadiab22'
+	eqpar(3)=	4.0
+	typefull=	3*'tvdlf'
+	typelimiter=	3*'woodward'
+	dimsplit=	T
+	sourcesplit=	T
+ /
+
+ &boundlist
+	typeB=	'special','special','fixed'
+		'cont','cont','cont'
+		'symm','symm','asymm'
+		'symm','symm','asymm'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

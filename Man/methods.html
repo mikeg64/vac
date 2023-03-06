@@ -1,0 +1,476 @@
+<HTML>
+<HEAD><TITLE> VAC Manual on the Numerical Methods </TITLE></HEAD>
+<BODY>
+<h1>NUMERICAL METHODS</h1>
+<p>
+This document briefly describes the features of all the spatial
+discretizations available in VAC. The different options can be set in the 
+<A HREF="par.html#Methodlist">&amp;methodlist</A> of the <b>par/PROBLEM</b> 
+file. For each method, the required modules are shown in form of
+the appropriate <b>setvac</b> statement.
+For a more extensive description read the article  
+<A HREF=http://hermes.elte.hu/~gtoth/Papers/vac.html>Comparison of some FCT 
+and TVD Schemes</A>. 
+<p>
+The acronyms FCT, TVD, TVDLF, and TVD-MUSCL stand for Flux Corrected
+Transport, Total Variation Diminishing, TVD Lax-Friedrich, and 
+TVD Monotonic Upwind Scheme for Conservation Laws, respectively.
+<hr>
+This page: 
+	[<A HREF="#Centdiff">Cent.diff.</A>]
+	[<A HREF="#Filter">ACM</A>]
+	[<A HREF="#MacCormack">MacCormack</A>]
+	[<A HREF="#FCT">FCT</A>]
+	[<A HREF="#TVDLF">TVDLF</A>]
+	[<A HREF="#TVDMUSCL">TVD-MUSCL</A>]
+	[<A HREF="#TVD">TVD</A>]
+	[<A HREF="#TVDMC">TVD-MacCormack</A>]
+	[<A HREF="#Divb">Div B=0</A>]
+<hr>
+<H2><A NAME="Centdiff">2nd Order Central Difference</A> Scheme: 
+typefull='cd',...</H2>
+
+<p><b>setvac -on=cd</b><p>
+
+The explicit central differencing schemes are not stable by themselves for 
+advection dominated problems. The second order central difference scheme
+('cd') is used by the TVD scheme before the limiting is applied. 
+Otherwise it is useful for testing a few time steps,
+since this scheme contains no artificial fluxes, thus comparison with
+analytic formulae is straightforward. In principle, it could be used
+for stable implicit time differencing, but there are big oscillations.
+It might also be used as an alternative predictor step for other schemes,
+e.g. for the TVD scheme. 
+
+<H2><A NAME="Filter">Filtered 4th Order Central Difference</A> Scheme: 
+typefull='cd4',...</H2>
+
+<p><b>setvac -on=cd,tvd,rk</b><p>
+
+The fourth order central difference scheme ('cd4')
+is implemented for uniform Cartesian grid with slab symmetry only.
+It should be combined with a filter (e.g. typefilter='tvd1',...), which adds
+a second order diffusive flux afterwards. The diffusion should be reduced
+by the artificial compression method (ACM) using the 'acmcoef', 
+'acmexpo', and 'acmwidth' parameters. The fourth order central difference
+scheme should normally be combined with a fourth (or at least third) order
+time integration scheme (e.g. typeadvance='fourstep'). 
+Helen Yee found a significant improvement relative to 2nd order TVD schemes
+for hydrodynamic problems that involve a combination of discontinuities and 
+smooth flow.
+For similar MHD problems, our preliminary tests (T&oacute;th and Yee) 
+showed only a slight improvement 
+relative to the second order schemes, while the computation time 
+per time step is larger significantly. The reason of this modest 
+success seems to be related to the numerically created div B problem.
+
+<H2><A NAME="MacCormack">MacCormack</A> Scheme: typefull='mc',...</H2>
+
+<p><b>setvac -on=mc</b><p>
+
+The MacCormack method is implemented for problems with no shocks and no steep
+gradients. It is very simple, and faster than the more complicated FCT and TVD
+algorithms. 
+<p>
+This method has not been tested much, but it fails with the Brio-Wu shock tube,
+and seems to work for the advection test of a semicircle wave.
+It is mainly needed in the TVD-MacCormack scheme.
+
+<H2><A NAME="FCT">FCT</A> Scheme: typefull='fct',...</H2>
+
+<p><b>setvac -on=fct</b><p>
+
+The FCT algorithms can handle discontinuities. Some spurious oscillation
+can be produced in MHD calculations. Two types of FCT are implemented: 
+ETBFCT (typefct='etbfct') the default, and YDFCT (typefct='ydfct'). 
+<p>
+ETBFCT should be run with Courant number below 0.5, typically set 
+<b>courantpar=0.4</b>. 
+<p>
+In multidimensions it can be used both with the default dimensional splitting 
+(<b>dimsplit=T</b>), and in a fully multidimensional way (<b>dimsplit=F</b>). 
+No clear advantage of the latter method has been demonstrated so far, 
+except for the Zalesak slotted cylinder problem. 
+<p>
+There is a great variety of limiters for the unsplit ETBFCT scheme, 
+see Man/<A HREF="par.html#Methodlist">par</A>. It is not clear which one is best, but it does not make a 
+big difference most probably.
+<p>
+In most cases YDFCT produces results very similar to ETBFCT, but it is 
+twice as fast, since it works up to Courant number 1, typically set 
+<b>courantpar=0.8</b>.
+You have to use dimensional splitting with YDFCT to avoid numerical 
+instability, thus there is no choice of limiters either. 
+<p>
+Both FCT methods use ETBFCT for predictor step.
+
+<H2><A NAME="TVDLF">TVDLF</A> Scheme: typefull='tvdlf','tvdlf1'...</H2>
+
+<p><b>setvac -on=tvdlf</b><p>
+
+The TVD Lax-Friedrich method is robust, in most cases there are no spurious
+oscillations, but it is somewhat more diffusive than FCT or the other TVD
+methods. Since it does not use a Riemann solver, it is usually faster than 
+either YDFCT or TVD. 
+<p>
+The Courant number should be less than 1, <b>courantpar=0.8</b> is recommended.
+<p>
+TVDLF should be dimensionally split according to Yee, <b>dimsplit=T</b>.
+Numerical experiments show however that in most cases TVDLF can be used with 
+<b>dimsplit=F</b>, and maybe with a slightly reduced Courant number 
+(to around 0.5) as well. The unsplit evaluation is usually more efficient and 
+more accurate for generalized coordinates, it is also preferred for steady
+state calculations.
+<p>
+The second order TVDLF scheme <b>typefull='tvdlf'</b> uses limiters.
+There are a few choices available: the 'minmod' limiter gives the smoothest 
+result, the 'woodward' limiter is sharper, and the 'superbee' limiter is 
+probably too sharp. The <b>'woodward'</b> limiter is recommended, but note
+that the default is the most robust <b>typelimiter='minmod',...</b>.
+The slope limiting is performed on the conservative variables by default.
+Numerical problems (e.g. negative temperature) can often be avoided by
+limiting the slopes of the primitive variables: set <b>useprimitive=T</b>
+in the method list of the parameter file.
+Second order time discretization is best achieved by a Hancock predictor step.
+<p>
+The first order TVDLF method <b>typefull='tvdlf1'</b> uses no limiters 
+or predictor step as it is only first order accurate. It is mostly needed for
+the implicit and semi-implicit schemes, since it uses a compact 3-point 
+stencil, and it is inexpensive.
+
+<H2><A NAME="TVDMUSCL">TVD</A>-MUSCL Scheme: typefull='tvdmu','tvdmu1',...</H2>
+
+<p><b>setvac -on=tvdlf,tvd</b><p>
+
+The TVD-MUSCL scheme is a two-step TVD algorithm using the same Hancock
+predictor step and upwinding as TVDLF, and a characteristic based Riemann
+solver similar to the TVD and TVD-MacCormack methods. 
+At the moment Riemann solvers are implemented for adiabatic hydrodynamics 
+(setvac -p=hdadiab), hydrodynamics (-p=hd), isothermal or polytropic MHD
+(-p=mhdiso) and full MHD (-p=mhd). 
+The scalar transport equation (-p=rho) has a trivial Riemann solver. 
+Though the Riemann solver is computationally expensive, it is applied only 
+once per time step in the predictor-corrector scheme, thus it is fairly 
+efficient. Consequently the scheme has comparable resolution to the non-MUSCL
+TVD method, but it is slightly slower due to the predictor step. It is, of 
+course, considerably slower than the simple TVDLF algorithm.
+<p>
+The first order <b>typefull='tvdmu1'</b> scheme uses no limiters, it is 
+a first order upwind scheme <em>for each characteristic variable</em>. 
+It may be used for test purposes, or for a (semi-)implicit time integration.
+<p>
+The Courant number should be less than 1, <b>courantpar=0.8</b> is recommended.
+<p>
+TVD-MUSCL can be dimensionally split <b>dimsplit=T</b> or unsplit <b>F</b>.
+If instabilities occured and the dimensional splitting is not desirable 
+(e.g. for generalized coordinates or steady state calculation), 
+the rather expensive multistep Runge-Kutta schemes can be applied, 
+e.g. "typeadvance='sterck'", or the Courant number can be reduced to e.g. 0.5.
+<p>
+<b>typelimiter</b> has the same meaning as for TVDLF.
+The slope limiting is performed on the conservative variables by default.
+Numerical problems (e.g. negative temperature) can often be avoided by
+limiting the slopes of the primitive variables setting <b>useprimitive=T</b>
+in the method list of the parameter file.
+<p>
+Linear Riemann solvers can produce non-physical solutions. This might be
+eliminated by the use of an entropy fix, but the default is 
+<b>typeentropy='nul',...</b>, since this problem does not seem to occur 
+too often. Tests of the different entropy fixes suggest that 
+the <b>'powell'</b> entropy fix is the most effective when an entropy fix
+is needed at all, while the <b>'yee'</b> fix requires the least calculations,
+and the <b>'harten'</b> fix is the least diffusive.
+<p>
+In multidimensional MHD calculations the divergence of the magnetic field
+can cause a numerical instability. There are three ways to stabilize it.
+The default is <A HREF="#Powell's">Powell's</A> eight-wave Riemann solver
+(divbwave=T) with non-conservative source terms (divbfix=T), which eliminates 
+the instability, but not the error, in div B. If <b>div B</b> becomes 
+significant relative to the current density <b>curl B</b>, the 
+<A HREF="#Projection">projection scheme</A> (nproc=1,0,0,0) or one of the 
+<A HREF="#Constrain">constrained transport/central difference</A>
+schemes (dvibconstrain=T) should be used, which keep div B small.
+
+<H2><A NAME="TVD">TVD</A> Scheme: typefull='tvd','tvd1',...</H2>
+
+<p><b>setvac -on=tvd,cd</b><p>
+
+The non-MUSCL TVD method with Roe's approximate Riemann solver is one of
+the most accurate and efficient of the implemented schemes. 
+<p>
+There are a few variants of the TVD scheme, but the default 
+<b>typetvd='roe'</b> is the fastest and no difference between the performance 
+of the different types has been found, except for the 'symmetric' type, 
+which is quite diffusive.
+<p>
+The solver has to be dimensionally split, set <b>dimsplit=T</b>.
+<p>
+The Courant number should be less than 1, <b>courantpar=0.8</b> is recommended.
+<p>
+The same limiters can be used as for TVDLF and TVD MUSCL, but they are 
+applied to the characteristic waves, rather than to the conservative 
+variables. The order of the characteristic waves is defined in the 
+<b>vacpar.t.*</b> files. The <b>'woodward'</b> limiter is recommended, 
+but note that the default is <b>typelimiter='minmod',...</b>. 
+It may be beneficial to use the 'superbee' limiter
+for the entropy wave to resolve contact discontinuities.
+The 'roe' and 'superroe' limiters (by Arora and Roe JCP 132, p.3)
+can also be used, they seem to be very similar to the 'woodward' and 
+'superbee' limiters, respectively, but slightly more complicated.
+For <b>typetvd='harten'</b>, artificial compression may also be applied
+by setting the elements of the <b>artcomp</b> logical array to true. The
+original TVD scheme by A.Harten uses artificial compression and minmod limiter,
+but it seems that using the Woodward limiter is simpler and just as good.
+<em>Artificial compression has been implemented in VAC by M.Nauta</em>.
+<p>
+The TVD scheme is a single step method, still sources are evaluated to second
+order accuracy using D.Ryu's (APJ 452, p.377) preprocessing step (with
+a slight correction by G. T&oacute;th). 
+For steady state and/or implicit calculations, however, the 
+<em>temporally first but spatially second order</em> <b>tvd1</b>
+method is advised. This scheme was suggested by H.Yee: simply all terms
+proportional to dt**2 are omitted from the TVD scheme.
+<p>
+The entropy fix for the Riemann solver is given by the <b>typeentropy</b>
+array, it has the same meaning as for the TVD-MUSCL method, and for MHD,
+the divergence B problem should also be taken care of.
+
+<H2><A NAME="TVDMC">TVD-MacCormack</A> Scheme: typefull='tvdmc',...</H2>
+
+<p><b>setvac -on=tvd,mc</b><p>
+
+The TVD-MacCormack scheme is very similar to the TVD scheme, except that
+it uses a second order MacCormack step instead of a single Euler step 
+before the limiting is done. It is somewhat slower, and for the Brio-Wu
+problem it seems to produce oscillations at the same place as the FCT methods.
+<p>
+Reducing the Courant parameter seems to help, thus
+<b>courantpar=0.5</b> is recommended.
+<p>
+Due to its two-step nature it can evaluate source terms to second order 
+accuracy, and does not require dimensional splitting. For these purposes,
+however, the TVD-MUSCL scheme is probably superior, therefore it is 
+recommended instead of TVD-MacCormack.
+<p>
+The remarks on the <b>typetvd</b>, <b>typelimiter</b>, and <b>typeentropy</b>
+parameters and on the <b>div B</b> problem made for the TVD scheme also apply 
+here.
+
+<H2><A NAME="Divb">Maintaining</A> the div B=0 Condition</H2>
+
+In multidimensional MHD the numerical conservation of div B is
+not guaranteed by the standard FCT or TVD type schemes. 
+This can lead to inaccuracies as well as instablilities.
+There are three ways to deal with this problem with VAC.
+
+<H4><A NAME="Powell's">Powell</A>'s fix: divbfix=T, divbwave=T</H4>
+
+For multidimensional MHD calculations the non-conservative form of
+the <A HREF=equations.html#MHD>MHD equations</A> seems to produce better 
+results than the usual conservative form. The idea is to include
+source terms proportional to div B into the momentum, energy and induction
+equations and to add a divergence wave for the Riemann solver.
+<p>
+Powell's scheme is fast, it stabilizes the Riemann solver, improves results
+for FCT and TVDLF, but it is non-conservative, and div B is not kept close to 
+zero. A good alternative can be the projection scheme.
+
+<H4><A NAME="Projection">Projection</A> scheme: divbfix=F, nproc=1,..</H4>
+
+<p><b>setvac -on=poisson</b><p>
+
+If you use the projection scheme, you can probably switch Powell's corrective 
+sources off by <b>divbfix=F</b>, since the corrective source terms 
+proportional to div B will be extremely small. You may also switch off the
+divergence wave of the Riemann solver by <b>divbwave=F</b>. For implicit
+time integration, however, leaving Powell's terms switched on is advised.
+<p>
+In multidimensional MHD calculations a projection scheme can be applied to
+remove the divergence of the magnetic field by setting <b>nproc=1,0,0,0</b>
+or <b>1,0,0,1</b> in the <b>&amp;methodlist</b>, which results in a call of 
+the <b>projectb</b> subroutine in the <b>src/vacproc.projectb.t</b> file 
+before every time step. 
+See Man/<A HREF="par.html#nproc">par</A> for the detailed meaning of the 
+<b>nproc</b> array.
+<p>
+The projection scheme corrects B to a divergence free B' by solving the
+<pre>
+div grad phi = - div B
+</pre> 
+Poisson equation for the scalar field <b>phi</b>, and then it calculates 
+<pre>
+B'= B + grad phi
+</pre>. The Poisson equation is solved by the Conjugate Gradient ('cg') 
+or the stabilized Bi-Conjugate Gradient ('bicgstab'), or possibly the 
+MINRES ('minres') iterative methods according 
+to the value of <A HREF="par.html#Methodlist"><b>typepoisson</b></A>.
+The CG method uses one matrix vector multiplications 
+(i.e. the application of the Laplace operator) per iteration,
+while BiCGSTAB requires two. However, the CG method is likely to fail
+if the Laplace operator is not a symmetric matrix, which is usually 
+the case on general non-Cartesian grids and/or in non-slab symmetry.
+These schemes are in the src/vacpoisson.t file, so the VACPOISSON
+module has to be on (setvac -on=poisson). If only CG is used, the memory
+usage can be reduced by setting nwrk=1 in src/vacdef.t 
+(or in src/vacdef.f after precompilation), BiCGSTAB requires nwrk=5,
+while MINRES requires temporary storage of nwrk=7 real numbers per grid point.
+<p>
+The <b>procpar</b> array determines how accurately the iterative scheme 
+should solve the Poisson equation. In the first time step the maximum of
+the magnitude of the divergence of the magnetic field 
+<b>divbmax0=maxval(abs(div B))</b> is calculated 
+(it is written to the terminal) and then the upper limit for abs(div B)
+is set according to the values of <b>divbcoeff=procpar(1)</b> and 
+<b>divbconst=procpar(2)</b>.
+When both parameters are non-negative, the allowed maximum for div B is 
+<pre>
+divbmax = divbmax0*divbcoeff + divbconst  
+</pre>
+Using e.g. divbcoeff=0 results in divbmax=divbconst, while 
+the default values are <b>divbcoeff=0.1</b> and <b>divbconst=0</b>,
+which make divbmax one tenth of the initial value. A negative value
+in the range <b>0&gt;divbcoeff&gt;-1</b> instructs the projection scheme to 
+reduce the second norm of div B by a factor of |divbcoeff|. Finally, the 
+maximum number of matrix vector multiplications <b>matvecmax</b> can be given 
+by setting either divbcoeff or divbconst to a negative integer value. 
+E.g. divbcoeff=-0.1 and divbconst=-100 requires the iterative scheme to 
+reduce the second norm of div B by a factor of 0.1, but it also limits the 
+number of iterations to be at most 100. Alternatively, divbcoeff=-100 and 
+divbconst=0.01 requires max(abs(div B))<0.01 with matvecmax=100.
+The default limit is rather huge, matvecmax=1000.
+<p>
+The third element of the <b>procpar</b> array is <b>divbbound</b>. 
+Its absolute value determines whether total energy (=1), thermal pressure 
+(=2), or total pressure (=3) should be conserved during the correction.
+The sign of <b>divbbound</b> tells, if boundaries should be updated.
+When it is positive the boundaries are updated after the projection scheme,
+which may produce small errors in div B at the boundary.
+The default value is -1, which means conservation of total energy, strict 
+enforcement of div B, but less strict enforcement of the boundary conditions. 
+<p>
+Currently the projection scheme can handle cont, fixed, symmetric, and 
+periodic boundary conditions exactly. These are recognized from the 
+boundary type <b>typeB</b> being <b>cont, fixed, fixed1, symm, asymm</b>, 
+or <b>periodic</b> for the orthogonal component of <b>B</b>. 
+Even for these boundary types only <b>divbbound&gt;0</b> results in perfectly 
+periodic or symmetric boundary conditions, but now div B remains small 
+next to the boundaries, since the projection scheme takes the boundary 
+conditions into account when the correction <b>phi</b> is calculated.
+<p>
+As an example, the meaning of <b>procpar=-15,0.01,2</b> is that abs(div B)
+should be kept below 0.01 at the cost of at most 15 matrix vector 
+multiplications; the correction of B should not change the thermal pressure;
+and the boundary conditions should be applied after the correction.
+<p>
+The best way to estimate the allowable value for div B is to run the code for
+a few time steps with <b>teststr='projectb'</b> set. A good strategy is to 
+keep div B somewhat below the error produced in each time step. This way, the
+error cannot grow and the number of iterations to achieve this accuracy
+will be small, typically 10. 
+<p>
+With optimal settings the projection scheme should not use more than 5-30% 
+of the total CPU time. The scheme is most efficient for slab symmetric 
+Cartesian grids where both the Laplace operator and the iterative scheme (CG)
+are the least expensive computationally.
+
+<H4><A NAME="Constrain">CT/CD</A> schemes: divbfix=F, divbconstrain=T</H4>
+
+<p><b>setvac -on=ct</b><p>
+
+The constrained transport / central difference schemes (CT/CD) can 
+maintain zero divergence (in some particular discretization) for the 
+magnetic field to the accuracy of round-off errors as long as the initial and 
+boundary condition are compatible with the constraint. Similarly to the 
+projection scheme, the CT/CD step is applied after the <em>base scheme</b>,
+(any second order scheme implemented in VAC) and it only affects the magnetic
+field. Unlike the projection scheme, the CT/CD schemes are local operations
+(no Poisson solver is needed), and they maintain
+<pre>
+         n+1        n
+    div B    = div B
+</pre>
+in some particular discretization rather than eliminating the error. 
+Therefore the initial and boundary conditions should satisfy div B=0 exactly. 
+<p>
+In their original form, the <b>CT</b> schemes use a staggered discretization 
+for the magnetic field components, e.g. the b_x components are on the j-1/2,k
+and j+1/2,k cell interfaces, while the b_y components are on the j,k-1/2
+and j,k+1/2 interfaces. The staggered variables are updated by central
+differencing the <em>cell edge</em> centered electric field 
+<b>Omega=E_z</b>, consequently the divergence of the staggered field
+<pre>
+
+          x        x        y       y
+         b       -b        b      -b
+          j+1/2k  j-1/2k    jk+1/2  jk-1/2
+div b  = --------------- + ---------------
+     jk        dx                dy
+</pre>
+is kept zero. After the update, the staggered components are interpolated 
+into the cell centered components.
+<p>
+<center><IMG SRC=method.stagger.gif></center>
+<p>
+In the VAC implementation, the staggered representation is never realized, 
+the update is done directly on the cell centered variables. 
+Still, the div B=0 constraint is satisfied,
+but in a slightly unusual cell corner centered discretization:
+<pre>
+                   x       x     x     x     y       y     y     y
+                  B      +B    -B    -B     B      +B    -B    -B
+                   j+1k+1  j+1k  jk+1  jk    j+1k+1  jk+1  j+1k  jk   
+div B          = ------------------------ + -----------------------
+     j+1/2k+1/2               2 dx                    2 dy
+
+</pre>
+which can be plot by the <A HREF=idl.html#Animfunc>IDL macros</A> as 
+'func=divb_CT'. 
+<p>
+The <b>central difference</b> approach does not assume intermediate 
+staggered variables at all. The magnetic field is updated by central 
+differencing the cell centered and time centered electric field:
+<p>
+<center><IMG SRC=method.center.gif></center>
+<p>
+Consequently the CD schemes maintaine div B=0 in the usual cell centered 
+discretization
+<pre>
+          x     x       y     y
+         B    -B       B    -B
+          j+1k  j-1k    jk+1  jk-1
+div B  = ----------- + -----------
+     jk     2 dx         2 dy
+</pre>
+Both the constrained transport and central difference schemes update the
+magnetic field by applying simple differences of the time centered 
+<em>electric field</em>. The electric field is either approximated from
+<b>v x B</b> at time levels <b>n</b> and <b>n+1</b>, or by collecting the
+upwind fluxes of the TVD type schemes. These possibilities lead to at
+least four different schemes: <b>field-CD, flux-CD, field-CT, flux-CT</b>.
+There are further variations on how the spatial interpolation and the
+construction of the (upwinded) electric field is combined.
+The method is selected by the <A HREF=par.html#Methodlist>typeconstrain</A> 
+parameter. 
+<p>
+Based on extensive numerical testing, the simplest field-CD scheme 
+(<b>typeconstrain='EfieldCD'</b>) seems
+to be the best, it performs similarly to the projection scheme. 
+In some problems the flux-CT ('fluxCT') scheme is the best among the CT/CD
+schemes. The field-CT and transport-flux-CT schemes are counteradvised.
+The detailed comparison of these schemes with the projection scheme 
+and Powell's 8-wave scheme is beyond the scope of this manual,
+it is presented in the paper 
+<A HREF=http://hermes.elte.hu/~gtoth/Papers/vac.html#Divb>
+The div B=0 Constraint in Numerical MHD</A> in detail.
+<p>
+The CT and CD schemes can be generalized to 3D, to curvilinear grids, 
+to axial symmetry, and/or to resistive MHD. 
+Currently the field-CD scheme generalizations are implemented
+in VAC.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

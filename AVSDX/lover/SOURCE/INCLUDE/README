@@ -1,0 +1,14 @@
+@(#)README	2.1
+This directory contains the include files used by lover.
+
+'lover.h' is an include file intended to be used by the user. It contains 
+symbolic parameters to indicate primitive types (float, double),
+structure types (scalar, 3-vector), field formats (internal or 
+general, ascii or binary), etc. The parameters can be passed as 
+arguments to the lover subroutines (see the documentation).
+
+'comorde' is the include file which determines the binary byte 
+order which defaults to msb. If you have a machine with lsb 
+ordering you will have to change this file.
+
+

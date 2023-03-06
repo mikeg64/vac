@@ -1,0 +1,56 @@
+geteqpar
+	set gamma=eqpar[0] set eta=eqpar[1]
+extraarr
+	geteqpar
+	define Extra_Var " "
+	if($?Velocity){
+	    do idir=1,ndir{
+		set Av$idir=Am$idir/Arho
+		define Extra_Var "$!Extra_Var v$!idir"
+	    }
+	}
+	if($?Pressure){
+	    set Ap=Ae
+	    do idir=1,ndir{set Ap=Ap-0.5*(Am$idir**2/Arho+Ab$idir**2)}
+	    set Ap=(gamma-1)*Ap
+	    define Extra_Var "$!Extra_Var p"
+	}
+	if($?Vectorpot){vectorpot Ab1 Ab2 define Extra_Var "$!Extra_Var a"}
+	if($?Vectorpot_r){
+	   set rbr=Ax*Ab1 set rbz=Ax*Ab2
+	   vectorpot rbr rbz
+	   set Aa=-Aa
+	   define Extra_Var "$!Extra_Var a"
+	   delete rbr delete rbz
+	}
+	if($?Divb){
+	    set Adivb=gradx(Ab1)+grady(Ab2) 
+	    define Extra_Var "$!Extra_Var divb"
+	}
+	if($?Rotb){
+	    set Arotb=gradx(Ab2)-grady(Ab1)
+	    define Extra_Var "$!Extra_Var rotb"
+	}
+extravar
+	geteqpar
+	set p=e
+	do idir=1,ndir{
+	    set v$idir=m$idir/rho
+	    set p=p-0.5*(v$idir*m$idir+b$idir**2)
+	}
+	set p=(gamma-1)*p
+	set cs=sqrt(gamma*p/rho)
+vectorpot	2
+	#Calculate vectorpotential Aa from Ab1 and Ab2
+	set A_b1=$1 set A_b2=$2
+	set Aa=0*A_b1
+	do i=2,n1-1{
+	    set Aa[$i]= -A_b2[$i-1]*(Ax[$i]-Ax[$i-2])+Aa[$i-2]
+	    set Aa[$i+n1]= -A_b2[$i-1+n1]*(Ax[$i+n1]-Ax[$i-2+n1])+Aa[$i-2+n1]
+	}
+	set rowh=0,n1-1 set rowi=rowh+n1 set rowj=rowi+n1
+	do i=2,n2-1{
+	    set Aa[rowj]=A_b1[rowi]*(Ay[rowj]-Ay[rowh])+Aa[rowh]
+	    set rowh=rowi set rowi=rowj set rowj=rowj+n1
+	}
+	delete rowh delete rowi delete rowj

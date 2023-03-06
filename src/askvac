@@ -1,0 +1,18 @@
+#!/usr/bin/perl
+# Find all string valued cases in the .t source files to help user
+# -------------------------------------------------------------------------
+@ARGV=split(' ',`ls vac*.t`);
+while(<>){
+    # FIND CHARACTER TYPE CASE CONSTRUCTS, COLLECT CASES
+    # Look for select case($casevar) statements. Store casevar.
+    # Use $nc to count the number of nested case constructs.
+    if(/select +case *\((.*)\) *$/){$nc++; $casevar[$nc]="\n$1:"; next}
+    # Character type cases are collected in %option
+    if($nc && /^ *case *\(('.*)\)/){
+       $option{$casevar[$nc]}.="$1," unless $option{$casevar[$nc]}=~/$1/;
+       next
+    }
+    # "end select" reduces the nesting level
+    if(/end *select/){$nc--; next}
+}
+print %option,"\n";

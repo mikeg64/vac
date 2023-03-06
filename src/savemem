@@ -1,0 +1,293 @@
+#!/usr/bin/perl -s
+# Figure out how common variables can save memory
+# -------------------------------------------------------------------------
+
+#Variables containing $hugedim are to be put into overlapping common blocks
+$hugedim="ixGlo"; 
+$unitname="M" unless $unitname;
+if   ($unitname eq "G"){$unit=1024*1024*1024/8}
+elsif($unitname eq "M"){$unit=1024*1024/8}
+elsif($unitname eq "K"){$unit=1024/8}
+elsif($unitname eq "B"){$unit=1/8}
+else{die "Unitname must be G, M, K or B!\n"};
+
+if($help){
+    print STDERR <<HELPMSG ;
+savemem [-help][-testpar][-testcall][-testproc][-testlevel][-pure]
+        [-unitname=G|M|K|B]sourcefiles
+
+The purpose of savemem is eliminating memory waste as much as possible.
+
+savemem source1 source2 source3 > outfile
+
+will create an output with appropriate COMMON blocks and PADDING variables
+inserted into all the subroutines which have local variables with a dimension
+containing the pattern "$hugedim". The sizes of the constants are taken from 
+vacdef.f and vacpar.f. If you want to see the inserted part only say
+
+savemem -pure source1 source2 source3
+
+You can get some information by using the "-test*" flags. Only "-pure" 
+output can be created when any of the test flags are used. The units in
+which the array sizes are displayed can be set by the "-unitsize=" flag.
+The default is "M", i.e. Megabyte, "G" is Gigabyte, "K" is Kilobyte and 
+"B" is Byte.
+
+The "-help" flag results in this message.
+HELPMSG
+    exit
+}
+
+#The list of source file names is provided from the command line
+@source=@ARGV;
+
+#Get the value of nw from "vacpar.f"
+@ARGV=("vacpar.f");
+while(<>){
+    next if &contline;
+    if (/^INTEGER,PARAMETER::/){
+        #Form Perl assignments from the Fortran assignments and evaluate
+        #The variable names are prefixed by "P" to avoid name conflicts
+	$_=$';s/!.*//;s/ //g;s/,/;/g;s/\b([a-zA-Z])/\$P\1/g;
+        eval;
+    }
+}
+print "-"x79,"\n","nw=$Pnw," if $testpar;
+
+#The declaration of ixGlo,ixGhi,ndim and ndir has a fixed format in vacdef.f
+@ARGV=("vacdef.f");
+while(<>){
+    next if &contline;
+    if(/ixGlo1=(\d*)/){$PixGlo1=$1};
+    if(/ixGlo2=(\d*)/){$PixGlo2=$1};
+    if(/ixGlo3=(\d*)/){$PixGlo3=$1};
+    if(/ixGhi1=(\d*)/){$PixGhi1=$1};
+    if(/ixGhi2=(\d*)/){$PixGhi2=$1};
+    if(/ixGhi3=(\d*)/){$PixGhi3=$1};
+    if(/ndim=(.), *ndir=(.)/){$Pndim=$1;$Pndir=$2}
+};
+print "ixGhi=$PixGhi1 $PixGhi2 $PixGhi3,ndim=$Pndim,ndir=$Pndir\n\n" 
+                                                              if $testpar;
+
+#Generate lists of huge local variables and their sizes for each procedure
+@ARGV=@source;
+while(<>){
+    next if /^$/ || /!/;
+    next if &contline;
+    chop;
+    if($declare){
+        if(&setdeclare){
+	    &getvariable;
+	    #Common and saved variables are global
+	    if(m#^ *(common */\w*/|save) *:?:? *#i){$globalvar.=",$'"};
+	}else{
+	    #Eliminate global variables from variables
+	    $globalvar=~s/ //g; $variable=~s/ //g;
+
+	    $locvar=join(',',grep($globalvar!~/\b$_\b/,split(',',$variable)));
+	    $localvar{$proc}=$locvar if ($locvar);
+	    #print "Trimmed Local:$localvar{$proc}\n";
+        }
+    }elsif(&getproc){
+        #Identify the main program and functions
+	$program=$proc if(/program/); $func.="$proc|" if(/function/);
+        #Parameter variables of subroutine or function are non-local
+        $globalvar=(/\((.*)\)/)? $1 : ""; $variable="";
+        $declare=1;
+    }
+}
+#Get rid off trailing separators
+chop($func);
+
+$func='DUmmY' unless $func;
+
+#Create calling tree based on "call subroutine" and "funcname" patterns
+@ARGV=@source;
+while(<>){
+    next if /^$/;
+    s/ *!.*//;
+    next if &contline;
+    next if &getproc;
+    while(s/\bcall +(\w*)|\b($func)\b//){
+        #Append "$proc" to "%sub" unless it was itself or listed already
+	$sub{$proc}.="$+," unless ($+ eq $proc || $sub{$proc}=~/\b$+\b/);
+    }
+}
+chop(%sub);
+
+if($testcall){
+    $~="TESTCALL";$^="TESTCALL_TOP";
+    foreach $proc (sort(keys %sub)){write};
+    print "\n";
+}
+
+#Determine the "%level" calling distance from the main program. No recursion!!!
+#Procedures without huge local variables do not increase the level
+die "Main program is missing!\n" unless $program;
+$current{$program}=1; $level{$program}=1;
+SETLEVEL:{
+    @current=keys %current; undef %current;
+    foreach $proc (@current){
+	foreach $sub (split(',',$sub{$proc})){
+	    $level{$sub}=$level{$proc};
+	    $level{$sub}++ if($localvar{$proc});
+	    $current{$sub}=1;
+	}
+    }
+    redo SETLEVEL if(%current);
+}
+
+#Calculate memory usage for each subroutine and save into %numsize
+
+foreach $proc (keys %localvar){
+    #Form the "size" string from %size to be evaluated numerically
+    #  "lo1-1:hi1+1,nw" --> "(($Plo1-1)-(1+$Phi1+1))*(($Pnw))"
+    foreach $var (split(',',$localvar{$proc})){
+       $size="((".$size{"$proc-$var"}."))";
+       $size=~s/:/)-(1+/g;
+       $size=~s/,/))*((/g;
+       $size=~s/ixglo/ixGlo/gi; $size=~s/ixghi/ixGhi/gi;
+       $size=~s/\b([a-zA-Z])/\$P\1/g;
+       $numsize=abs(eval($size));
+
+       die"Variable $var has zero size in $proc" unless $numsize;
+       $numsize{$proc}+=$numsize;
+    }
+}
+
+#Determine the %proc list of procedures-with-size and %maxsize for each level
+foreach $proc (keys %numsize){
+    if($level=$level{$proc}){
+       $proc{$level}.="$proc(".substr($numsize{$proc}/$unit,0,4)."),";
+       $maxsize{$level}=$numsize{$proc} unless $maxsize{$level}>$numsize{$proc}
+    }
+};
+chop(%proc);
+
+if($testproc){
+    $~="TESTPROC";$^="TESTPROC_TOP";
+    foreach $proc (sort(keys %localvar)){if($level{$proc}){
+	$size=substr($numsize{$proc}/$unit,0,4).$unitname;
+	write;
+    }}
+    print "\n";
+}
+
+if($testlevel){
+    $~="TESTLEVEL";$^="TESTLEVEL_TOP";
+    foreach $level (sort(keys %maxsize)){
+	$size=substr($maxsize{$level}/$unit,0,5)." $unitname ";
+        write;
+    }
+}
+exit if (!$pure && ($testpar || $testcall || $testproc || $testlevel));
+
+#Insert "COMMON /LEVELn/ localvar" into all the appropriate procedures
+#Provide padding for subroutines with less than maximum size of local variables
+@ARGV=@source;
+while(<>){
+    if(/!/||/^$/){print; next};
+    if($declare){
+        $cont || &setdeclare;
+	if(!$declare&& ($localvar=$localvar{$proc}) && ($level=$level{$proc})){
+	    $numsize=$numsize{$proc}; $maxsize=$maxsize{$level};
+	    print "! $proc(",substr($numsize{$proc}/$unit,0,4)," $unitname)\n";
+	    if($maxsize>$numsize){
+		print "DOUBLE PRECISION:: padding(",$maxsize-$numsize,")\n";
+		$localvar.=",padding";
+	    }
+	    print "COMMON /LEVEL$level{$proc}/ $localvar\n";
+            print ("\n!","-"x77,"\n");
+        }
+    }else{$declare=&getproc};
+    $cont=/\&$/;
+    print unless $pure;
+}
+
+###############################################################################
+sub getproc{
+    if(/(program|subroutine|function) +(\w*)/){$proc=$2}
+}
+#===========================================================================
+sub contline{
+    if(/\&$/){$line.=$_}else{$_=$line.$_;s/\&\n *//g;$line=""}
+}
+#===========================================================================
+sub setdeclare{$declare=
+ /\b(integer|real|double precision|logical|character|include|common|save)\b/i;
+}
+#===========================================================================
+sub getvariable{
+    #Append variables to $variable and store %size{$proc-$var} of the variables
+    local($l,$var,$var);
+    if(/$hugedim/io){
+	if(/dimension *\(([^\)]*)\) *:: */){
+            #Each variable is declared by "dimension(..hugedim..):: varlist"
+	    $size=$1; $size=~s/ //g; $vars=$'; $vars=~s/ //g; 
+	    foreach $var (split(',',$vars)){$size{"$proc-$var"}=$size};
+	    $variable.="$vars,";
+            #print "Getvariable:$_\nSize:",%size,"\n";
+	}else{
+            #Collect variables declared like "varname(..hugedim..)"
+	    $l=$_;
+	    while(/(\w*) *\([^\)]*$hugedim/io){
+                $var=$1;
+                $size=&argument("$&$'",$tail);
+                $_=$tail;
+		$size=~s/ //g;
+		$size{"$proc-$var"}=$size;
+		$variable.="$var,";
+                #print "Getvariable:$_\nSize:",%size,"\n";
+	    }
+	}
+    }
+}
+
+#===========================================================================
+sub argument{
+   ($lin,$tail)=@_;
+   $left=index($lin,'(')+1; $right=&match($left);
+   $tail=substr($lin,$right);
+   substr($lin,$left,$right-$left-1);
+}
+
+#===========================================================================
+sub match{
+   local($p,$l)=@_;
+   if($p && ($l=1+index($lin,'(',$p))<($p=1+index($lin,')',$p)) && $l){
+      &match(&match($l))
+   }else{
+      $p
+   }
+};
+
+###############################################################################
+
+
+    format TESTCALL_TOP=
+Procedure       Called subroutines and functions
+--------------- ---------------------------------------------------------------
+.
+    format TESTCALL=
+@<<<<<<<<<<<<<< @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$proc,$sub{$proc}
+.
+
+    format TESTPROC_TOP=
+Procedure       Lev Size  Local variables
+--------------- --- ----- -----------------------------------------------------
+.
+    format TESTPROC=
+@<<<<<<<<<<<<<< @>> @>>>> @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$proc,$level{$proc},$size,$localvar{$proc}
+.
+
+    format TESTLEVEL_TOP=
+L LevelSize Procedures(size)
+- --------- -------------------------------------------------------------------
+.
+    format TESTLEVEL=
+@ @>>>>>>>> @<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+$level,$size,$proc{$level}
+.
+

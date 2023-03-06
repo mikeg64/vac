@@ -1,0 +1,161 @@
+<HTML>
+<HEAD>
+<TITLE>VAC DATA FILE FORMAT</TITLE>
+</HEAD>
+<BODY>
+<H1>VAC DATA FILE FORMAT</H1>
+
+All data files consist of an arbitrary number of snapshots simply written
+one after the other. Each snapshot contains 5 header lines followed by the 
+coordinates and the conservative variables. The short Fortran segment 
+below shows the details. 
+<p>
+Variables in the order they are read from the file:
+<p>
+<PRE>
+*line1:
+*   filehead    - a header identifying the input file (character*79)
+*line2:
+*   it          - timestep (integer)
+*   t           - time     (real)
+*   ndim        - dimensionality, negative sign for gen. coord (integer)
+*   neqpar      - number of equation parameters (integer)
+*   nw          - number of flow variables (integer)
+*line3:
+*   nx()        - the grid dimensions      (ndim integers)
+*line4:
+*   eqpar()     - equation parameters from filenameini (neqpar reals)
+*line5:
+*   varnames    - names of the coordinates, variables, equation parameters
+*                 eg. 'x y rho mx my e bx by  gamma eta' (character*79)
+*data:
+*   x()         - the (initial) coordinates   (ndim*nx(1)*..*nx(ndim) reals)
+*   w()         - the initial flow variables  (nw*nx(1)*..*nx(ndim) reals)
+*
+* The Fortran 77 code below generates 3D data files for hydrodynamics
+
+      program writevacdata
+
+      integer ndim, neqpar, nw, nx1, nx2, nx3
+      parameter (ndim=3, neqpar=1, nw=5, nx1=10, nx2=12, nx3=5)
+
+* 79 characters are used to fit in a single line on the screen
+
+      character*79 filehead,varnames
+      integer it
+
+* VAC uses double precision, but that is not essential for the data files
+
+      double precision t, eqpar(neqpar)
+      double precision x(nx1,nx2,nx3,ndim), w(nx1,nx2,nx3,nw)
+
+* some loop variables and the unit number
+
+      integer ix1,ix2,ix3,iw,idim,qunit
+
+C Here are some typical values
+
+C The filehead contains the problem description and some info on the 
+C type and dimensionality of the equation, e.g. 
+
+      filehead='example_hd33'
+      it=20
+      t=3.45353D0
+      eqpar(1)=1.6667
+      varnames='r phi z rho mr mphi mz e   gamma'
+
+      do ix1=1,nx1
+         do ix2=1,nx2
+            do ix3=1,nx3
+               x(ix1,ix2,ix3,1)=0.1D0*ix1
+               x(ix1,ix2,ix3,2)=0.2D0*ix2
+               x(ix1,ix2,ix3,3)=0.5D0*ix3
+               w(ix1,ix2,ix3,1)=1.D0
+               w(ix1,ix2,ix3,2)=1.D0
+               w(ix1,ix2,ix3,3)=0.D0
+               w(ix1,ix2,ix3,4)=0.D0
+               w(ix1,ix2,ix3,5)=2.D0
+            end do
+         end do
+      end do
+
+C The varnames string contains the names for the coordinates, the conservative
+C variables and the equation parameters, altogether ndim+nw+neqpar words
+C separated by spaces.
+
+C For 3D binary files (strongly prefered for big files):
+
+C VAC always writes data files into unit 12 (and reads from unit 10)
+
+      qunit=12
+
+C open the binary data file as unformatted, unknown status allows overwriting
+
+      open(qunit,FILE='binary.out',FORM='unformatted',STATUS='unknown')
+
+      write(qunit)filehead
+      write(qunit)it,t,ndim,neqpar,nw
+      write(qunit)nx1,nx2,nx3
+      write(qunit)eqpar
+      write(qunit)varnames
+      write(qunit)((((x(ix1,ix2,ix3,idim),ix1=1,nx1),
+     &              ix2=1,nx2),ix3=1,nx3),idim=1,ndim)
+C     VAC loops over iw to avoid segmentation fault problems on some machines
+      do iw=1,nw
+         write(qunit)(((w(ix1,ix2,ix3,iw),
+     &                 ix1=1,nx1),ix2=1,nx2),ix3=1,nx3)
+      end do
+
+C if you have the equation parameters in separate variables, just write e.g.
+C
+C     write(qunit)gamma
+C
+C if the whole x array is saved (like above), you can simply write 
+C
+C     write(qunit)x
+C
+C if you store the variables in separate arrays, just save them in the 
+C order defined in the varnames string, e.g. 
+C
+C    write(qunit)rho
+C    write(qunit)mr
+C    write(qunit)mphi
+C    write(qunit)mz
+C    write(qunit)e
+C
+
+      close(qunit)
+
+C----------------------------------------------------------------------------
+C For 3D ASCII files, the following sequence produces the correct file format
+
+
+C open ascii data file, unknown status allows overwriting
+
+      open(qunit,FILE='ascii.out',STATUS='unknown')
+
+      write(qunit,"(a79)")filehead
+      write(qunit,"(i7,1pe13.5,3i3)")it,t,ndim,neqpar,nw
+      write(qunit,"(3i4)") nx1,nx2,nx3
+      write(qunit,"(100(1pe13.5))")eqpar
+      write(qunit,"(a79)")varnames
+      do ix3= 1,nx3
+      do ix2= 1,nx2
+      do ix1= 1,nx1 
+         write(qunit,"(100(1pe18.10))")
+     &        (x(ix1,ix2,ix3,idim),idim=1,ndim),
+     &        (w(ix1,ix2,ix3,iw),iw=1,nw)
+      enddo
+      enddo
+      enddo
+
+      close(qunit)
+
+      end
+
+C The exact number of digits saved is not too important, although the IDL
+C and Matlab macros make use of it to calculate the size of a snapshot.
+C
+</PRE>
+</BODY>
+</HTML>

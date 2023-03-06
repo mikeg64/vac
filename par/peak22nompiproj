@@ -1,0 +1,41 @@
+ &testlist 
+	teststr='readparameters projectb poisson printiter getdivb'
+	ixtest1=27
+	ixtest2=27
+ /
+
+ &filelist
+        npe1=1
+        npe2=1
+	filenameini='data/peak22.ini',
+	typefileini='ascii'
+	filename=   'data/peak22nompiproj.log',
+		    'data/peak22nompiproj.out'
+	typefileout='binary'
+ /
+
+ &savelist
+	itsave(1,2)=0
+	ditsave=1,1
+ /
+
+ &stoplist
+	itmax=1
+ /
+
+ &methodlist
+	wnames=		'rho m1 m2 e b1 b2'
+	typefull=          6*'tvd'
+	typelimiter=	6*'woodward'
+	dimsplit    =	T
+	sourcesplit=	T
+        nproc=             1,0,0,1
+ /
+
+ &boundlist
+	typeB= 6*'cont',6*'cont',6*'cont'
+ /
+
+ &paramlist
+	courantpar=0.8
+ /

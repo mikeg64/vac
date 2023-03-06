@@ -1,0 +1,72 @@
+figure
+	erase
+	eraseoff
+	window 2 2 1 1
+	roundgrid 0.01
+	window 2 2 2 1
+	roundgrid 0.85
+	window 2 2 2 2
+	cutgrid
+	window 2 2 1 2
+	polargrid
+	window 1 1 1 1
+figure2
+	erase
+	eraseoff
+	window 2 2 1 1
+	roundgrid 0.01
+	window 2 2 2 1
+	roundgrid 1.
+	window 2 2 2 2
+	roundgrid 0.5 1.
+	window 2 2 1 2
+	roundgrid 0.2 0.8
+	window 1 1 1 1
+roundgrid	12
+	# Usage: roundgrid [round] [square]
+	# The rectangles within distance $1 are distorted so that at $1 it is
+	# a perfect circle, and by distance $2>$1 the distortion disappears.
+	# The distance is measured in L1 norm,normalized such that 
+	# the distance from the center of the rectangle to the edge is 1.
+	if(!$?1){define 1 0.001}
+	if(!$?2){define 2 0}
+	set ndim=2 define LabelX1 x define LabelX2 y
+	set n1=20 set n2=20
+	gridcoord n1 n2 Aix Aiy
+	set Axx=(Aix-(n1-1)/2)/((n1-1)/2)
+	set Ayy=(Aiy-(n2-1)/2)/((n2-1)/2)
+	#
+	set Arad=sqrt(Ayy**2+Axx**2)
+	set Adist=(abs(Axx)>abs(Ayy))? abs(Axx):abs(Ayy)
+	#
+	# Simple version, corresponds to $1=0.001: set Ashrink=Adist/Arad
+	#
+	set Adist1=Adist/max(Adist)
+        set Aweight=(Adist1<$1)?Adist1/$1:($2-Adist1)/($2-$1)
+        set Aweight=(Aweight>1)? 1 : Aweight
+	set Aweight=(Aweight<0)? 0 : Aweight
+	set Ashrink=(Adist/Arad-1)*Aweight+1
+	#
+	set Ax=Ashrink*Axx
+	set Ay=Ashrink*Ayy
+	showgrid
+polargrid
+	set ndim=2 define LabelX1 x define LabelX2 y
+	set n1=10 set n2=40
+	gridcoord n1 n2 Aix Aiy
+	set Arad=(Aix+1)/n1
+	set Aphi=2*pi*Aiy/n2
+	set Ax=cos(Aphi)*Arad
+	set Ay=sin(Aphi)*Arad
+	showgrid
+cutgrid
+	set ndim=2 define LabelX1 x define LabelX2 y
+	set n1=20 set n2=20
+	gridcoord n1 n2 Aix Aiy
+	set Ax=(Aix-(n1-1)/2)/((n1-1)/2)
+	set Ay=(Aiy-(n2-1)/2)/((n2-1)/2)
+	showgrid
+	set Arad=sqrt(Ay**2+Ax**2)
+	expand 2 ptype 4 3
+	points Ax Ay if (Arad>1.01)
+	expand 1.0001 ptype 4 0

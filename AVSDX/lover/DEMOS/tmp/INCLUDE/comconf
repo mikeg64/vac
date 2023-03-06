@@ -1,0 +1,12 @@
+*COMDECK COMCONF
+C@(#)comconf	2.1
+#ifdef CRAY
+#endif
+#ifdef IBM
+#endif
+#ifdef SGI
+#endif
+#ifdef SUN
+#endif
+#ifdef HP
+#endif

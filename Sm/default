@@ -1,0 +1,591 @@
+startup3
+	# limits for the graphs plotted by plotx:
+	set dimen(fy1)=20 set dimen(fy2)=20
+	# plotting defaults
+	ptype 4 0
+	define Plotmode Surface
+	define Plotmode2 Vectorfield
+	viewpoint 20 20 -1
+	define Extra_Var " "
+	inic trigrid
+	# Overload the gamma function to avoid conflict with the equation
+	# parameter name 'gamma'
+	overload gamma 1
+use	12
+	define Inifile "data/$!1.ini"
+	if(!$?2){
+	    define Outfile "data/$!1.out"
+	    define Logfile "data/$!1.log"
+	}else{
+	    define Outfile "data/$!1$!2.out"
+	    define Logfile "data/$!1$!2.log"
+	}
+fig	2
+	#Usage: fig problem method
+	define Inifile "figdata/$!1.ini"
+	define Outfile "figdata/$!1$!2.out"
+	define Logfile "figdata/$!1$!2.log"
+new
+ 	foreach 0 {Inifile Outfile Logfile Xmax Xmin Ymax Ymin}{
+            define $0 delete
+	}
+putheader
+	if($?Noheader){return}
+ 	relocate (0 32400)
+ 	expand 1.0001
+ 	define TeX_strings DELETE
+ 	label \\-2\\t $Headline
+ 	expand 1.0001
+ 	define TeX_strings 1
+ 	RELOCATE (32000 32400)
+ 	putlabel 4 \-2\t $date
+	relocate 0 0
+headeron
+	define Noheader delete
+headeroff
+	define Noheader 1
+putbottom
+ 	relocate (16200 1200)
+	set time2=Int($(time*1000))/1000
+	define Grid ('grid=$(n1)')
+	do i=2,ndim{define Grid "$!Grid\times $(n$!i)"}
+ 	if(ixy==0||ndim==1){
+ 	    putlabel 5 t=$(time2), it=$(it), $Grid
+ 	}else{
+	    if(ixy>0){putlabel 5 t=$(time2), it=$(it), iy=$(ixy), $Grid
+	    }else{    putlabel 5 t=$(time2), it=$(it), ix=$(-ixy), $Grid}
+	}
+	relocate 0 0
+pointson
+ 	define Okpoints 1
+pointsoff
+ 	define Okpoints delete
+lineon
+ 	define Noline delete
+lineoff
+ 	define Noline 1
+getlog
+ 	#Usage: getlog
+	#Reads Healine and all variables from logfile
+ 	define Headline read 1
+	define Cols read 2 set cols=<$Cols> define 1 " " define 2 " "
+	do i=1,dimen(cols){
+	   define c (cols[$i-1])
+	   if($i<dimen(cols)/2) {define 1 ('$1 $c $i')
+	   }else		{define 2 ('$2 $c $i')}
+	}
+ 	lines 3 99999
+ 	read <$1 $2>
+	define Cols delete delete cols
+plott	12
+ 	#Usage: plott dt/mass/momentx...
+ 	#Plots time dependence of varibles read from Logfile
+ 	if(!$?Logfile) { ask Logfile data/ }
+        if(is_file("$!Logfile")){
+ 	    data "$!Logfile"
+        }else{
+ 	    echo File $Logfile does not exist!
+ 	    return
+	}
+	getlog
+ 	set logvar=$1
+ 	Erase
+ 	Limits t logvar
+	if (substr('$1',0,2)=='lg'){
+ 	    ticksize 0 0 -1 0 notation -4 4 -2 2
+ 	    box
+ 	    ticksize 0 0 0 0 notation -4 4 -4 4
+ 	}else{
+ 	    box
+ 	}
+ 	putheader
+ 	if(!$?Noline){connect t logvar}
+ 	if($?Okpoints){points t logvar}
+ 	expand 1.2
+ 	Xlabel t
+ 	define _Label delete
+	ylabel $1
+ 	expand 1.0001
+plot1	89
+ 	#plot $1 in window at $2 $3 $4 $5 with units $6 for x, $7 for $1
+ 	#$1 is labelled by $8, x is labelled by $9 if defined
+ 	window $2 $3 $4 $5
+ 	define Xunit $6
+ 	define Varunit $7
+ 	define Ylabel $8
+ 	if ($?9) {define Xlabel $9} else {define Xlabel " "}
+	if(indvector){
+	    define Vect1 (substr($1,0,indvector-1))
+	    define Vect2 (substr($1,indvector,0))
+	    $Plotmode2
+	    expand 0.7    box
+	    expand 1.0001 ylabel "($!Vect1,$!Vect2)"
+	    return
+	}
+ 	if(ixy!=0){
+	   plot2D $1
+	   return
+	}
+	if('$Plotmode'=='Surface'){
+	   plotsurface $1
+	   return
+	}
+	makeimage $1 n1 n2
+	$Plotmode
+	limits $(x[$fx1]) $(x[$fx2]) $(y[$fy1]) $(y[$fy2])
+	expand 0.7    box
+	expand 1.0001 ylabel "$!Ylabel"
+plot2D	1
+ 	#plot2D var   Plot any (flow)variable as a function of x
+ 	set _var=$1/$Varunit
+ 	set _x=$X_or_Y/$Xunit
+	Limits _x _var
+ 	if($?Okpoints){points _x _var}
+	if(!$?Noline){connect _x _var}
+ 	expand 0.7
+ 	box
+ 	expand 1.0001
+ 	Xlabel $Xlabel
+ 	ylabel "$!Ylabel"
+plotsurface	1
+ 	#Flowvar=r/vx/vy/p/bx/by/rn/vxn/vyn/pn/u/un
+ 	if(!$?Dix){ask Dix 1}
+	if($?Xmin){if($Xmax>n1-1){define Xmin delete}}
+ 	if(!$?Xmin){define Xmin 0 define Xmax (n1-1)}
+	if($Dix<0){define Dix (abs($Dix)) define Xmin ? define Xmax ?}
+ 	if(!$?Diy){ask Diy 1}
+	if($?Ymin){if($Ymax>n2-1){define Ymin delete}}
+ 	if(!$?Ymin){define Ymin 0 define Ymax (n2-1)}
+	if($Diy<0){define Diy (abs($Diy)) define Ymin ? define Ymax ?}
+	if(!$?Zmin){define Zmin " " define Zmax " "}
+ 	set sparsex=$Xmin,$Xmax,$Dix
+ 	set sparsey=$Ymin,$Ymax,$Diy
+	takeimage $1 n1 n2 sparsex sparsey $Varunit
+	set _x=x[sparsex]/(x[1]-x[0])
+	set _y=y[sparsey]/(y[1]-y[0])
+ 	surface 103 $Zmin $Zmax _x _y
+	define NX image define NY image
+ 	define Lo_x (x[sparsex[0]]/$Xunit)
+	define Hi_x (x[sparsex[$NX -1]]/$Xunit)
+ 	define Lo_y (y[sparsey[0]]/$Xunit)
+	define Hi_y (y[sparsey[$NY-1]]/$Xunit)
+ 	expand 0.7
+	box3
+	expand 1.0001
+	if ($Windowy==1) {
+ 	    label3 x "$!Xlabel"
+	    label3 y $LabelX2
+	}
+	label3 z "$!Ylabel"
+Vectorfield 11
+	# Usage: Vectorfield length
+	# calls vectorfield with sparsed Ax Ay $Vect1 $Vect2
+	if(!$?1){define 1 " "}
+	set sp_=gridindex(n1,n2)
+	set spx_=Ax[sp_] set spy_=Ay[sp_]
+	set sp1_=$Vect1 set sp1_=sp1_[sp_] set sp2_=$Vect2 set sp2_=sp2_[sp_]
+	vectorfield spx_ spy_ sp1_ sp2_ $1
+	foreach 0 {spx_ spy_ sp1_ sp2_}{delete $0}
+gethead
+ 	#read head of Inifile or Outfile
+ 	define Headline read 1
+ 	lines 2 2
+ 	read {it 1 time 2 ndim 3 neqpar 4 nw 5}
+	set gencoord=(ndim<0)
+	if(gencoord){
+	    echo Generalized coordinates
+	    set ndim=-ndim
+	}
+	lines 3 3
+ 	set nline=1 set head=5
+	do i=1,ndim{read <n$i $i> set nline=nline*n$i}
+	set nline=nline+head
+ 	define Eqpar read 4
+	set eqpar=<$Eqpar>
+	define Cols read 5 set cols=<$Cols> set ncols=ndim+nw
+        do i=1,7{define $i " "}
+	do i=1,ncols{
+	    define Cols (cols[$i-1])
+	    if($i<=ncols/2){		define 1 ('$1 A$Cols $i')
+					define 3 ('$3 $Cols $i')
+	    }else{			define 2 ('$2 A$Cols $i')
+					define 4 ('$4 $Cols $i')}
+	    if($i>ndim){		define 5 ('$5 $Cols')
+	        if($i<=ncols/2){	define 6 ('$6 A$Cols')
+		}else{		      	define 7 ('$7 A$Cols')}
+	    }else{			define LabelX$i $Cols}
+	}
+	define Read_Arr1 ('$1') define Read_Arr2 ('$2')
+	define Read_Var1 ('$3') define Read_Var2 ('$4')
+	define Each_Var  ('$5')
+	define Arr1_Var  ('$6') define Arr2_Var  ('$7')
+	#Determine ndir based on the occurance of numbers 2 and 3 in the Cols
+	set ndir=1
+	if(index('$Each_Var','2')>=0){set ndir=2}
+	if(index('$Each_Var','3')>=0){set ndir=3}
+	#define Cols delete delete cols
+	if(ndim==2){gridcoord n1 n2 Aix Aiy}
+gridcoord 4
+	#Usage: gridcoord nx ny Aix Aiy
+	#Calculate coordinates for all gridpoints in the nx*ny mesh
+	set _i=0,$1*$2-1 set $4=int(_i/$1+0.0001) set $3=_i-$1*$4
+	delete _i
+gridindex 2
+	#Usage: ind=gridindex(nx,ny)
+	#Calculate indices for the subgrid with Dix,Diy spacings
+	#in the nx*ny mesh. Then use it as: smallarray=bigarray[ind]
+	if(!$?Dix || !$?Diy){ask Dix 1 <Dix> ask Diy 1 <Diy>}
+	if($Dix==1&&$Diy==1){set $0=0,$1*$2-1
+	}else{
+	   gridcoord $(int($1/$Dix)) $(int($2/$Diy)) _ix_ _iy_
+	   set $0=_ix_*$Dix+$1*_iy_*$Diy
+	}
+	delete _ix_ delete _iy_
+getpict	2
+	#Usage: getpict npicture ixy
+ 	#npicture=0 for last one/1..npictmax for a new
+        #ixy=0 for 3D/1..n2 for 2D along x/-1..-n1 for 2D along y.
+ 	set npict=$1 set ixy=$2
+	if(npict>0){gethead}
+	if(ixy<0){define X_or_Y $LabelX2}else{define X_or_Y $LabelX1}
+	if($?Headonly){return}
+ 	if(npict>0){
+	    set line0=nline*(npict-1)+1
+ 	    lines $(line0+1) $(line0+1)
+ 	    read {it 1 time 2}
+ 	    if(ixy<=0){
+ 		lines $(line0+head) $(line0+nline-1)
+ 		read <$Read_Arr1 $Read_Arr2>
+		if(gencoord){
+		   if($?Polargrid){polar2regular
+		   }else{map2regular}
+		}
+ 		set _index=0,n1-1       set x=Ax[_index]
+ 		set _index=0,n1*n2-1,n1 set y=Ay[_index]
+ 		if(is_macro(extraarr)){extraarr}
+ 	    }else{
+ 		lines $(line0+head+(ixy-1)*n1) $(line0+head+ixy*n1-1)
+ 		read <$Read_Var1 $Read_Var2>
+ 	    }
+ 	}
+ 	if(ixy<0 || (ixy>0&&npict==0)){
+ 	    if(ixy>0){set rows=n1*(ixy-1),n1*ixy-1
+ 	    }else{    set rows=-ixy-1,n1*n2-1,n1}
+ 	    foreach 0 <$Each_Var $Extra_Var>{
+                if(is_set(A$0,3)){set $0=A$0[rows]
+		}else{echo A$0 is not set}
+	    }
+ 	    delete rows
+	}
+ 	if(ixy!=0&&is_macro(extravar)){extravar}
+map2regular
+	# Triangulate irregular grid if needed, map Each_Var to regular grid
+	set newgrid=1
+	if($?N1){
+	    if(n1irr==n1 && n2irr==n2){
+		set newgrid=sum(abs(Ax-Axirr)+abs(Ay-Ayirr))>0
+	    }
+	}
+	if(newgrid){
+	    foreach 0 <n1 n2 Ax Ay>{set $0irr=$0}
+	    if(!$?N1){ask N1 100
+	              ask N2 100}
+	    echo Triangulation...
+	    triangulate Axirr Ayirr $N1 $N2
+	    set n1=$N1 set n2=$N2
+	}else{
+	    set n1=$N1 set n2=$N2
+	    gridcoord n1 n2 Aix Aiy
+	    set Ax=x[Aix] set Ay=y[Aiy]
+	}
+	foreach 0 <$Each_Var>{
+	    set A$0irr=A$0
+	    set A$0=trigrid(A$0irr)
+	}
+polar2regular
+	set Axirr=Ax
+	set Ayirr=Ay
+	set Ax=sqrt(Axirr**2+Ayirr**2)
+	set Ay=atan2(Ayirr,Axirr) + 2*pi*(Aiy>=n2/2)
+	if(is_set(Am1,3)){
+	    set Am1irr=Am1 set Am2irr=Am2
+	    set Am1= Am1irr*cos(Ay)+Am2irr*sin(Ay)
+	    set Am2=-Am1irr*sin(Ay)+Am2irr*cos(Ay)
+	}
+	if(is_set(Ab1,3)){
+	    set Ab1irr=Ab1 set Ab2irr=Ab2
+	    set Ab1= Ab1irr*cos(Ay)+Ab2irr*sin(Ay)
+	    set Ab2=-Ab1irr*sin(Ay)+Ab2irr*cos(Ay)
+	}
+plotgrid
+	#Plots grid of Inifile
+ 	if (!$?Inifile) { ask Inifile data/ }
+ 	if(is_file("$!Inifile")){
+	    data "$!Inifile"
+	}else{
+	    echo File $Inifile does not exist!
+	    return
+	}
+ 	gethead
+	lines $(head+1) $(nline)
+ 	if(ndim==1){read {x 1}}
+ 	if(ndim==2){read {Ax 1 Ay 2}}
+	showgrid
+showgrid
+	Erase
+ 	if(ndim==1){
+	    set y=0*x
+	    Limits x y
+	    box
+	    points x y
+	    xlabel $LabelX1
+ 	}
+ 	if(ndim==2){
+	    Limits Ax Ay
+	    box 
+	    xlabel $LabelX1
+ 	    ylabel $LabelX2
+	    if($?Okpoints){points Ax Ay}
+            if(!$?Noline){
+		do i=1,n2{
+		   set rows=n1*($i-1),n1*$i-1
+		   set x=Ax[rows] set y=Ay[rows]
+                   connect x y
+                }
+		do i=1,n1{
+		   set rows=$i-1,n1*n2-1,n1
+		   set x=Ax[rows] set y=Ay[rows]
+                   connect x y
+                }
+            }
+	}
+	if(ndim>2){
+	    echo How to plot an ndim>2D grid ???
+	}
+	# Last line for SM
+gradx	1
+	#Usage: set Adxvar=gradx(Avar)
+ 	#centered differences for inner points, one-sided for the edges
+ 	set jxiy=Aix+(Aix<n1-1)+n1*Aiy
+ 	set hxiy=Aix-(Aix>0)   +n1*Aiy
+	set $0=($1[jxiy]-$1[hxiy])/(Ax[jxiy]-Ax[hxiy])
+	foreach 9 {jxiy hxiy} {delete $9}
+grady	1
+	#Usage: set Adyvar=grady(Avar)
+ 	#Shifted indices with continuous boundary in y
+ 	set ixjy=Aix+n1*(Aiy+(Aiy<n2-1))
+ 	set ixhy=Aix+n1*(Aiy-(Aiy>0))
+	set $0=($1[ixjy]-$1[ixhy])/(Ay[ixjy]-Ay[ixhy])
+	foreach 9 {ixjy ixhy} {delete $9}
+storeold
+	set timeold=time
+	foreach 0 <$Arr1_Var $Arr2_Var> {set $0old=$0}
+getdiff
+	set dtime=time-timeold
+	foreach 0 <$Each_Var> {set Ad$0=A$0 - A$0old}
+varx	1
+	set _var=0
+	do _ix=0,n1-1{
+	    set _col=$_ix,n1*n2-1,n1
+	    set _s =sum(A$1[_col])
+	    set _s2=sum(A$1[_col]**2)
+	    set _var=_var+(_s2-_s**2/n2)
+	}
+	set $0=_var/n1/n2
+fixind	4
+	define Xmin $1 define Xmax $2 define Ymin $3 define Ymax $4
+letind
+	foreach 0 {Xmin Xmax Ymin Ymax}{define $0 delete}
+fixall
+	eraseoff fixx $fx1 $fx2 define fixall 1
+letall
+	let define fixall delete
+plotx	103
+	# plotx npict ixy [var1 var2 ... ]
+	set npict=$1 set ixy=$2 getpict npict ixy
+	if ($?Headonly){return}
+	if($?3){set var='$3' split var
+	}else{  set var= ixy==0? <$Arr1_Var $Arr2_Var> : <$Each_Var>}
+	set nvar=dimen(var)
+	define Wx (int(sqrt(nvar)+.99)) define Wy (int(nvar/$Wx+.99))
+	Erase
+	define y_gutter 0.5
+	set ivar=0
+	do iwy=$Wy,1,-1{ do iwx=1,$Wx{
+	   if (ivar<nvar){
+	      set indvector=index(var[ivar],'^')+1
+	      if(indvector){set var_=var[ivar]
+	      }else{        set var_=$(var[ivar])}
+	      if($?fixall){fixy $(fy1[ivar]) $(fy2[ivar])}
+	      plot1 var_ $Wx $Wy $iwx $iwy 1 1 "$!(var[ivar])" $X_or_Y
+	      set fy1[ivar]=$fy1 set fy2[ivar]=$fy2
+	   }
+	   set ivar=ivar+1
+	}}
+	putheader
+	putbottom
+	define y_gutter delete
+	window 1 1 1 1
+oldplotx	3
+	#Usage: plotx npicture ixy Flowvar
+ 	#npicture=0 for last one/1..npictmax for a new,
+	#ix_or_y=0 for 3D surface/1..ny for 2D cut in y/-1..-nx for 2D cut in x
+ 	#Flowvar=r/vx/.../pn/u/un/divbc for 1 plot, phys/ryu/raw for many plots
+ 	set npict=$1
+ 	set ixy=$2
+ 	define FlowVar $3
+ 	Erase
+ 	getpict npict ixy
+ 	if ($?Headonly){return}
+	define Tunit delete
+	define y_gutter 0.5
+ 	if ('$FlowVar'=='raw') {
+	    set p=(e-0.5*(b1*b1+b2*b2)-0.5*r*(v1*v1+v2*v2))*(gamma-1)
+ 	    plot1 rho	3 2 1 2 1 1 	"\rho"
+ 	    plot1 v1	3 2 2 2 1 1	"v_1"
+ 	    plot1 v2	3 2 3 2 1 1	"v_2"
+ 	    plot1 p	3 2 1 1 1 1	"p"	$X_or_Y
+ 	    plot1 b1	3 2 2 1 1 1	"B_1"	$X_or_Y
+ 	    plot1 b2	3 2 3 1 1 1	"B_2"	$X_or_Y
+ 	    window 1 1 1 1
+ 	    define Tunit sec
+ 	}
+	if (!$?Tunit){
+ 	    plot1 $FlowVar 1 1 1 1 1.0 1.0 $FlowVar $X_or_Y
+ 	    define Tunit sec
+	}
+ 	putheader
+ 	putbottom
+	define y_gutter delete
+out	103
+	#Usage: out npicture ixy Flowvar
+ 	#npicture=0 for last one/1..npictmax for a new,
+	#ix_or_y=0 for 3D surface/1..n2 for 2D cut in y/-1..-n1 for 2D cut in x
+ 	#Flowvar=r/vx/.../pn/u/un/divbc for 1 plot,phys/ryu/raw for many plots.
+ 	#Picture is read from Outfile
+ 	if ($?1) {set npict=$1} else {set npict=1}
+ 	if ($?2) {set ixy=$2} else {set ixy=1}
+ 	if ($?3) {define FlowVar "$!3"} else {define FlowVar " "}
+ 	if (!$?Outfile) { ask Outfile data/ }
+ 	if(is_file("$!Outfile")){
+	    data "$!Outfile"
+	}else{
+	    echo File $Outfile does not exist!
+	    return
+	}
+ 	plotx npict ixy $FlowVar
+outZ	103
+	#Usage: outZ npicture ixy Flowvar
+ 	#npicture=0 for last one/1..npictmax for a new,
+	#ix_or_y=0 for 3D surface/1..n2 for 2D cut in y/-1..-n1 for 2D cut in x
+ 	#Flowvar=r/vx/.../pn/u/un/divbc for 1 plot,phys/ryu/raw for many plots.
+ 	#Picture is read from compressed Outfile
+ 	if ($?1) {set npict=$1} else {set npict=1}
+ 	if ($?2) {set ixy=$2} else {set ixy=1}
+ 	if ($?3) {define FlowVar "$!3"} else {define FlowVar " "}
+ 	if (!$?Outfile) { ask Outfile data/ }
+ 	if(is_file("$!Outfile.Z")){
+ 	    !uncompress -c $Outfile > $Outfile
+ 	    data "$!Outfile"
+	}else{
+	    echo File $Outfile.Z does not exist!
+	    return
+	}
+ 	plotx npict ixy $FlowVar
+ 	!/bin/rm -i $Outfile
+ini	103
+	#Usage: ini npicture ixy Flowvar
+ 	#npicture=0 for last one/1..npictmax for a new,
+	#ix_or_y=0 for 3D surface/1..n2 for 2D cut in y/-1..-n1 for 2D cut in x
+ 	#Flowvar=r/vx/.../pn/u/un/divbc for 1 plot,phys/ryu/raw for many plots.
+ 	#Picture is read from Inifile
+ 	if ($?1) {set npict=$1} else {set npict=1}
+ 	if ($?2) {set ixy=$2} else {set ixy=1}
+ 	if ($?3) {define FlowVar "$!3"}else{define FlowVar " "}
+ 	if (!$?Inifile) { ask Inifile data/ }
+ 	if(is_file("$!Inifile")){
+ 	    data "$!Inifile"
+	}else{
+	    echo File $Inifile does not exist!
+	    return
+	}
+ 	plotx npict ixy $FlowVar
+plotmethods 67
+	#Usage: plotmethods Flowvar xmin xmax ymin ymax methodvar [header]
+	define Flowvar $1
+	fixx $2 $3
+	fixy $4 $5
+	Erase
+        if($?7) {define Headline "$!7"
+           putheader
+        }
+	data "data/shock12minmod.out"
+	getpict 1 1
+	plot1 $Flowvar 2 3 1 3 1.0 1.0 $Flowvar "minmod for $!6"
+	data "data/shock12vanleer.out"
+	getpict 1 1
+	plot1 $Flowvar 2 3 2 3 1.0 1.0 $Flowvar "van Leer for $!6"
+	data "data/shock12albada.out"
+	getpict 1 1
+	plot1 $Flowvar 2 3 1 2 1.0 1.0 $Flowvar "Albada for $!6"
+	data "data/shock12woodward.out"
+	getpict 1 1
+	plot1 $Flowvar 2 3 2 2 1.0 1.0 $Flowvar "Woodward for $!6"
+	data "data/shock12superbee.out"
+	getpict 1 1
+	plot1 $Flowvar 2 3 1 1 1.0 1.0 $Flowvar "Superbee for $!6"
+	window 1 1 1 1
+	putbottom
+archie 7
+	# Continue a circle determined by x1 y1,x2 y2,x3 y3
+	# The length of the next continuation segment is sqrt(c2).
+	set x1=$1 set y1=$2 set x2=$3 set y2=$4 set x3=$5 set y3=$6 set c2=$7
+	set ax=x1-x2 set ay=y1-y2 set a2=ax**2+ay**2
+	set bx=x1-x3 set by=y1-y3 set b2=bx**2+by**2
+	set dx=ax-bx set dy=ay-by set d2=dx**2+dy**2
+	set ab=ax*bx+ay*by set ad=ax*dx+ay*dy set bd=bx*dx+by*dy
+	set alpha=c2*(ad-sqrt(a2*b2*d2/c2-a2*b2+ab*ab))/a2/d2
+	set beta =(c2-alpha*a2)/b2
+	set cx=alpha*ax+beta*bx set cy=alpha*ay+beta*by
+	set x4=x1-cx set y4=y1-cy
+showarchie
+	ptype 4 0 rel x1 y1 dot rel x2 y2 dot rel x3 y3 dot
+	ptype 5 1 rel x4 y4 dot
+error	1
+	#Usage: error(a)
+	#Calculate average absolute deviation of $1 and $1ini
+	if(is_set($1ini,3)){
+	   set $0=$(sum(abs($1-$1ini))/sum(abs($1ini)))
+	}else{
+	   echo $1ini is not set
+	}
+cumulatey 3
+ 	# Usage: c=cumulatey(a,nx,ny)
+ 	# Integrate each column of the nx times ny matrix a.
+	set $0=$1
+	do 4=1,$3-1{
+	   set _row=$4*$2,($4+1)*$2-1
+	   set $0[_row]=$0[_row]+$0[_row-$2]
+	}
+	delete _row
+vectorpotential 4
+	# Usage a=vectorpot(bx,by,nx,ny)
+	# Calculate the vector potential from the nx*ny size
+	# bx and by matrices so that b=curl a.
+	set _a=$1
+	set _row=0,$3-1
+	set _by0=$2[_row]
+	cumulate _by0 _by0c
+	set _a[_row]=_a[_row]+_by0c
+	set $0=cumulatey(_a,$3,$4)
+rtrim	1
+	#Usage: rtrim string
+	#Remove trailing spaces from string
+	if(strlen($1)==0){return}
+	if(substr($1,-1,1)!=' '){return}
+	if(strlen($1)==1){set $1='' return}
+	set $1=substr($1,0,strlen($1)-1)
+	rtrim $1
+trim	1
+	ltrim $1
+	rtrim $1

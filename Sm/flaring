@@ -1,0 +1,78 @@
+figure_inic	1
+	inic mhd
+	define Rotb 1
+	define Vectorpot_r 1
+	new
+	data "Poedts/data/$!1"
+	getpict 1 0
+	set Arotb=-Arotb
+	viewpoint 30 -30 0
+	define Expand 2
+figure_all
+	define Expand 1.5
+	erase
+	eraseoff
+	window 2 2 1 1
+	figure_p
+	window 2 2 1 2
+	figure_psi
+	window 2 2 2 1
+	figure_rho
+	window 2 2 2 2
+	figure_j
+	window 1 1 1 1
+	eraseon
+	define Expand 2
+	putbottom
+figure_p
+	Erase
+	set Apmag=Ab1**2+Ab2**2
+	makeimage Apmag n1 n2
+	surface
+	box3
+	label3 x R 
+	label3 y Z
+	label3 z P_{mag}
+	expand $Expand lweight 2
+	limits 0 1 0 1 rel 0.5 0.8 putlabel 5 Magnetic Pressure
+	expand 1.001 lweight 1
+figure_rho
+	Erase
+	makeimage Arho n1 n2
+	surface
+	box3
+	label3 x R
+	label3 y Z
+	label3 z \rho
+	expand $Expand lweight 2
+	limits 0 1 0 1 rel 0.5 0.8 putlabel 5 Density
+	expand 1.001 lweight 1
+figure_j
+	Erase
+	makeimage Arotb n1 n2
+	surface
+	box3
+	label3 x R
+	label3 y Z
+	label3 z "\nabla \times B"
+	expand $Expand lweight 2
+	limits 0 1 0 1 rel 0.5 0.8 putlabel 5 Current Density
+	expand 1.001 lweight 1
+figure_psi
+	Erase
+	makeimage Aa n1 n2
+	limits 0 $(n1-1) 0 $(n2-1)
+	minmax Min Max
+	define Dif ($Max-$Min)
+	define Max ($Max+0.01*$Dif)
+	define Min ($Min-0.01*$Dif)
+	set levs= $Min,$Max,($Max-$Min)/30
+	levels levs
+	contour
+	limits x y
+	box
+	xlabel R
+	ylabel Z
+	expand 1.5 lweight 2
+	limits 0 1 0 1 rel 0.5 1.02 putlabel 8 Magnetic Field Lines
+	expand 1.001 lweight 1

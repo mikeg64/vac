@@ -1,0 +1,435 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on MPI prallelization </TITLE>
+</HEAD>
+<BODY>
+<h1>MPI PARALLELIZATION</h1>
+
+This document describes the use of the Message Passing Interface (MPI) 
+for running VACINI and VAC in parallel. MPI is widely available
+on parallel computers. There are several free implementations, 
+in particular MPICH is rather popular on Linux clusters.
+<p>
+<hr>
+This page:
+ [<A HREF="#Introduction">Introduction</A>]
+ [<A HREF="#Installation">Installation</A>]
+ [<A HREF="#Configuration">Configuration</A>]
+ [<A HREF="#Compilation">Compilation</A>]
+ [<A HREF="#RunVACINI">Running VACINI</A>]
+ [<A HREF="#RunVAC">Running VAC</A>]
+ [<A HREF="#Distribution">Data redistribution</A>]
+ [<A HREF="#Limitations">Limitations</A>]
+<hr>
+
+<H2><A NAME="Introduction">Introduction</A> to MPI parallelization</H2>
+
+  VAC was originally designed to be parallelized with the High
+  Performance Fortran (HPF) standard, which was a new and very promising
+  alternative to low level parallelization libraries, such as PVM and MPI.
+  Although HPF works successfully for parallelizing VAC,
+  in the recent years there seems to be a tendency of abandoning HPF.
+  On many supercomputers there is no HPF compiler installed. On the
+  other hand MPI became the de facto standard, and it is available on
+  all platforms. For this reason, starting from the 4.5 version,
+  VAC supports MPI parallelization too.
+<p>
+  The transformation to MPI parallelization is not trivial, 
+  and the implementation is not fully transparent (i.e. VAC and VACINI
+  do not work exactly the same way with and without MPI parallelization).
+  There are a few features of VACINI and VAC which are not available 
+  when the code is run with MPI. On the other hand MPI offers parallel 
+  input and output, which dramatically improves scaling for I/O. 
+<p>
+  The MPI parallelization is rather different from the HPF parallelization.
+  In an MPI parallel run each processor is solving the equations on a local
+  grid, which is indexed from 1 to the size of the local grid that
+  includes two layers of ghost cells. The ghost cells between the 
+  processors are updated with MPI message passing whenever necessary.
+  The outer ghost cells are updated with the outer boundary conditions
+  as usual, however periodic boundary conditions require message passing.
+  Consequently the boundary type between processors is 'mpi', and
+  'periodic' boundary type is replaced with 'mpiperiod' internally
+  if it requires message passing.
+  The user only needs to specify the outer boundary conditions, of course.
+<p>
+  MPI does not limit input and output to processor zero. Therefore
+  the verbose write statements and the test output needs to be
+  conditioned by the processor number. The test output is limited
+  to a single processor by setting the test string to an empty string
+  for all the other processors. Verbose information needs to be
+  put inside conditional statements, like <b>if(verbose)write...</b>,
+  where the <b>verbose</b> variable is set to true on PE 0, and false
+  on the other processors. 
+<p>
+   The implementation attempts to be as transparent as possible.
+   The grid size or the indexes given in the parameter files
+   usually refer to the global grid as if the code was running
+   on a single processor. Internally, however, the global grid size and
+   grid indexes are replaced with local grid size and indexes.
+   This is mostly important for the developers and for writing
+   non-trivial user subroutines. Occasionally error messages
+   may show local grid indexes instead of global ones.
+<p>
+   Most of the changes in the source code are additions, using
+   the new VAC preprocessor conditionals ^IFMPI and ^NOMPI.
+   The core of the MPI related source code is in src/vacmpi.t.
+   If the code is configured without MPI, it should behave
+   the same way as the previous versions of VAC.
+<p>
+   If VACUSR modules are to be ported to the MPI paradigm, 
+   care needs to be taken about 
+<ul>
+<li>file operations: only one processor should open and close a file.
+<li>global reductions, e.g. <b>value=sum(w(ixM^S,rho_))</b> 
+   should be followed by <b>call mpiallreduce(value,MPI_SUM)</b>
+<li><b>stop</b> statements should be replaced with <b>call abort('message')</b>)
+<li>global indexes should be converted and limited to the local grid
+</ul>
+   If the same VACUSR module is intended for use with and without MPI,
+   the MPI specific parts should be conditioned with the ^IFMPI 
+   preprocessor conditional. It is best to study the core source code
+   before attempting to create/generalize VACUSR files for MPI.
+
+<H2><A NAME="Installation">Installation</A> for MPI</H2>
+
+   The <b>src/Makefile</b> should be edited so that the MPI library
+   is linked to the executable. For many MPI distributions this
+   simply requires the use of the <b>mpif90</b> compiler:
+<pre>
+F90=mpif90
+</pre>
+   For other MPI distributions it may be necessary to explicitly link 
+   the MPI library, for example
+<pre>
+vacini  :$(VACINIOBJ) $(MAKE_)
+        $(FOR) $(FORFLG) -o $(VACDIR)/vacini $(VACINIOBJ) \
+	-L/usr/local/mpich/lib -lmpich
+
+vac     :$(VACOBJ) $(LIBS_) $(MAKE_)
+        $(FOR) $(FORFLG) -o $(VACDIR)/vac $(VACOBJ) $(LIBS) \
+	-L/usr/local/mpich/lib -lmpich
+</pre>
+   The MPI library also requires the MPI header file <b>mpif.h</b>.
+   This should be copied from the MPI distribution into the <b>src</b>,
+   for example
+<pre>
+cp /usr/local/mpich/include/mpif.h src/mpif.h
+</pre>
+   Note however that some versions of the <b>mpif90</b> compiler 
+   automatically create a local link to the MPI header file <b>mpif.h</b>.
+   In that case it is not necessary to copy this file.
+
+<H2><A NAME="Configuration">Configuration</A> for MPI</H2>
+
+   Before compiling VACINI or VAC with MPI, the configuration must
+   be set to
+<pre>
+setvac -on=mpi
+</pre>
+   Note that there are some limitations for MPI parallel runs.
+   For example the implicit scheme does not work in parallel,
+   so it is best to switch it off. Some limitations in VACINI
+   can be avoided if the initial condition is created without MPI,
+   the result is distributed with 
+   <A HREF="#Distribution">Fix/distribution</A>, and only VAC is 
+   compiled and run with MPI. Of course this requires that the
+   memory required by VACINI does not exceed the memory available on
+   a single node. See section <A HREF="#Limitations">Limitations</A>
+   for more details.
+<p>
+   The grid size should also be set carefully. For <b>setvac</b>
+   the grid size refers to the <b>local grid</b> stored on a single processor
+   including the ghost cells.
+   For example if the global grid consists of 400 by 400 cells,
+   and we want to use 4 processors which divide the grid into
+   four quadrants, than the minimum grid size is
+<pre>
+setvac -g=104,104
+</pre>
+   Unlike in the HPF parallelization, the maximum and the actual grid sizes 
+   do not have to be the same. For example the above configuration can
+   also be used if the code runs on 16 processors, which divide the total
+   grid into 4 by 4 pieces, so each processor uses 54 by 54 cells only.
+<p>
+   It is a good idea, but not necessary, to make the total grid size an
+   integer multiple of the number of PE-s along each dimensions, because
+   it helps with load balancing. If the grid size is not an integer
+   multiple of the number of PE-s in some direction, the data is distributed
+   with the aim of making the largest subdomain as small as possible.
+   For example 200 grid cells are distributed to 67, 67 and 66 cells
+   among 3 PE-s. This gives a better load balancing than the 66, 66 and 68 
+   distribution would. 
+
+<H2><A NAME="Compilation">Compilation</A> for MPI parallel executables</H2>
+
+   Compilation is the same with or without MPI
+<pre>
+make vacini
+make vac
+</pre>
+   Note that VACINI and VAC do not have to be configured the same way.
+   It is possible to configure VACINI without MPI and VAC with MPI,
+   for example
+<pre>
+setvac -g=404,404 -off=mpi
+make vacini
+setvac -g=104,104 -on=mpi
+make vac
+</pre>
+
+<H2><A NAME="RunVACINI">Running</A> VACINI with MPI</H2>
+
+   The input parameter file must describe the processor distribution
+   in the first line, which contains the filename. (To be accurate: 
+   it contains the base of the filename and the extension,
+   the processor rank part, described below, should not be put into the 
+   parameter file). The filename
+   contains the data distribution information in the following format:
+<pre>
+data/orszag400_np0404.ini
+</pre>
+   Here the numbers following <b>_np</b> define the number of processors
+   along each dimension. Each dimension is represented by 2 digits.
+   The above example means that there are altogether 16 processors,
+   and the data arrays are cut into 4 by 4 equal pieces in 2
+   dimensions. A few more examples should help to make the notation clear:
+<pre>
+data/example1_np30.ini      (1D distributed to 30 processors)
+data/example2_np0101.ini    (2D kept on a single processor)
+data/example3_np161601.ini  (3D distributed to 16*16*1 processors)
+</pre>
+   The input parameter file for VACINI needs to be copied or linked to
+<pre>
+vacini.par
+</pre>
+   in the main vac directory, and the code should be run without any piping,
+   for example
+<pre>
+mpirun -np 16 vacini 
+</pre>
+   This is an extremely simple way of parallelizing the input parameters.
+   After VACINI finished running the following 16 data files are created
+   (assuming that the filename was <b>data/orszag400_np0404.ini</b>) 
+<pre>
+data/orszag400_np0404_000.ini
+data/orszag400_np0404_001.ini
+data/orszag400_np0404_002.ini
+...
+data/orszag400_np0404_015.ini
+</pre>
+  All the files contain 1/16-th of the grid and flow variable information.
+  The last 3 digits contain the global processor rank. The domain
+  decomposition is the following: processor 0
+  contains the corner at the minimum coordinates, processor
+  1 contains the neighboring subdomain towards the positive X direction,...
+  and finally the last processor is at the maximum coordinates.
+  In this example processor 3 is at the maximum X and minimum Y corner,
+  and processor 4 is "above" processor 0 in the Y direction.
+  Any of these data files have the same format as normal VAC data files,
+  they can be visualized individually or together.
+  The files can be redistributed or merged into a single file with the
+  <A HREF="#Distribution">Fix/distribution</A> script.
+
+<H2><A NAME="RunVAC">Running</A> VAC with MPI</H2>
+
+  To be able to run VAC on a given number of processors, the input data must
+  be distributed correctly. This can be achieved by running VACINI on
+  the same number of PE-s and with the same distribution as VAC, or by 
+  redistributing the data with the <A HREF="#Distribution">Fix/distribution</A>
+  script. In the input parameter file the data distribution must be indicated
+  in the <b>&amp;filelist</b>. There are two ways to do this:
+  (i) including the distribution information into the input filename
+  or (ii) giving the distribution with the <b>np1, np2, np3</b> 
+  parameters. For example:
+<pre>
+ &filelist
+        filenameini='data/orszag400_np0404.ini',
+        filename=   'data/orszag400tvd.log',
+                    'data/orszag400tvd.out'
+ /
+</pre>
+or
+<pre>
+ &filelist
+        np1=4
+        np2=4
+        filenameini='data/orszag400.ini',
+        filename=   'data/orszag400tvd.log',
+                    'data/orszag400tvd.out'
+ /
+</pre>
+Note that it is not necessary (and not recommended) to add the
+distribution information into the name of the output data file.
+The distribution of the output data file is always the same
+as of the input data file. 
+<p>
+   The input parameter file for VAC needs to be copied or linked to 
+<pre>
+vac.par
+</pre>
+   in the main vac directory, and the code should be run without any piping,
+   for example
+<pre>
+mpirun -np 16 vac
+</pre>
+   This is an extremely simple way of parallelizing the input parameters.
+   After VAC finished running the following log file and 16 data files are 
+   created (assuming the above input and output filenames)
+<pre>
+data/orszag400tvd.log
+data/orszag400tvd_np0404_000.out
+data/orszag400tvd_np0404_001.out
+data/orszag400tvd_np0404_002.out
+...
+data/orszag400tvd_np0404_015.out
+</pre>
+   The output data files contain one or more snapshots for the subdomain
+   that belongs to the given processor. The processor rank is indicated
+   by the last 3 digits. The order of the subdomains has been 
+   described in the previous section.
+<p>
+   Other than the np1,np2,np3 parameters in the &amp;filelist, there is a 
+   new <b>ipetest</b> parameter for <b>&amp;testlist</b>.
+   If ipetest is not set, the ixtest1,ixtest2,ixtest3 indexes are assumed to
+   correspond to the global grid, and they are converted to the 
+   local grid index and processor number. For example taking the
+   above 400 by 400 grid and 4 by 4 processor layout, the
+<pre>
+&testlist
+   teststr='readfileini'
+   ixtest1=110
+   ixtest2=10
+/
+</pre>
+   will be translated to the local cell indexes 10,10 on processor 2,
+   so PE 2 will show the values of x(10,10,1:ndim) and w(10,10,1:nw) 
+   read from the input file data/orszag400_np0404_002.ini. 
+   An alternative way to specify the same cell is using 
+<pre>
+&testlist
+   teststr='readfileini'
+   ipetest=2
+   ixtest1=10
+   ixtest2=10
+/
+</pre>
+   This may be the only way of specifying the test cell if it is a ghost 
+   cell which lies between the processors.
+
+<H2><A NAME="Distribution">Data</A> redistribution with Fix/distribution</H2>
+
+   The input and output data files can be redistributed with the
+   <b>Fix/distribution</b> Perl script. If it is typed without
+   any parameters or with the -h switch, the following help information 
+   is shown:
+<pre>
+Convert data files with some MPI distribution into another distribution.
+
+   Fix/distribution [-h] [-D] [-s=SNAPSHOTS] [-f] [-g=GHOSTCELL] filein fileout
+
+-h            print this help message
+-D            print debug information
+-s=NUMBER     convert snapshot NUMBER (first snapshot is indexed by 1)
+-s=FROM:TO    convert snapshots from number FROM to number TO
+-s=FROM:TO:STRIDE 
+              convert every STRIDE-th snapshot from number FROM to number TO
+-f            full grid output with 2 ghost cell layers at the outer boundary
+-g=GHOSTCELL  full grid output with GHOSTCELL layers at the outer boundary
+filein        name of the input  files without/ignored processor rank '_nnn'
+fileout       name of the output files without/ignored processor rank '_nnn'
+
+Examples:
+
+Merge data files on 2 x 2 PE-s into a single file:
+
+   Fix/distribution data/exampleA22_np0202.ini data/exampleA22.ini
+
+Scatter the first snapshot of a single data file into 3 x 1 PE-s:
+
+   Fix/distribution -s=1 data/exampleA22.out data/exampleA22_np0301.out
+
+Rearrange a 2 x 2 distribution into a 1 x 3 distribution with a new name:
+
+   Fix/distribution data/old_np0202.out data/new_np0103.out
+
+Rearrange snapshots 2,4,6 of a 2x2x2 distribution into 4x2x1 distribution:
+
+   Fix/distribution -s=2:6:2 data/old_np020202.out data/new_np040201.out
+
+Create a file with the default number of ghost layers at the outer boundary:
+
+   Fix/distribution -f data/old.out data/new_np0202.out
+
+Create a file with the default 4 ghost layers at the outer boundary:
+
+   Fix/distribution -g=4 data/old.out data/new_np0202.out
+
+Processor rank in the filename (if any) is ignored, so these two are the same:
+
+   Fix/distribution data/old_np020202_000.out data/new_np040201_003.out
+   Fix/distribution data/old_np020202.out     data/new_np040201.out
+</pre>
+   In addition to this help message it is also useful to note that 
+   the input file can be a full grid (which includes outer boundary ghost
+   cells) or just the mesh (no ghost cells), it will always be read correctly. 
+   The -f and -g switches affect only the distribution of the output files.
+   If there is a single output file (e.g. new_np0101.out) the -f and -g 
+   switches do not make any difference. On the other hand, 
+   if the input grid contains 204 cells along one dimension and 
+   these are distributed over four processors, then the 204 cells
+   will be split to 52+50+50+52 cells with the -f switch, and
+   to 51+51+51+51 cells without the -f switch.
+<p>
+   If VACINI is used to create a full grid, it is best to create
+   a single file, or distribute to at most 2 PE-s in each directions.
+   In that case the distribution of the input file will be the same
+   independent of whether it is taken to be a full grid or a mesh,
+   and it can be read directly with VAC with fullgridini=T.
+   Otherwise the distribution created by VACINI must be redistibuted
+   with Fix/distribution -f. 
+
+<H2><A NAME="Limitations">Limitations</A></H2>
+
+   The current implementation is not complete, certain features of VACINI
+   and VAC are not available when the MPI parallelization is used.
+   For VACINI the following actions are not available:
+<pre>
+shiftgrid
+sheargrid
+transposexy
+regrid
+stretchgrid
+stretchgridcent
+</pre>
+   Finally the
+<pre>
+shocktube
+</pre>
+   action works, but it uses interpolation based on cell indexes and not on
+   coordinates. This does not make any difference if the jumps are sharp 
+   (like a step function) and/or the grid is uniform.
+<p>
+   All these actions would require some non-trivial message passing
+   between the processors. It is unlikely that these restrictions
+   will be eliminated in the near future, because there is a
+   relatively simple work around.  The initial conditions can be created 
+   on a single PE and then distributed with
+   <A HREF="#Distribution">Fix/distribution</A>. 
+<p>
+   For VAC the following features are not available with MPI parallelization
+<pre>
+implicit scheme
+shifted periodic boundary regions
+</pre>
+   There is no plan to parallelize the implicit scheme. 
+   Parallel implicit scheme is not available from HPF either.
+   The shifted periodic boundaries are mostly used for testing
+   numerical schemes. It would require non-trivial
+   MPI message passing, so it is unlikely to be implemented.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, October 21 2003
+</ADDRESS>
+</BODY>
+</HTML>

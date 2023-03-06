@@ -1,0 +1,114 @@
+<HTML>
+<HEAD>
+<TITLE> Welcome to VAC </TITLE>
+</HEAD>
+<BODY>
+<IMG SRC="vaclogosmall.gif" ALT="">
+<p>
+<h1>WELCOME TO THE VERSATILE ADVECTION CODE</h1>
+<hr>
+This page:
+ [<A HREF="#Project">Project</A>]
+ [<A HREF="#Codes">Codes</A>]
+ [<A HREF="#Philosophy">Philosophy</A>]
+ [<A HREF="#Distribution">Distribution</A>]
+<hr>
+<H3><A NAME="Project">Project</A></h3>
+
+This software was developed by G&aacute;bor T&oacute;th at the Astronomical 
+Institute at Utrecht from November 8 1994 to August 15 1997. 
+The project is done in a collaboration with the FOM Institute for Plasma 
+Physics, the Mathematics department at Utrecht and the CWI at Amsterdam. 
+In particular, Rony Keppens (FOM), Mikhail Botchev (Mathematics Dept.), and
+Auke van der Ploeg (CWI) contributed significantly to the development since
+1996. 
+<A HREF="http://hermes.elte.hu/~gtoth">G. T&oacute;th</A> and 
+<A HREF="http://www.rijnh.nl/n3/n2/">R. Keppens</A>
+share the responsibility and work associated with the development, 
+maintenance, distribution, and management of the software. 
+The work has been funded by the Dutch Science Fundation (NWO) 
+in a program of <A HREF="http://phys.uu.nl/~mpr">
+Massive Parallel Processing Applied to Magnetohydrodynamics</A>,
+and by the Dutch National Computing Facilities Foundation (NCF) for the use
+of supercomputer facilities.
+
+<H3><A NAME="Codes">Codes</A>, Precompilers and Interface</h3>
+
+VAC aims to advance a system of hyperbolic equations by a number of
+different numerical schemes. The equations are stored in separate 
+modules, and they can be selected by a simple configuration of the
+VACPP preprocessor. The dimensionality of the problem is also set 
+through VACPP. The numerical schemes are able to handle discontinuities
+and smooth flows as well.
+<p>
+VACINI is provided as an additional tool to produce or modify initial 
+conditions for VAC, however, the initial data can be produced by other
+means too. Visualization or analysis of the results can be done by
+the powerful IDL, MATLAB, and SuperMongo macros provided in the package.
+Conversion to data formats used by AVS, DX, and Gnuplot is also supported.
+<p>
+The VACPP preprocessor translates the dimensional independent notation 
+(based on the Loop Annotation Syntax, 
+<A HREF="http://hermes.elte.hu/~gtoth/Papers/vac.html#LASY">LASY</A>)
+to Fortran 90. <b>Parallel machines</b> with a High Performance Fortran (HPF)
+compiler or the Message Passing Interface (MPI) library
+can run VAC in parallel. For HPF parallelization the code is translated 
+by the F90TOHPF Perl script. If no Fortran 90 or
+HPF compiler are available, the F90TOF77 Perl script can be used for
+translating to Fortran 77. The Perl interpreter is installed at most places,
+and it is freely available from the net.
+<p>
+The configuration and compilation procedures as well as the simulations
+can be done via the web based VAC User Interface. This requires the Weblink
+web server (provided with the software for this purpose only, a product
+of and copyrighted by the US based WWLINK company) and a web browser like 
+Netscape or Mozilla.
+
+<H3><A NAME="Philosophy">Philosophy</A></h3>
+
+The philosophy behind VAC is using a single versatile software 
+with options and switches for various problems, rather than developing
+a different method or version for each problem separately. The advantage
+of such a general approach is a reduction of overall time for software 
+development, easier maintenance, compatibility of different parts, 
+automatic extension of new features to all existing applications. 
+The price of the general approach is some added complexity in the source.
+<p>
+VAC is not a fool-proof black-box design. The user is expected to 
+understand how the different parameters change the behaviour of the
+code, and to be able to complete user written subroutines for source
+terms, special boundary conditions etc. if needed. It is essential to
+keep the user written parts well separated, since newer versions of VAC
+are under development. Please put added subroutines into a separate 
+VACUSR module, e.g. into the <b>vacusr.t.MINE</b> file and signal 
+any additions in the other source files by some comment line, e.g. 
+!BEGIN USER ADDED and !END USER ADDED. If you change something, keep the 
+original version commented out as !ORIGINAL. If you think your subroutine 
+is of general interest please send the source with some explanations to me.
+
+<H3><A NAME="Distribution">Distribution</A></h3>
+
+Although VAC is distributed for no charge, there is a considerable amount
+of work behind its development. For this reason, at least one of the
+developers of the code expect to be co-author in the first publication 
+which uses VAC in a substantial way, and to be
+referenced and acknowledged in later publications as the author of the 
+original software. On the other hand, we provide assistance for the user in 
+the initial set up, and later if problems arise. The user will be notified 
+about any major improvement or addition to the code. If you are interested
+in applying the software to scientific problems being studied at the 
+Astronomical Institute at Utrecht or at the FOM Institute at Nieuwegein, 
+then we expect that providing the software will lead to collaboration.
+<p>
+If you are interested in using VAC, please fill in and return the 
+<b>REGISTRATION FORM</b> on the  
+<A HREF=http://www.phys.uu.nl/~toth>VAC home page</A> to 
+Gabor Toth (gtoth at hermes.elte.hu) and Rony Keppens
+(keppens at rijnh.nl) by E-mail.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th,
+December 29 2003
+</ADDRESS>
+</BODY>
+</HTML>

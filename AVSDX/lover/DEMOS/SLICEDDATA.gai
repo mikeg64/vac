@@ -1,0 +1,10 @@
+file = SLICEDDATA
+grid =   3 x   3
+field = firstfield, secondfield, locations
+structure = scalar, scalar, 3-vector
+format = ascii
+type = double, double, float
+majority = column
+header = lines     3
+interleaving = field
+end

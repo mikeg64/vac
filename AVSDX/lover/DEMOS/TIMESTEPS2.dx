@@ -1,0 +1,84 @@
+object    1 class array type float  category real    rank  1 shape    3 items       4 ascii    data          0
+#
+object     2 class gridconnections counts   4
+attribute "element type" string "lines"
+attribute "ref" string "positions"
+#
+object     3 class array type double category real    rank  0 items       1 ascii    data        204
+#
+object     4 class array type double category real    rank  0 items       4 ascii    data        221
+attribute "dep" string "positions"
+#
+object     5 class field
+component "positions" value     1
+component "connections" value     2
+component "data" value     4
+attribute "series position" value     3
+#
+object     6 class array type double category real    rank  0 items       1 ascii    data        289
+#
+object     7 class array type double category real    rank  0 items       4 ascii    data        306
+attribute "dep" string "positions"
+#
+object     8 class field
+component "positions" value     1
+component "connections" value     2
+component "data" value     7
+attribute "series position" value     6
+#
+object     9 class array type double category real    rank  0 items       1 ascii    data        374
+#
+object    10 class array type double category real    rank  0 items       4 ascii    data        391
+attribute "dep" string "positions"
+#
+object    11 class field
+component "positions" value     1
+component "connections" value     2
+component "data" value    10
+attribute "series position" value     9
+#
+object    12 class array type double category real    rank  0 items       1 ascii    data        459
+#
+object    13 class array type double category real    rank  0 items       4 ascii    data        476
+attribute "dep" string "positions"
+#
+object    14 class field
+component "positions" value     1
+component "connections" value     2
+component "data" value    13
+attribute "series position" value    12
+#
+object "firstfield" class series
+member     0 position       0.0000 value     5
+member     1 position       0.5236 value     8
+member     2 position       1.0472 value    11
+member     3 position       1.5708 value    14
+#
+object    15 class group
+member "firstfield" value "firstfield"
+attribute "geom" number 4
+end
+  0.00000000E+00   0.00000000E+00   0.00000000E+00
+  0.20943952E+01   0.00000000E+00   0.00000000E+00
+  0.41887903E+01   0.00000000E+00   0.00000000E+00
+  0.62831855E+01   0.00000000E+00   0.00000000E+00
+      0.00000000
+  0.00000000E+00
+  0.86602539E+00
+ -0.86602545E+00
+  0.17484555E-06
+      0.52359879
+ -0.86602539E+00
+  0.00000000E+00
+  0.86602539E+00
+ -0.86602545E+00
+      1.04719758
+  0.86602545E+00
+ -0.86602539E+00
+  0.00000000E+00
+  0.86602539E+00
+      1.57079637
+ -0.17484555E-06
+  0.86602545E+00
+ -0.86602539E+00
+  0.00000000E+00

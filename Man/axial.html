@@ -1,0 +1,200 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on Using Axial Symmetry </TITLE>
+</HEAD>
+<BODY>
+<h1>USING AXIAL SYMMETRY</h1>
+
+This document describes how to use properly axial symmetry and polar grids
+for VAC. Please read it carefully before you start to do simulations with 
+<b>typeaxial</b> different from 'slab' in the <b>methodlist</b> of 
+your <b>par/PROBLEM</b> parameter file.
+
+<hr>
+This page:
+ [<A HREF="#What">Symmetry</A>]
+ [<A HREF="#Polargrid">Polar grid</A>]
+ [<A HREF="#Implementation">Implementation</A>]
+ [<A HREF="#Boundary">Boundary</A>]
+<hr>
+
+<H2><A NAME="What">What</A> does Axial Symmetry Mean?</H2>
+
+In 1 and 2D simulations, there is an inherent assumption about the behavior
+of quantities in the ignored direction(s). The most usual assumption is
+'slab' symmetry, i.e. all the quantities are invariant to a translation in the 
+ignored direction. This is the default value for <b>typeaxial</b> in the method
+list in the <b>par/DEFAULT</b> file. 
+<p>
+In 2D, one may assume a rotational invariance around some axis instead, which
+gives a cylindrical symmetry, thus <b>typeaxial='cylinder'</b> should be 
+selected. VAC always assumes that the radial distance from the symmetry axis 
+is in the first coordinate, which can therefore be referred to as <b>r_</b>, 
+where <b>r_=1</b> is an integer parameter set in <b>src/vacdef.t</b>. 
+The second coordinate is interpreted as the one parallel to the axis, 
+<b>z_=2</b>, while the ignored direction, if used, is <b>phi_=3</b> in 2.5D.
+The PHI components of vector variables are therefore
+stored in the third component in 2.5D simulations:
+<pre>
+setvac -d=23 -z=2 -phi=3
+</pre>
+Although this order of the variables implies a left handed coordinate 
+system, the equations are solved correctly. 
+For visualization the order of coordinates can be changed arbitrarily.
+<p>
+In 2.0D simulations in the R-Z plane, however, you should set
+<pre>
+setvac -d=22 -z=2 -phi=0
+</pre>
+which makes the index values for the PHI components of vector variables 
+negative, i.e. they are not to be used! 
+<p>
+In 1D there are lots of possibilities. Slab symmetry is trivial, but there
+are two possibilities for cylindrical symmetry in 1.5D:
+<pre>
+setvac -d=12 -z=2 -phi=0
+setvac -d=12 -phi=2 -z=0
+</pre>
+When all three vector components are used,
+<pre>
+setvac -d=13 -z=2 -phi=3
+</pre>
+should be used just like in 2.5D.
+<p>
+In spherical symmetry, <b>typeaxial='sphere'</b>, the invariant transformation 
+is a rotation around the origin. Again, the first coordinate is <b>r_=1</b> 
+while the other two are the transverse components, they are physically not 
+distinguishable. 
+<p>
+In 1.0D (setvac -d=11 -phi=0 -z=0)
+nozzle symmetry can be used with <b>typeaxial='nozzle'</b>.
+It is a kind of local conical symmetry, 
+where the opening angle of the nozzle determines the distance to the center of 
+the symmetry. The flow is assumed to be parallel to the walls of the nozzle on 
+the surface, and purely radial in the center line. 
+Since the nozzle symmetry is implemented for <b>src/vacphys.t.hd</b> and 
+<b>src/vacphys.t.hdadiab</b> only, a radial acceleration due to thermal 
+pressure on the walls is the only effect from the nozzle symmetry.
+The shape of the nozzle should be defined in <b>src/vacgrid.setnozzle.t</b>.
+<p>
+In the source code, the ^IFPHI and ^IFZ conditional patterns can be used
+to avoid the compiler warnings about indices out of range. The patterns
+remove the attached text when phi_ or z_ are negative, respectively.
+Another way to avoid compiler warnings is the use of pphi_=min(1,phi_) 
+and zz_=min(1,z_) for the indices, but you have to make sure that the 
+statements are not executed when phi_ and z_ are negative, respectively.
+
+<H2><A NAME="Polargrid">What</A> does Polar Grid Mean?</H2>
+
+In case of a polar grid the PHI direction is not ignored, thus you can use
+<pre>
+setvac -d=22 -phi=2 -z=0
+setvac -d=23 -phi=2 -z=3
+setvac -d=33 -phi=2 -z=3
+setvac -d=33 -phi=3 -z=2
+</pre>
+A polar grid functionally is very similar to the special case of 
+generalized coordinates where the gridpoints are located on circles, 
+but it is realized in a very different way. VAC recognizes a polar grid
+when the coordinate index <b>phi_ &lt;= NDIM</b> and the parameter 
+<b>typeaxial='cylinder'</b> is set. When these two conditions are met, 
+the global logical variable <b>polargrid</b> is set to true.
+<p>
+In 2D, the data in the <b>x</b> coordinates is interpreted as radial distance
+<b>r</b> and the angular coordinate <b>phi</b> is measured in radians.
+The <b>dx</b> array contains <b>dr</b> and <b>r*dphi</b> and VAC treats
+everything the same way as in a Cartesian grid (gencoord=F and ndim=2 in the 
+data file). The main difference is that the geometric source terms are added
+due to <b>typeaxial='cylinder'</b>. Some source terms, e.g. viscosity,
+also differ slightly.
+<p>
+In 3D, there are two possibilities: the coordinates can be ordered as 
+<b>r, z, phi</b> or <b>r, phi, z</b>, where <b>z</b> is the vertical position.
+The grid can be Cartesian in the <b>r, z</b> coordinates, in which case the 
+full grid is handled as a Cartesian-like grid (gencoord=F and ndim=3 in the 
+data files). 
+Otherwise the grid can be generalized in the <b>r,z</b> coordinates 
+(gencoord=T, ndim=-3), i.e. the grid points for a fixed 
+<b>phi</b> can be positioned arbitrarily in the poloidal plane, however, 
+there can be no variation with the phi index, so the grid in all poloidal 
+planes must look the same. Such a grid is a <i>generalized polar grid</i>.
+In 3D, the <b>dx</b> array contains <b>dz</b> in addition to <b>dr</b> and 
+<b>r*dphi</b>. In the generalized polar grid case the normal vectors, surfaces,
+and volumes of the grid cells are also set similarly as for a 2D generalized
+grid with axial symmetry except for some additional <b>Delta phi</b> factors.
+<p>
+The vector variables also have their components in the <b>r, phi</b>, and 
+<b>z</b> directions. These facts should be kept in mind when the initial 
+conditions are defined, when source terms are applied, or when the results are 
+visualized.
+<p>
+The discretizations in polar and generalized coordinates are quite different,
+so results may slightly differ. The difference should vanish proportional
+to <b>dx^2</b> as <b>dx --> 0</b>. Typically, a simulation on a polar grid 
+will be more efficient, since the discretization is substantially simpler
+(except for the generalized polar grid). 
+Another advantage of using a polar grid is the possibility to use the 
+<A HREF=par.html#Methodlist>angmomfix</A> parameter to conserve angular 
+momentum instead of the <b>m_phi</b> momentum. On 3D generalized polar
+grid, angmomfix can only be used with the <b>r, z, phi</b> coordinate ordering.
+<p>
+Finally, results obtained in 1.5D axial symmetry agree exactly with 
+results obtained on a 2D polar grid with zero gradients in the <b>phi</b>
+direction, while this holds only approximately for 2D calculations on
+a circular grid with generalized coordinates.
+Similarly, 2.5D axial symmetry agrees exactly with 3D polar grid if there is
+no variation with <b>phi</b>. This can be very useful when a 1.5D or 2.5D
+stationary solution is used as an initial condition for 2D or 3D simulations,
+respectively.
+
+<H2><A NAME="Implementation">Implementation</A></H2>
+
+In slab symmetry all fluxes entering the cells from the ignored direction 
+cancel exactly. In cylindrical or spherical symmetry, however, there are
+non-vanishing contributions. These extra fluxes are always functions of 
+the quantities in the local cell and of the geometry only, since due to 
+the symmetry assumption, the quantities in the virtual neighbouring cells 
+in the ignored direction(s) are the same as in the local cell except for the 
+geometrical transformation, e.g. rotation of vector quantities around 
+the symmetry axis. Consequently the contributions are added like source 
+terms in the <b>addgeometry</b> subroutine in <b>src/vacphys</b>. 
+To maintain hydrostatic equilibrium exactly, the 'geometrical sources' 
+are added at the same time as fluxes in the radial direction.
+An exception from this is TVD, which uses special <em>preprocessing and
+postprocessing</em> steps (invented by D. Ryu) to include geometrical 
+terms and ordinary source terms to second order accuracy.
+<p>
+On a polar grid the extra terms are exactly the same as for cylindrical 
+symmetry.
+<p>
+When <b>angmomfix</b> is switched on, the geometrical source terms for 
+<b>m_phi</b> cancel, because of the different discretization used.
+
+<H2><A NAME="Boundary">Boundary</A> at the Symmetry Axis</H2>
+
+There should be no (ghost) cell center lying on the symmetry axis, ie. the 
+radial coordinates should jump through <b>r=0</b>. Using the <b>domain</b> action in
+VACINI makes it easy to avoid this problem, for example in 2D
+<pre>
+domain
+10  10
+ 0.  0.
+10.  3.
+</pre>
+will generate <b>r=0.5,1.5,...,9.5</b> and <b>z=0.15,0.45,...,2.85</b> and 
+the ghost cells will be on the other side of the axis at <b>r=-0.5,-1.5</b>.
+The cell surface area is proportional to the radial distance, thus it is 
+zero between the first ghost cell and the mesh cell right at the axis. 
+Consequently the fluxes through the cell surface vanish, and as far as 
+fluxes are concerned, the boundary condition at <b>r=0</b> does not
+depend on the boundary type. Perfectionists should use <b>'asymm'</b> 
+type boundary for the radial and PHI vector components and <b>'symm'</b> 
+for all other variables. This is the correct physical description and 
+it may have a slight influence on the limiters applied on the physical cells.
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

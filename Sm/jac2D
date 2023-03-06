@@ -1,0 +1,41 @@
+readjac	2
+	data $1
+	read{jacold 1 iw 2 jw 3 ix1 4 ix2 5 jx 6}
+	data $2
+	read{jacnew 1}
+	set djac=jacold-jacnew
+	echo Maximum and minimum differences
+	e max(djac)
+	e min(djac)
+	set jactot=jacold concat jacnew
+	set x=1,dimen(jacold)
+	limits x jactot
+showjac
+	Erase
+	green
+	ptype 4 1
+	expand 2
+	poi x jacold
+	cyan
+	ptype 4 0
+	expand 1.00001
+	poi x jacnew
+	box
+jacerr	2
+	# Usage jacerr relative absolute
+	set jacerror=(abs(djac)>$1/2*(abs(jacold)+abs(jacnew))&&abs(djac)>$2)
+	set iwerr=iw if (jacerror)
+	set jwerr=jw if (jacerror)
+	set ix1err=ix1 if (jacerror)
+	set ix2err=ix2 if (jacerror)
+	set jxerr=jx if (jacerror)
+	set jacolderr=jacold if (jacerror)
+	set jacnewerr=jacnew if (jacerror)
+	set djacerr=djac if (jacerror)
+	echo Number of elements above error limits: $(dimen(djacerr))
+printjac
+	print '%4d %4d %4d %4d %4d %12.5e %12.5e %12.5e\n' \
+		{iw jw ix1 ix2 jx jacold jacnew djac}
+printjacerr
+	print '%4d %4d %4d %4d %4d %12.5e %12.5e %12.5e\n' \
+		{iwerr jwerr ix1err ix2err jxerr jacolderr jacnewerr djacerr}

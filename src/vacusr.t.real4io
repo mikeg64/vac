@@ -1,0 +1,14 @@
+! This VACUSR module is provided for convenience to allow the use of REAL*4 
+! binary data files by simply using
+!
+! setvac -u=real4io
+!
+! and setting "typefileini" or "typefileout" to 'special'.
+!
+! If you need a VACUSR module for other reasons too, INCLUDE:vacusr.real4io.t
+! directly into that file.
+
+INCLUDE:vacnul.specialbound.t
+INCLUDE:vacnul.specialini.t
+INCLUDE:vacnul.specialsource.t
+INCLUDE:vacusr.real4io.t

@@ -1,0 +1,5 @@
+#!/usr/bin/perl -pi~
+# Convert .true. to T and .false. to F in namelists. Usage: Fix/true2T par/*
+
+s/\.true\./T/g;
+s/\.false\./F/g;

@@ -1,0 +1,34 @@
+!##############################################################################
+! include vacpar - mhdiso
+
+! For isothermal MHD: density,momentum,magnetic_field 
+!                + adiabatic_index==1.D0, sound_speed_squared, resistivity
+! For polytropic MHD: 
+!                + adiabatic_index/=1.D0, adiabatic_constant,  resistivity
+
+CHARACTER*6, PARAMETER:: typephys='mhdiso'                ! VACPHYS module name
+CHARACTER*17,PARAMETER:: eqparname='gamma csound2 eta'    ! Eq. parameter names
+
+INTEGER,PARAMETER:: rho_=1,m0_=rho_,m^C_=m0_+^C           ! flow variables
+INTEGER,PARAMETER:: b0_=m^NC_,b^C_=b0_+^C                 ! flow variables
+INTEGER,PARAMETER:: nw=b^NC_                              ! No. flow variables
+INTEGER,PARAMETER:: e_=0, ee_=1                           ! No energy
+
+INTEGER,PARAMETER:: v0_=m0_, v^C_=m^C_, p_=e_, pp_=ee_    ! Primitive variables
+
+INTEGER,PARAMETER:: fastRW_=1,fastLW_=2,slowRW_=3,slowLW_=4 ! Characteristic
+INTEGER,PARAMETER:: diverW_=5,alfvRW_=6,alfvLW_=7,entroW_=0 ! waves (no entroW)
+INTEGER,PARAMETER:: extremeRW_=fastRW_,extremeLW_=fastLW_   ! Potential extrema
+
+INTEGER,PARAMETER:: mr_=m0_+r_,mphi_=m0_+phi_,mz_=m0_+z_  ! Polar var. names
+INTEGER,PARAMETER:: br_=b0_+r_,bphi_=b0_+phi_,bz_=b0_+z_
+
+INTEGER,PARAMETER:: nvector=2                             ! No. vector vars
+
+INTEGER,PARAMETER:: gamma_=1,csound2_=2,eta_=3,neqpar=3   ! equation params
+INTEGER,PARAMETER::          adiab_=2                     ! alternative name
+INTEGER,PARAMETER:: divbcoeff_=1,divbconst_=2,divbbound_=3,nprocpar=3
+                                                          ! processing params
+
+! end include vacpar - mhdiso
+!##############################################################################

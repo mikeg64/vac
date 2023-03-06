@@ -1,0 +1,729 @@
+#!/usr/local/bin/perl
+sub shell{
+    local($command)=@_; $command=~s|/bin/||g; 
+    &print($command);
+    `$_[0]` unless $_demo;
+}
+sub background{
+    &_background(@_,0) unless $_demo;
+}
+sub background_nohup{
+    &_background(@_,1) unless $_demo;
+}
+sub print{
+    local($txt)=@_;
+    if($showmessage){
+	$txt=~s/\n/<br>\n/g;
+	if($txt=~/\!/){
+	    $txt="<b>$txt</b>";
+	}else{
+	    $txt="<kbd>$txt</kbd>";
+	}
+	$message.="$txt<br>\n";
+    }else{
+	print "$txt\n";
+    }
+}
+sub page{
+    local($page)=@_;
+    local($submain,$link);
+    $submain=$page; $submain=~s/ /+/g;
+    if($noframe && $page eq $OLDPAGE){
+	$link="<IMG SRC=/Weblink/redball.gif> \n";
+    }else{
+	$link="<IMG SRC=/Weblink/yellowb.gif> \n";
+    }
+    $link.="<A HREF=/Weblink/interface.html?submain=$submain\&PAGE=MAIN";
+    $link.="\&FRAME=2 TARGET=fr2" unless $noframe;
+    $link.=">$page</A>";
+    return($link);
+}
+sub manual{
+    local($manual)=@_;
+    local($mantarget);
+    $mantarget=" TARGET=manual" if $manwindow;
+    $mantarget=" TARGET=fr2" unless $noframe || $manwindow;
+    $manual="<A HREF=/Man/$manual$mantarget>".
+	"<IMG SRC=/Weblink/blue_question.gif ALIGN=ABSMIDDLE></A>";
+    return($manual);
+}
+sub form{
+    local($form)=@_;
+    if($form){
+        $form.="&FRAME=2" unless $form=~/FRAME/;
+    }else{
+	$form="FRAME=2";
+    }
+    $form='<FORM ACTION="/Weblink/interface.html?'.$form.'" METHOD=POST>'; 
+    return($form);
+}
+sub button{
+    local($value,$checked)=@_;
+    local($button);
+    if($mosaic){
+	$button='<INPUT TYPE="radio" NAME="submit" VALUE="'.$value.'"';
+	$button.="  $checked>$value";
+    }else{
+	$button='<INPUT TYPE=submit NAME=submit VALUE="'.$value.'">';
+    }
+    return($button);
+}
+sub edit{
+    $file=$_[0];
+    if($editor eq "web" || "$_demo"){
+	$OLDPAGE=$PAGE; $PAGE="EDIT"; $text=`/bin/cat $file`;
+    }elsif($editor eq "vi") {
+	&print("Started vi $file...");
+	&background("$xterm -e vi $file");
+    }else{
+	&print("Started $editor $file...");
+	&background("$editor $file");
+    }
+}
+sub fileselect{
+    local($name,$selector,$common,$pattern,$except)=@_;
+    local(@files,$selection);
+    @files=&list($common,$pattern,$except);
+    $selection=&select($name,$selector,@files);
+    return($selection)
+}
+sub list{
+    local($common,$pattern,$except)=@_;
+    local($files);
+    my @files=grep(-f,glob($common.$pattern));
+    $files="\n".join("\n",@files);
+    $files=~s@$common@@g;
+    if($except){1 while($files=~s/\n$except.*\n/\n/)};
+    $files=~s/^\n//;$files=~s/\n$//;
+    return(split("\n",$files));
+}
+sub select{
+    local($name,$selector,@options)=@_;
+    local($selection,$iselect);
+    if($#options==0){
+	$selection='<INPUT TYPE="hidden" NAME="'.$name.'" VALUE="'.
+	    $options[0].'" >'."<b>$options[0]</b>";
+    }elsif($#options>0){
+	for($i=0;$i<=$#options;$i++){
+	    if($selector && $options[$i]=~/^$selector/){
+		$options[$i]="\t<OPTION SELECTED>".$options[$i];
+		undef $selector;
+		$iselect=$i;
+	    }else{
+		$options[$i]="\t<OPTION>".$options[$i];
+	    }
+	}
+	if($selector){
+	    $options[0]=~s/<OPTION>/<OPTION SELECTED>/;
+	    $iselect=0;
+	}
+	if($#options>20){
+	    # $size="SIZE=15";
+	    local($first,$last);
+	    $first=$iselect-10; 
+	    $first=0 if $first<0;
+	    $first=$#options-19 if $first>$#options-19;
+	    $last=$first+19;
+	    @options=@options[$first..$last];
+	}
+	$selection='<SELECT NAME="'.$name.'"'.">\n\t"
+	          .join("\n\t",@options)
+		  ."\n</SELECT>";
+    }
+    return($selection);
+}
+sub initialize{
+    local($setvac);
+    
+    $mosaic=($_agent eq "mosaic"); 
+    $noframe=1 unless $_agent eq "netscape2";
+    $PAGE="COVER PAGE";
+    $stars='\*\*\*\*\*\*\*\*\*\*';
+    $checkstdout="<b>Check the XTERMINAL for STDOUT and STDERR!</b><br>\n";
+
+    if($noframe){
+	$backtomain="<hr><IMG SRC=/Weblink/yellowb.gif> \n"
+	    ."<A HREF=/Weblink/interface.html?submit=BACK+TO+MAIN+MENU>"
+	    ."BACK TO MAIN MENU</A>";
+    }
+
+    @onoff=("cd","mc","fct","tvdlf","tvd","impl","poisson","ct","gencoord",
+            "resist","rk","mpi");
+
+    $setvac=`cd src;./setvac -s;cd ..`; 
+    $setvac=~/-d=(.)(.) -phi=(\S*) -z=(\S*) -g=(\S*) -p=(\S*) -u=(\S*)/;
+    $dim=$1; $dir=$2; $phi=$3; $z=$4; $grid=$5; $vacphys=$6; $vacusr=$7;
+    if($setvac=~/-on=(\S*)/){$on=$1;};
+    $dc="D=$dim C=$dir"; $phiz="PHI=$phi Z=$z";
+    $grid=~s/,/ x /g;
+    $vacusrpar= -e("src/vacusrpar.t.$vacusr");
+
+    $currentconfig=&currentconfig;
+    
+    $problem=$vacusr if $vacusr ne "nul";
+    $extension=($vacusr ne "nul")? $vacusr : "$vacphys$dim$dir";
+    
+    $vacini="vacini"; $vacini_make="vacini";
+    $inipar="nul"; $newinipar="";
+    $vac="vac"; $vac_make="vac";
+    $par="nul"; $newpar="";
+    $nloghead=7; $nlogtail=2; $ndatahead=7; $ndatatail=2;
+
+    $np=1; # number of processors for MPI parallel run
+    $processormap=""; # processormap
+
+    $initialized=1;
+}
+sub currentconfig{
+    local($str);
+    if($mosaic){
+	$str="<b>Current settings:</b><br>\n"
+	."DIM=$dim, DIR=$dir, PHI=$phi Z=$z GRID=$grid, PHYS=$vacphys, \nUSR";
+	$str.="+PAR" if $vacusrpar;
+        $str.="=$vacusr, MODULES ON=$on";
+    }else{
+	$str="<table border=2 cellpadding=3 cellspacing=5>\n<tr>\n"
+            ."<td>DIM</td><td>DIR</td><td>PHI</td><td>Z</td><td>GRID</td>"
+            ."<td>PHYSICS</td>\n<td>USR";
+	$str.="+PAR" if $vacusrpar;
+	$str.="</td><td>MODULES ON</td>\n<tr>\n";
+	$str.="<td>$dim</td><td>$dir</td><td>$phi</td><td>$z</td>"
+            . "<td>$grid</td><td>$vacphys</td>\n"
+	    . "<td>$vacusr</td><td>$on</td>\n</table>";
+    }
+    return($str);
+}
+####################### Subroutines for individual PAGE-s #############
+sub mainpage{
+    $submain=$FORM{"submain"};
+
+    return unless 
+      $submain=~/^(CUSTOMIZE|COVER PAGE|CONFIGURE|RESULTS|EXIT)$/||
+      $submain=~/^(MAKE|RUN) (VAC|VACINI)$/;
+
+    $problem=$FORM{"problem"} if $FORM{"problem"};
+
+    if($submain eq "CUSTOMIZE"){
+	$PAGE=$submain;
+    }elsif($submain eq "COVER PAGE"){
+	$PAGE=$submain;
+    }elsif($submain eq "CONFIGURE"){
+	$PAGE=$submain;
+	$dc_=$dc; $phiz_=$phiz; 
+	@grid=split(' x ',$grid); 
+	$n1_=$grid[0]; $n2_=($dim>1)? $grid[1]:1; $n3_=($dim>2)? $grid[2]:1;
+	$on_=$on;
+	$vacphys_=$vacphys; 
+	if($problem){
+	    @vacusr=&list("src/vacusr.t.","*");
+	    @vacusr=grep($problem=~/^$_/,@vacusr);
+	    if($#vacusr>=0){
+		$vacusr_=$vacusr[0]; $newvacusr_="";
+	    }else{
+		$vacusr_=$vacusr; $newvacusr_=$problem;
+		$newvacusr_=~s/\d\d.*//;
+	    }
+	}else{
+	    $vacusr_=$vacusr; $vacusrpar_=$vacusrpar;
+	}
+    }elsif($submain eq "MAKE VACINI"){
+	$PAGE=$submain;
+    }elsif($submain eq "RUN VACINI"){
+	$PAGE=$submain;
+	if($problem){
+	    @inipar=&list("inipar/","*");
+	    if(grep(/$problem/,@inipar)){
+		$inipar=$problem; $newinipar="";
+	    }else{
+		$inipar="nul"; $newinipar=$problem; 
+		$newinipar.="$dim$dir" unless $problem=~/\d\d/;
+	    }
+	}
+	@vacini=&list("./","vacini_*");
+	$vacini="vacini_$extension" if grep($_ eq "vacini_$extension",@vacini);
+	$vacini="vacini_$problem"   if grep($_ eq "vacini_$problem",@vacini);
+    }elsif($submain eq "MAKE VAC"){
+	$PAGE=$submain;
+    }elsif($submain eq "RUN VAC"){
+	$PAGE=$submain;
+	@par=&list("par/","*"); 
+	if($problem){
+	    if(grep(/$problem/,@par)){
+		$par=$problem; $newpar="";
+	    }else{
+		$par="nul"; $newpar=$problem; 
+		$newpar.="$dim$dir" unless $problem=~/\d\d/;
+	    }
+	}
+	@vac=&list("./","vac_*");
+	$vac="vac_$extension" if grep($_ eq "vac_$extension",@vac);
+	$vac="vac_$problem"   if grep($_ eq "vac_$problem",@vac);
+    }elsif($submain eq "RESULTS"){
+	$PAGE=$submain;
+	$log=$problem if $problem;
+	$logtext="";
+	$data=$problem if $problem;
+	$datatext="";
+    }elsif($submain eq "EXIT"){
+	kill(-9, getpgrp) unless $_demo;
+	exec "'/bin/echo Location: http://www.phys.uu.nl/~toth/\n\n'" 
+	    if $_demo;
+    }
+}
+sub customizepage{
+    $submit=$FORM{"submit"}; 
+
+    return unless $submit=~/^(APPLY|SAVE|RESTORE|BACK TO MAIN MENU)$/;
+
+    if($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }else{
+	if($submit eq "RESTORE"){
+	    do "Weblink/default";
+	    &print("Read data from Weblink/default.");
+	}else{
+	    $showmessage=0+$FORM{"showmessage"};
+	    $showcurrent=0+$FORM{"showcurrent"};
+	    $manwindow=0+$FORM{"manwindow"};
+	    $browser=$FORM{"browser"};
+	    $xterm =$FORM{"xterm"};
+	    $editor=$FORM{"editor"};
+	    $stdout=$FORM{"stdout"};
+	}
+	if($submit eq "SAVE" && ! $_demo){
+	    open(FILE,">Weblink/default");
+	    print FILE "\$showmessage=$showmessage;\n";
+	    print FILE "\$showcurrent=$showcurrent;\n";
+	    print FILE "\$manwindow=$manwindow;\n";
+	    print FILE "\$browser='$browser';\n";
+	    print FILE "\$stdout='$stdout';\n";
+	    print FILE "\$xterm ='$xterm';\n";
+	    print FILE "\$editor='$editor';\n";
+	    close(FILE);
+	    &print("Saved data into Weblink/default.");
+	}
+    }
+}
+sub coverpage{
+    $submit=$FORM{"submit"}; 
+    if($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub configurepage{
+    local($flagdc,$flaggrid,$flagphys,$flagphiz,$flagusr,
+          $flagon,$flagoff,$flag,$oo,$off_);
+
+    $submit=$FORM{"submit"}; 
+
+    return unless $submit=~
+        /^(CREATE|USRPAR|DELETE|DO CONFIGURATION|BACK TO MAIN MENU)$/;
+
+    $dc_=$FORM{"dimensions"}; $phiz_=$FORM{"polarcoord"};
+    $n1_=$FORM{"n1"}; $n2_=$FORM{"n2"}; $n3_=$FORM{"n3"};
+    $on_=$off_="";
+    foreach $oo (@onoff){if($FORM{$oo}){$on_.="$oo,"}else{$off_.="$oo,"}}
+    chop($on_); chop($off_);
+    $vacphys_=$FORM{"vacphys"};
+    $vacusr_=$FORM{"vacusr"}; $vacusrpar_=($vacusr_=~s/\+usrpar//);
+    $newvacusr_=$FORM{"newvacusr"};
+    if($submit eq "DO CONFIGURATION"){
+	$dc_=~/D=(.) C=(.)/; $dim=$1; $dir=$2;
+        $phiz_=~/PHI=(.) Z=(.)/; $phi=$1; $z=$2;
+	$grid_="$n1_";
+	$grid_.=" x $n2_" if $dim>1;
+	$grid_.=" x $n3_" if $dim>2;
+
+	# Check for common errors and correct them
+	if($grid_=~s/\b[12345]\b/6/){
+	    &print("There must be at least 6 cells in every directions!");}
+	unless($on_){
+	    $on_="tvdlf";
+	    &print("Some method should be switched on!");}
+
+       	# Set flags for setvac
+	if($dc_ ne $dc){
+	    $dc=$dc_;
+	    $flagdc=" -d=$dim$dir";}
+        if($phiz_ ne $phiz){
+            $phiz=$phiz_;
+            $flagphiz=" -phi=$phi -z=$z";}
+	if($grid_ ne $grid){
+	    $grid=$grid_;
+	    $flaggrid=" -g=$grid"; $flaggrid=~s/ x /,/g;}
+	if($vacphys_ ne $vacphys){
+	    $vacphys=$vacphys_;
+	    $flagphys=" -p=$vacphys";}
+	if($vacusr_ ne $vacusr || $vacusrpar_ ne $vacusrpar){
+	    $vacusr=$vacusr_; $vacusrpar=$vacusrpar_; 
+	    $flagusr=" -u=$vacusr";}
+	if($on_ ne $on){
+	    $on=$on_;
+	    $flagon =" -on=$on";
+	    $flagoff=" -off=$off_" if $off_}
+	# Collect all the flags
+	$flag="$flagdc$flagphiz$flaggrid$flagphys$flagusr$flagon$flagoff";
+	# Execute setvac if needed
+	if($flag){
+	    &shell("cd src; ./setvac$flag; cd ..");
+	    $currentconfig=&currentconfig;
+	    # Guess problem and extension
+	    $problem=$vacusr unless $problem || $vacusr eq "nul";
+	    $extension=($vacusr ne "nul")? $vacusr : "$vacphys$dim$dir";
+	}else{
+	    &print("No change in configuration.");
+	}
+    }elsif($submit eq "DELETE"){
+	if($vacusr_ ne "nul"){
+	    &shell("rm src/vacusr.t.$vacusr_");
+	    &shell("rm src/vacusrpar.t.$vacusr_") if $vacusrpar_;
+	    $vacusr_="nul";
+	}else{
+	    &print("The src/vacusr.t.nul module should not be removed!");
+	}
+    }elsif($submit eq "CREATE"){
+	$newvacusr_=~s/\s//g;
+	if(!($newvacusr_)){
+	    &print("Provide name for the new VACUSR module!");
+	}elsif(-e "src/vacusr.t.$newvacusr_"){
+	    &print("src/vacusr.t.$newvacusr_ already exists!\n".
+		   "DELETE it explicitly or choose another name.");
+	}else{
+	    &shell("cp src/vacusr.t.$vacusr_ src/vacusr.t.$newvacusr_");
+	    $vacusr_=$newvacusr_; $newvacusr_="";
+	}
+    }elsif($submit eq "USRPAR"){
+	if($vacusrpar_){
+	    &print("This module already has a USRPAR file!");
+	}else{
+	    &shell("cp src/vacusrpar.t.nul src/vacusrpar.t.$vacusr_");
+	    $vacusrpar_=1;
+	}
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub makevacinipage{
+    local($move);
+
+    $submit=$FORM{"submit"}; 
+
+    return unless 
+        $submit=~/^EDIT (MAKEFILE|VACUSR|USRPAR)$/     ||
+	$submit=~/^(CLEAN|COMPILE|MOVE|BACK TO MAIN MENU)$/;
+
+    if($submit eq "EDIT MAKEFILE"){
+	&edit("src/Makefile");
+    }elsif($submit eq "EDIT VACUSR"){
+	&edit("src/vacusr.t.$vacusr");
+    }elsif($submit eq "EDIT USRPAR"){
+	&edit("src/vacusrpar.t.$vacusr");
+    }elsif($submit eq "CLEAN"){
+	&shell("cd src; make clean");
+    }elsif($submit eq "COMPILE"){
+	$vacini_make=$FORM{"vacini_make"};
+	&print("cd src; make $vacini_make; cd ..; $move");
+	$message.=$checkstdout if $showmessage;
+	&background("echo $stars MAKING $vacini_make STARTED\n".
+		    "cd src; make $vacini_make; cd ..\n".
+                    "echo $stars MAKING $vacini_make FINISHED");
+    }elsif($submit eq "MOVE"){
+	$vacini=$FORM{"vacini"}; $vacini=~s/ \(compiled\?\)//;
+	$extension=$FORM{"extension"}; $extension=~s/\s//g;
+	if($extension){
+	    if(-e "$vacini"){
+		&shell("/bin/mv $vacini vacini_$extension");
+	    }else{
+		&print("$vacini does not exist (yet)!");
+	    }
+	}else{
+	    &print("Provide extension name!");
+	}
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub runvacinipage{
+    $submit=$FORM{"submit"}; 
+
+    return unless $submit=~
+      /^(CREATE|DELETE|EDIT|REMOVE|RUN|MPIRUN|BACK TO MAIN MENU)$/;
+
+    $inipar=$FORM{"inipar"};
+    $newinipar=$FORM{"newinipar"}; $newinipar=~s/\s//g;
+    $vacini=$FORM{"vacini"};
+    if($submit eq "DELETE"){
+	if($inipar ne "nul"){
+	    &shell("/bin/rm inipar/$inipar");
+	    $inipar="nul";
+	}else{
+	    &print("The inipar/nul file should not be removed!");
+	}
+    }elsif($submit eq "CREATE"){
+	if(!($newinipar)){
+	    &print("Provide name for new inipar file!");
+	}elsif(-e("inipar/$newinipar")){
+	    &print("inipar/$newinipar already exists!\n".
+		   "DELETE it explicitly or choose another name.");
+	}else{
+	    &shell("/bin/cp inipar/$inipar inipar/$newinipar");
+	    $inipar=$newinipar; $newinipar="";
+	}
+    }elsif($submit eq "EDIT"){
+	if($inipar ne "nul"){
+	    &edit("inipar/$inipar");
+	}else{
+	    &print("The inipar/nul file should not be modified!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "REMOVE"){
+	&shell("/bin/rm $vacini");
+    }elsif($submit eq "RUN"){
+	if($inipar ne "nul"){
+	    &print("$vacini < inipar/$inipar");
+	    $message.=$checkstdout if $showmessage;
+	    &background("echo $stars RUNNING $vacini STARTED\n".
+			"$vacini < inipar/$inipar\n".
+			"echo $stars RUNNING $vacini FINISHED");
+	    # Guess extension
+	    if($vacini=~/_/){$extension=$'};
+	}else{
+	    &print("The inipar/nul parameter file is not acceptable!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "MPIRUN"){
+	$np=$FORM{"np"};
+	if($np <= 0){
+	    &print("The number of processors should be 1 or more!".
+		   " Setting np=1");
+	    $np=1;
+	}
+	if($inipar ne "nul"){
+	    &print("ln -s inipar/$inipar vacini.par; mpirun -np $np $vacini");
+	    $message.=$checkstdout if $showmessage;
+	    unlink "vacini.par";
+	    symlink "inipar/$inipar","vacini.par";
+	    # vacini.par is piped in so that non-MPI vacini can also run
+	    &background_nohup("echo $stars RUNNING $vacini STARTED\n".
+			      "mpirun -np $np $vacini < vacini.par;\n".
+			      "echo $stars RUNNING $vacini FINISHED");
+	    # Guess extension
+	    if($vacini=~/_/){$extension=$'};
+	}else{
+	    &print("The inipar/nul parameter file is not acceptable!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub makevacpage{
+    local($move);
+
+    $submit=$FORM{"submit"}; 
+
+    return unless 
+        $submit=~/^EDIT (MAKEFILE|VACUSR|USRPAR)$/     ||
+	$submit=~/^(CLEAN|COMPILE|MOVE|BACK TO MAIN MENU)$/;
+
+    if($submit eq "EDIT MAKEFILE"){
+	&edit("src/Makefile");
+    }elsif($submit eq "EDIT VACUSR"){
+	&edit("src/vacusr.t.$vacusr");
+    }elsif($submit eq "EDIT USRPAR"){
+	&edit("src/vacusrpar.t.$vacusr");
+    }elsif($submit eq "CLEAN"){
+	&shell("cd src; make clean");
+    }elsif($submit eq "COMPILE"){
+	$vac_make=$FORM{"vac_make"};
+	&print("cd src; make $vac_make; cd ..");
+	$message.=$checkstdout if $showmessage;
+	&background("echo $stars MAKING $vac_make STARTED\n".
+		    "cd src; make $vac_make; cd ..; $move\n".
+		    "echo $stars MAKING $vac_make FINISHED");
+    }elsif($submit eq "MOVE"){
+	$vac=$FORM{"vac"}; $vac=~s/ \(compiled\?\)//;
+	$extension=$FORM{"extension"}; $extension=~s/\s//g;
+	if($extension){
+	    if(-e "$vac"){
+		&shell("/bin/mv $vac vac_$extension");
+	    }else{
+		&print("$vac does not exist (yet)!");
+	    }
+	}else{
+	    &print("Provide extension name!");
+	}
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub runvacpage{
+    $submit=$FORM{"submit"}; 
+
+    return unless $submit=~
+      /^(CREATE|DELETE|EDIT|REMOVE|RUN|MPIRUN|BACK TO MAIN MENU)$/;
+
+    $par=$FORM{"par"};
+    $newpar=$FORM{"newpar"}; $newpar=~s/\s//g;
+    $vac=$FORM{"vac"};
+    if($submit eq "DELETE"){
+	if($par ne "nul"){&shell("rm par/$par"); $par="nul";}
+	else{&print("The par/nul parameter file should not be deleted!");}
+    }elsif($submit eq "CREATE"){
+	if(!($newpar)){
+	    &print("Provide name for the new parameter file!");
+	}elsif(-e("par/$newpar")){
+	    &print("par/$newpar already exists!\n".
+		   "DELETE it explicitly or choose another name.");
+	}else{
+	    &shell("cp par/$par par/$newpar"); 
+	    $par=$newpar;
+	}
+    }elsif($submit eq "EDIT"){
+	if($par ne "nul"){
+	    &edit("par/$par");
+	}else{
+	    &print("The par/nul file should not be modified!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "REMOVE"){
+	&shell("/bin/rm $vac");
+    }elsif($submit eq "RUN"){
+	if($par ne "nul"){
+	    &print("nice $vac < par/$par");
+	    $message.=$checkstdout if $showmessage;
+	    &background_nohup("echo $stars RUNNING $vac STARTED\n".
+			      "nice $vac < par/$par;\n".
+			      "echo $stars RUNNING $vac FINISHED");
+	    # Guess extension
+	    if($vac=~/_/){$extension=$'};
+	}else{
+	    &print("The par/nul parameter file is not acceptable!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "MPIRUN"){
+	$np=$FORM{"np"};
+	if($np <= 0){
+	    &print("The number of processors should be 1 or more!".
+		   " Setting np=1");
+	    $np=1;
+	}
+	if($par ne "nul"){
+	    &print("ln -s par/$par vac.par; mpirun -np $np $vac");
+	    $message.=$checkstdout if $showmessage;
+	    unlink "vac.par";
+	    symlink "par/$par","vac.par";
+	    # vac.par is piped in so that non-MPI vac can also run
+	    &background_nohup("echo $stars RUNNING $vac STARTED\n".
+			      "mpirun -np $np $vac < vac.par;\n".
+			      "echo $stars RUNNING $vac FINISHED");
+	    # Guess extension
+	    if($vac=~/_/){$extension=$'};
+	}else{
+	    &print("The par/nul parameter file is not acceptable!\n".
+		   "Select another or create a new one.");
+	}
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub resultspage{
+    local($smcommand);
+    
+    $submit=$FORM{"submit"};
+
+    return unless $submit=~/^(LOG|DATA) (HEAD|TAIL|DELETE)$/ or
+	$submit=~/^REDISTRIBUTE$/ or
+	$submit=~/^(START IDL|START SuperMongo|START MATLAB|BACK TO MAIN MENU)$/;
+
+    if($submit=~/LOG/){
+	$log=$FORM{"log"};
+	$nloghead=$FORM{"nloghead"};
+	$nlogtail=$FORM{"nlogtail"};
+    }else{
+	$data=$FORM{"data"}; $data=~s/_\*/_000/;
+	$data=~s/ \((ascii|binary)\)//; $filetype=$1;
+	$ndatahead=$FORM{"ndatahead"};
+	$ndatatail=$FORM{"ndatatail"};
+    }
+    if($submit eq "LOG HEAD"){
+	$logtext=`head -$nloghead data/$log`; chop($logtext);
+	$logtextlen=($nloghead<20)? $nloghead : 20;
+    }elsif($submit eq "LOG TAIL"){
+	$logtext=`tail -$nlogtail data/$log`; chop($logtext);
+	$logtextlen=($nlogtail<20)? $nlogtail : 20;
+    }elsif($submit eq "LOG DELETE"){
+	&shell("/bin/rm data/$log"); $log=$problem;
+    }elsif($submit eq "DATA HEAD"){
+	if($filetype eq "ascii"){
+	    $datatext=`head -$ndatahead data/$data`; chop($datatext);
+	    $datatextlen=($ndatahead<20)? $ndatahead : 20;
+	}else{
+	    $datatext='Binary file!!!'; $datatextlen=1;
+	}
+    }elsif($submit eq "DATA TAIL"){
+	if($filetype eq "ascii"){
+	    $datatext=`tail -$ndatatail data/$data`; chop($datatext);
+	    $datatextlen=($ndatatail<20)? $ndatatail : 20;
+	}else{
+	    $datatext='Binary file!!!'; $datatextlen=1;
+	}
+    }elsif($submit eq "DATA DELETE"){
+	if($data =~ /(_np\d+_)000\.(ini|out)$/){
+	    &shell("/bin/rm data/$`$1\*.$2");
+	}else{
+	    &shell("/bin/rm data/$data"); 
+	}
+	$data=$problem;
+    }elsif($submit eq "REDISTRIBUTE"){
+	$processormap = $FORM{"processormap"};
+	if($processormap =~ /^\d*$/){
+	    $newdata=$data; $newdata =~ s/_np[\d_]+//;
+	    $newdata =~ s/\.(ini|out)/_np$processormap.$1/
+		if $processormap;
+	    &shell("Fix/distribution data/$data data/$newdata"); 
+	    &print($checkstdout);
+	}else{
+	    &print("Processor map should be an empty string or ".
+		   "consist of numbers, e.g. `0202`!");
+	}
+    }elsif($submit eq "START IDL"){
+	unless ($_demo){
+	    open(FILE,">Idl/.actual");
+	    print FILE "filename='$data'\nprint,'filename=',filename\n";
+	    close(FILE);
+	}
+	&print("Started idl...");
+	&background("cd data; $xterm -e idl ../Idl/.actual");
+    }elsif($submit eq "START SuperMongo"){
+	$smcommand=($filetype eq "ascii")? "use $data" :
+	    "echo !!! SM cannot read binary data !!!";
+	&print("Started sm...");
+	$smcommand=~s/(\.ini|\.out)$//; $smcommand=~s/(\d\d)/$1 /;
+	&background("$xterm -e sm $smcommand");
+    }elsif($submit eq "START MATLAB"){
+        &background("$xterm -e matlab");
+    }elsif($submit eq "BACK TO MAIN MENU"){
+	$OLDPAGE=$PAGE; $PAGE="MAIN";
+    }
+}
+sub editpage{
+    $submit=$FORM{"submit"}; 
+
+    return unless $submit=~/^(SAVE FILE|SAVE AND EXIT|EXIT EDITOR)$/;
+
+    if( $submit=~/SAVE/ && ! $_demo){
+	`/bin/mv $file $file~`;
+	$text=$FORM{"text"};
+        # Correct the &param bug of Netscape
+	$text=~s/\266/\&para/;
+	open(FILE,">$file"); print FILE $text; close(FILE);
+	&print("File $file has been saved!");
+    }
+    if($submit=~/EXIT/){
+	$PAGE=$OLDPAGE; undef $text;
+    }
+}
+
+
+

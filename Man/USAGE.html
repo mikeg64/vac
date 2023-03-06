@@ -1,0 +1,573 @@
+<HTML>
+<HEAD>
+<TITLE> VAC BASIC USAGE </TITLE>
+</HEAD>
+<BODY>
+<h1>BASIC USAGE OF VAC AND VACINI</h1>
+<p>
+This document describes the basic use of the Versatile Advection Code. 
+You are encouraged to do these steps through the <A HREF=Weblink.html>
+Weblink User Interface</A> if you have Perl and a WWW browser.
+<p>
+Precompilation and compilation is done in the <b>src/</b> subdirectory.
+The executable files get automatically to the main directory and they
+use the <b>inipar/, par/</b>, and <b>data/</b> subdirectories for 
+the parameter and data files. If you configure, compile, run, and visualize 
+on different machines, you will have to transport the executable and/or data 
+files accordingly.
+<hr>
+This page:<br>
+ [<A HREF="#Workstation">Workstation and PC</A>]:
+ [<A HREF="#Configuration1">Configuration</A>]
+ [<A HREF="#VACINI1">VACINI</A>]
+ [<A HREF="#VAC1">VAC</A>]
+<br>
+ [<A HREF="#Cray">Cray C90</A>]:
+ [<A HREF="#C90Makefile">Makefile</A>]
+ [<A HREF="#C90Namelist">Namelist</A>]
+ [<A HREF="#C90Transfer">File transfer</A>]
+<br>
+ [<A HREF="#SPT3E">SP and T3E</A>]:
+ [<A HREF="#Limitations2">Limitations</A>]
+ [<A HREF="#Compilation">Compilation</A>]
+ [<A HREF="#RunSP">Run on SP</A>]
+ [<A HREF="#RunT3E">Run on T3E</A>]
+<br>
+ [<A HREF="#Visualizing">Visualization</A>]:
+ [<A HREF="#IDL">IDL</A>]
+ [<A HREF="#MATLAB">MATLAB</A>]
+ [<A HREF="#SM">SM</A>]
+ [<A HREF="#Gnuplot">Gnuplot</A>]
+
+<hr>
+<H2><A NAME="Workstation">Running</A> VAC on a Workstation or PC</h2>
+
+<H4><A NAME="Configuration1">Configuration</A></h4>
+
+   Go to the <b>src/</b> subdirectory with <b>cd src</b>.
+<p>
+   Use the Perl script <b>setvac</b> to set parameters for the VACPP 
+   preprocessor (e.g. the number of vector components NDIR and the number of 
+   grid dimensions NDIM); and for VAC and VACINI (e.g. the maximum grid sizes 
+   or the physics file). Remember that the grid size should include the 
+   ghost cells as well. For example
+<pre>
+setvac -g=104,104 -d=22 -p=hdadiab -u=example -on=cd,tvd,tvdlf
+</pre>
+   Type <b>setvac</b> with no parameters for information on all the flags.
+   Type <b>setvac -s</b> to see the current configuration.
+   The compiled VAC and VACINI codes print out their configurations when
+   they start running.
+
+<H4><A NAME="VACINI1">Compiling</A> and running VACINI</h4>
+
+   Before compiling the code, check the <b>src/Makefile</b>. For the
+   first time read the whole file, and select the appropriate settings.
+   Later, you will mostly change the compiler flags only. Type 
+<pre>
+make vacini
+</pre>
+   to produce the code that generates the initial 
+   conditions. If you do not have a Fortran 90 compiler, remember to set 
+   the default compiler to Fortran 77 in the Makefile, so that the 
+   <b>src/f90tof77</b> Perl script is used for translation. 
+   (Alternatively, you may type <b>make vacini77</b>,
+   still the resulting executable will be called <b>vacini</b>).
+   You may return now to the main directory with 
+<pre>
+cd ..
+</pre>
+   <b>vacini</b> may be used interactively, but piping in a parameter 
+   file is preferred:
+<pre>
+vacini &lt; inipar/PROBLEM
+</pre>
+   Here PROBLEM should be a descriptive filename, like <b>brio12</b>, with
+   indication of NDIM and NDIR. Capital letters may refer to higher resolution.
+   The initial file will be
+<pre>
+data/PROBLEM.ini
+</pre>
+   which is the name defined in the <b>inipar/PROBLEM</b> parameter file.
+   Read Man/<A HREF="inipar.html">inipar</A> and look into <b>vacini.t</b> 
+   to see how the initial parameter files can be set up. You may use your 
+   own initialization program as long as the file is created in the same 
+   format. Alternatively you may provide a new input subroutine 
+   <A HREF=vacusr.html#Specialio>readfileini_special</A> in the 
+   <b>vacusr.t.PROBLEM</b> file and set <A HREF=par.html#Filelist>
+   typefileini='special'</A> in the parameter file.
+
+<H4><A NAME="VAC1">Compiling</A> and running VAC</h4>
+
+   <b>make vac</b> for an executable code on your machine. Like for 
+   <b>vacini</b>, you can <b>make vac77</b> as well. 
+   In addition you can <b>make vacsmall</b> using the 
+   Perl script <b>savemem</b> which saves memory by overlapping the local 
+   arrays of subroutines at the same level. The script needs the whole code 
+   for processing, thus compilation takes longer. Functionally <b>vacsmall</b> 
+   is identical with <b>vac</b>, but it uses less memory. 
+   Type <b>savemem -help</b> for more information.
+<p>
+   Run the code with a parameter file
+<pre>
+vac &lt; par/PROBLEM
+</pre>
+   The results will be in the files
+<pre>
+data/PROBLEM.log
+data/PROBLEM.out
+</pre>
+   as defined in the <b>par/PROBLEM</b> parameter file. 
+   Read Man/<A HREF="par.html">par</A> about the parameter files. 
+<p>
+   For a longer run you may want to submit the job in a queue.
+   At the Astronomical Institute in Utrecht, the NQS system is set up 
+   such that the following simple <b>Jobs/jobdec</b> script  
+<pre>
+#QSUB -q long
+#QSUB
+vac_example &lt; par/exampleA22
+</pre>
+   can be submitted on the machine <b>ruunf3</b> with the commands
+<pre>
+rlogin ruunf3
+cd vac
+qsub jobdec
+</pre>
+   The NQS system replies with giving the <b>JOBID</b> for the submitted job.
+   You can check the status of the job by the <b>qstat JOBID</b> command, 
+   and delete the job by <b>qdel JOBID</b>. 
+<p>
+   A normal background job can be started by e.g.
+<pre>
+nice vac_example &lt; par/exampleA22 &gt;&amp; log.example &amp;
+</pre>
+   Both STDOUT and STDERR are piped into the log.example file, this works 
+   under <b>tcsh</b>. The syntax may be different for other shells.
+   The process ID of a running job can be found by a command like
+<pre>
+ps aux | grep vac
+</pre>
+   The process then can be killed by the <b>kill -9 PSID</b> command, 
+   suspended with <b>kill -17 PSID</b> and restarted with <b>kill -19 PSID</b>.
+
+<H2><A NAME="Cray">Running</A> VAC on the CRAY C90</H2>
+
+   Some of the information below may be specific to the Cray C90 in Amsterdam.
+
+<H4><A NAME="C90Makefile">Makefile</A></H4>
+
+   Delete or comment out the DEC/SGI/SP/SUN compiler definitions and 
+   uncomment the Cray C90 ones.
+   FORALL is not understood by the Cray F90 compiler, therefore select
+   compilation with piping the code through the <b>forall2do</b> script.
+<p>
+   If you selected the local BLAS and LAPACK libraries in the Makefile, 
+   which is a good idea, it is necessary to use the Cray single precision 
+   (real*8) subroutine names, instead of the work station double precision 
+   (also real*8) names. Run the <b>Fix/cray.d2s</b> script with
+<pre>
+Fix/cray.d2s src/vaciter.t src/tridiag.f src/gmresr.f src/conjgrad.f
+</pre>
+   in the main vac/ directory to replace the D characters to S.
+<p>
+   Use <b>setvac</b> before compilation as usual, e.g.:
+<pre>
+cd src
+setvac -d=22 -g=104,104 -p=hdadiab -u=example -on=cd,tvd,tvdlf -off=gencoord
+make vacini
+make vac
+</pre>
+
+<H4><A NAME="C90Namelist">Namelists</A></H4>
+
+   Although namelists should be standard for Fortran 90, some older Cray F90 
+   compilers want .true. and .false. for logical variables instead of T and F.
+   To fix this, run the <b>Fix/T2true</b> script for all the par/ files
+<pre>
+Fix/T2true par/*
+</pre>
+   There is a restriction for repeated values given for multi-D arrays.
+   Eg. for a string array arr(3,4) the namelist declaration
+<pre>
+arr=12*'nul'
+</pre>
+   is not accepted. Use instead
+<pre>
+arr=3*'nul',3*'nul',3*'nul',3*'nul'
+</pre>
+   Also take care of not leaving anything between the namelists.
+   On most machines such lines are ignored, but on the Cray a 
+   run time error occurs.
+
+<H4><A NAME="C90Transfer">Transferring files</A></H4>
+
+   The ASCII file format is machine independent, but not accurate, and not
+   efficient. You can make the binary format on the Cray to be compatible
+   with the binary format of most workstations. 
+   On the Cray, execute <em>before running the code</em> the assignments
+<pre>
+assign -F f77 -N ieee_64 g:su
+</pre>
+   which tells the code to use UNIX Fortran 77 file format with double 
+   precision IEEE standard for any sequential unformatted files.
+   <em>The old version of assign on the Cray needed</em>
+<pre>
+assign -F f77 -N ieee_dp g:su
+</pre>
+   and an even older version
+<pre>
+assign -F f77 -N ieee u:10
+assign -F f77 -N ieee u:12
+</pre>
+   which formats the units 10 and 12 (used by VAC for reading the input and 
+   writing the output data files) as Unix F77 file formats with IEEE standard 
+   for numbers. If you want to visualize the Cray files
+   on a workstation all the time, you may want to put these <b>assign</b> 
+   statements into your .cshrc or .login file, so it is executed automatically.
+<p>
+   The same assignment statements are needed in the <b>jobc90</b> script
+   for submitting an NQS jobs. An example script could be
+<pre>
+#! /bin/sh
+#QSUB -lM 12.0mw
+#QSUB -lT 200
+#QSUB
+cd $HOME/vac/
+assign -F f77 -N ieee_64 g:su
+vac_example &lt; par/exampleA22
+</pre>
+   The <b>-lM</b> parameter defines an upper limit for the requested memory,
+   while <b>-lT</b> gives the maximum run time in seconds.
+   Checking the job status and deleting jobs is the same as on the 
+   workstation.
+<p>
+   For workstations that have the same endiannes as the Cray, the only
+   conversion needed is the 64byte integers transformed to 32byte integers,
+   so run Fix/endian <b>on the workstation</b> as
+<pre>
+Fix/endian -k -c ftp-ed_cray_file new_file
+</pre>
+   or simply do it in-place with the -i flag
+<pre>
+Fix/endian -k -i ftp-ed_cray_file
+</pre>
+   The <b>-k</b> flag means that the endianness is kept the same.
+<p>
+   For the DEC Alpha and PC there is the additional little-endian vs. 
+   big-endian difference, therefore you need to run 
+   <em>on the DEC workstation or PC</em>
+<pre>
+Fix/endian -c ftp-ed_cray_file new_file
+</pre>
+   or simply do it in-place
+<pre>
+Fix/endian -i ftp-ed_cray_file
+</pre>
+   This converts the imported Cray binary file to a little-endian binary file,
+   which can be read by VAC or IDL. 
+<p>
+   The most elegant way to transfer files between the Cray and your workstation
+   is to use <b>rcp</b>. This requires the <b>.rhosts</b> files to be set and 
+   the system managers to allow the remote copy. If it is not allowed, use FTP.
+   On the Cray in Amsterdam it is allowed. It is a good idea to make aliases 
+   in your .cshrc or .login similar to these:
+<pre>
+alias putc90 'rcp \!* USER@NODE:~USER/vac/\!*'
+alias getc90 'rcp USER@NODE:~USER/vac/\!*'
+</pre>
+   Then you can simply say in the main vac directory
+<pre>
+putc90 data/exampleA22.out
+getc90 par/MYPROBLEM par/
+</pre>
+Note that you can rename the file with <b>getc90</b> but not with 
+<b>putc90</b>.
+
+<H2><A NAME="SPT3E">Running</A> VAC on the IBM SP and CRAY T3E</H2>
+
+<H4><A NAME="Limitations2">Limitations</A></h4>
+
+   The implicit module should be switched off, since it is not parallel.
+   For installing VAC on the Cray T3E in Delft,
+   be aware that the gunzip command is not understood (one may use compress).
+
+<H4><A NAME="Compilation">Compiling VAC</A></h4>
+
+   For a single node VAC and VACINI can be compiled by the Fortran 90
+   compilers the same way as for a work station. To compile a parallel
+   version, however, use
+<pre>
+make vachpf
+</pre>
+   or rather set the default compiler to HPF in src/Makefile and set
+   the -O flag in the VACPP=vacpp.pl -O definition, and simply use
+   'make vac'.
+<p>
+   One should configure VAC to the actual grid size (-g=104,104 for a
+   100 x 100 mesh) for a good load balance under HPF. The VAC preprocessor 
+   <b>vacpp.pl</b> uses the <b>-O</b> flag to replace the 
+   general index shifts to simpler ones, so that the HPF compilers can 
+   produce efficient communication. 
+   In case the VACUSR module also uses shifts, they should
+   be written in a similar fashion as in the main code if a good performance
+   is required. There is a description on the special <b>!SHIFT</b> comments 
+   in Man/<A HREF="source.html#Special">source</A>.
+<p>
+   The <b>src/f90tohpf</b> script inserts the HPF distribution directives into
+   the Fortran 90 code. You should set in the src/Makefile which 
+   spatial index should be distributed using the <b>-distr</b> flag.
+   According to our timings, in 2 and 3D it is best to distribute the 2nd 
+   (-distr=2) or the 2nd and 3rd dimensions (-distr=23). By default the
+   static arrays, such as grid coordinates, are not distributed to reduce
+   communication time. In case you run out of the memory of individual nodes,
+   the <b>-distrstatic</b> flag should be switched on (but note that
+   for PGHPF 2.4-4 on the IBM SP there is a related <A HREF=bugs.html>bug</A>).
+   Some PGHPF compilers have a bug related to the distribution directives,
+   namely the distribution cannot be given with an "ONTO PP" statement.
+   This bug can be avoided by setting the <b>-pghpf</b> flag, which 
+   drops this statement and allows the compiler to use the default
+   mapping strategy. If this bug is not present and more than one
+   dimensions are distributed, the mapping to the processors can be
+   defined explicitly in src/vacdef.t, e.g. 
+<pre>
+!HPF$ PROCESSORS PP(4,NUMBER_OF_PROCESSORS()/4)
+</pre>
+   Numerical experiments indicated that distribution along one dimension
+   is quite efficient. On the T3E distribution along the second dimension
+   seems to be preferable to distribution in the first index.
+
+<H4><A NAME="RunSP">Running VAC on the SP</A></h4>
+
+   On the SP, make sure that the <b>.rhosts</b> file in the main
+   directory contains all the nodes to be used. For the SP in Amsterdam
+   this means that the ~/.rhosts file has to contain a line like
+<pre>
++@isisnodes USERNAME
+</pre>
+   The namelists need to end with a / rather than &amp;end, thus you need
+   to run the <b>Fix/end2slash</b> script on all parameter files by
+<pre>
+Fix/end2slash par/*
+</pre>
+   To run the code as a batch job, the following <b>Jobs/jobsp</b> script 
+   can be used:
+<pre>
+#!/bin/sh
+#@ job_type = parallel
+#@ output = $(Cluster).$(Process).out
+#@ error  = $(Cluster).$(Process).err
+#@ requirements = Adapter == "hps_user"
+#@ wall_clock_limit=0:10:30
+#@ min_processors = 2
+#@ max_processors = 2
+#@ queue
+set -x
+export MP_EUILIB=us
+echo Loadleveler processor list: $LOADL_PROCESSOR_LIST
+#
+poe $HOME/vac/vac_example &lt; par/exampleA22
+</pre>
+   The maximum time, which is 10.5 minutes here, and the number of processors 
+   <b>min_processors, max_processors</b> should be set in a consistent fashion
+   for the job. The last line of the script contains the executable 
+   command executed through the Parallel Operating Environment <b>poe</b>. 
+<p>
+   The job is submitted to the LoadLeveler by 
+<pre>
+llsubmit jobvac
+</pre>
+   The LoadLeveler will give the job name in response, eg. 
+   <b>isis-s113.867</b>. The status of the job can be checked by
+<pre>
+spq
+spq -u
+llq isis-s113.867
+llq -u USERNAME
+</pre>
+   and the output and error messages are written into the files 
+   <b>867.0.out</b> and <b>867.0.err</b>, respectively.
+   The job can be cancelled by <b>llcancel isis-s113.867</b>.
+   Check out the <b>spfree, spwhat, spwhen</b>, and <b>spusage</b> commands
+   too.
+
+<H4><A NAME="RunT3E">Running VAC on the T3E</A></h4>
+
+   Like on the C90, the namelists should contain .true. and .false.
+   instead of T and F, thus run 
+<pre>
+Fix/T2true par/*
+</pre>
+   The code can be run interactively on e.g. 2 nodes with the
+<pre>
+mpprun -n2 vac_example -pghpf -stat cpus &lt; par/exampleA22
+</pre>
+   command. The <b>-pghpf -stat cpus</b> flags give some info on the
+   distribution of work among the CPU-s. To submit the job, use the NQS
+   system with a script like <b>Jobs/jobt3e</b>
+<pre>
+#! /bin/sh
+#QSUB -l p_mpp_t=60
+#QSUB -l mpp_p=8
+#QSUB
+#
+cd    $HOME/vac/
+#
+assign -F f77 g:su
+#
+mpprun -n8 vac_example -pghpf -stat cpus &lt; par/exampleA22
+</pre>
+The meaning of the flags is maximum execution time in seconds (-l p_mpp_t=) and
+maximum number of processors (-l mpp_p=) requested. These flags may
+be specific to the T3E in Delft.
+<p>
+The reading and writing of binary files that are compatible with other
+computer platforms is not easy on the Cray T3E. First of all the
+<pre>
+assign -F f77 g:su
+</pre>
+command should be executed before VACINI or VAC runs. It is executed
+in the above script as well. This ensures that
+the data files are in UNIX Fortran format. Still, the integers are 8 byte
+long, while on any other machine the integers occupy 4 bytes only.
+The other possible difference can be in the endianness of the two machines.
+The conversion can be done on the other machine (<em>not on the Cray!</em>) 
+with the <A HREF=convert.html#Endian>Fix/endian</A> Perl script as
+<pre>
+Fix/endian -i ftp-ed-cray_file
+</pre>
+on a little-endian machine or
+<pre>
+Fix/endian -k -i ftp-ed_cray_file
+</pre>
+on a big-endian machine.
+
+<H2><A NAME="Visualizing1">Visualizing</A> Results</h2>
+
+   IDL, MATLAB and SM (SuperMongo) macros are provided to visualize results. 
+   There are <A HREF="convert.html">conversion programs</A> for Gnuplot, 
+   AVS, and DX. You may, of course, use any other visualization software, 
+   as long as it can read the output files.
+<p>
+
+<h4><A NAME=IDL>Visualizing</A> with IDL</h4>
+
+   The IDL macros support reading both ASCII and BINARY files, however
+   IDL can read binary files much faster. Set <b>typefileout=binary</b> in
+   your <b>par/PROBLEM</b> file. You may change the default setting in the
+   <b>par/DEFAULT</b> file if you wish to use binary files all the time.
+<p>
+   Start IDL in the data directory
+<pre>
+cd data
+idl idlrc
+</pre>
+Read Man/<A HREF="idl.html">idl</A> on how the initialization file
+<b>idlrc</b> can be read without typing it explicitly.
+<p>
+   To read results of e.g. the 2nd saved snaphot type
+<pre>
+.r getpict
+</pre>
+   The macro will prompt you for filename and number of snapshot. Reply e.g.
+<pre>
+example22.out
+3
+</pre>
+   The macro reads results into the x and w arrays. For the example
+   shallow water simulations
+<pre>
+surface,w(*,*,0)
+</pre>
+   will plot surface height. See Man/<A HREF="idl.html">idl</A> on options 
+   for plotting, animation, printing, or reading the logfile.
+
+<h4><A NAME=MATLAB>Visualizing</A> with MATLAB</h4>
+
+   The MATLAB macros support reading both ASCII and BINARY files, however
+   MATLAB can read binary files faster. Set <b>typefileout=binary</b> in
+   your <b>par/PROBLEM</b> file. You may change the default setting in the
+   <b>par/DEFAULT</b> file if you wish to use binary files all the time.
+<p>
+   Define the <i>path</i> to the Matlab macros and start MATLAB 
+<pre>
+setenv MATLABPATH $HOME/vac/Matlab  # In C shell or tcsh
+export MATLABPATH=$HOME/vac/Matlab  # In other UNIX shells
+matlab
+</pre>
+Read Man/<A HREF="matlab.html">matlab</A> how the 
+<i>path</i> can be set in e.g. the <b>.login</b> file.
+<p>
+   To read results of e.g. the 2nd saved snaphot type
+<pre>
+getpict
+</pre>
+   The macro will prompt you for filename and number of snapshot. Reply e.g.
+<pre>
+'data/PROBLEM'
+2
+</pre>
+   The macro reads results into the arrays defined in the file header. 
+   To plot the velocity field, you could type
+<pre>
+quiver(m1./rho,m2./rho)
+</pre>
+   See Man/<A HREF="matlab.html">matlab</A> on options for plotting, 
+   animation, printing, or reading the logfile.
+
+<h4><A NAME=SM>Visualizing</A> with SM</h4>
+
+   <p>The SM macros can read ASCII files only, use <b>filetypeout=ascii</b> 
+   in the <b>&amp;filelist</b> namelist of the <b>par/PROBLEM</b> parameter 
+   file.
+<p>
+   Start SM (read Man/<A HREF="sm.html">sm</A> about installation and details 
+   of use)
+<pre>
+sm
+</pre>
+   To plot results of e.g. the 2nd saved snaphot type at the : prompt of SM
+<pre>
+use PROBLEM
+out 2
+</pre>
+   For a time history of e.g. average density, say
+<pre>
+plott rho
+</pre>
+   To exit SuperMongo type
+<pre>
+end
+</pre>
+
+<h4><A NAME=Gnuplot>Visualizing</A> with Gnuplot</h4>
+
+First copy the script <b>cutpict</b> from the Gnuplot/ directory to data/:
+<pre>
+cp Gnuplot/cutpict data
+</pre>
+Then start Gnuplot in the data/ directory:
+<pre>
+cd data
+gnuplot
+</pre>
+For 1D data type
+<pre>
+plot '&lt; cutpict -n=NPICT filename' using 1:NCOL with lines
+</pre>
+where NPICT and NCOL are integers indicating the snapshot and the variable.
+For 2D data try
+<pre>
+set hidden3d
+set data style lines
+splot '&lt; cutpict -n=NPICT filename' using NCOL
+</pre>
+See Man/<A HREF=gnuplot.html>gnuplot</A> for more information.
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th,
+December 29 2003
+</ADDRESS>
+</BODY>
+</HTML>

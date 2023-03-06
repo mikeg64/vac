@@ -1,0 +1,77 @@
+<HTML>
+<HEAD>
+<TITLE> VAC Manual on Known Bugs </TITLE>
+</HEAD>
+<BODY>
+<h1>KNOWN BUGS AND PROBLEMS</h1>
+This file contains description and cures for the bugs known to us
+at the time indicated at the bottom. If you encounter a problem which
+is not discussed here, check the continuously updated
+<A HREF=http://www.phys.uu.nl/~toth/VACFIX.html>ONLINE Bugs and Fixes</A>.
+<hr>
+
+<h2>Precompilation and Compilation Problems</h2>
+
+<h4>Problems with the preprocessor VACPP</h4>
+
+The preprocessor creates very long lines when it expands the <b>*.t</b>
+files. It attempts to break the lines at appropriate places, it
+may however fail to do so. Some Fortran compilers may
+complain about such continuation lines. The best you can do is 
+breaking the ORIGINAL source line into smaller pieces or add spaces
+to the line to help VACPP in breaking the line. This problem
+may occur for some specific <b>ndim</b> and <b>ndir</b> values, as they modify 
+the lengths of the lines. Since I improved the line breaking algorithm,
+this seems to happen very rarely. 
+
+<h4>Problems with the User Interface</h4>
+
+Occasionally the <b>weblink</b> server creates lots of idling processes which 
+may result in <b>alert statements</b> of the shell. 
+The reason for this is not known, it is probably some faulty interaction of 
+Weblink and the operating system. If this occured, simply exit <b>weblink</b> 
+by clicking at the EXIT button, which will kill all the idling processes too, 
+and then you can restart the user interface again.
+If for some reason you exited weblink in another way 
+(<em>which should not be done</em>), kill the weblink process with 
+<b>kill -9</b>, this will kill the associated idling processes too.
+
+<h2>VAC Problems</h2>
+
+<h4>The Courant condition for FCT in generalized coordinates</h4>
+
+The Courant condition is not checked accurately for the FCT method
+when generalized coordinates are used. The reason is that FCT does never
+rotate the variables into the local coordinate system of the cells.
+The approximate calculation may be sufficient, or use smaller Courant number,
+or fixed time step, or TVD-type methods.
+
+<h4>The Courant condition in the first time step for TVD-type methods</h4>
+
+For TVD type methods the Courant condition is based on the eigenvalues at 
+the interfaces at the <em>previous</em> time step during the calculation.
+Assuming that the maximum eigenvalue does not change more than 20% in one
+time step, this keeps the CFL condition if C=0.8 is set. For the very first
+time step, however, <b>dt</b> is estimated from the maximum eigenvalue in the
+cell center. For some initial conditions this may produce a CFL condition
+violation in the first time step, which usually can be ignored, or you can
+start the calculation with doing a few time steps with a smaller Courant 
+number using the <A HREF="par.html#Paramlist"><b>slowsteps</b></A> parameter.
+
+<h4>Third order TVD-MUSCL scheme</h4>
+
+Though in principle the TVD-MUSCL scheme is spatially third order accurate 
+with <b>muscleta=1/3</b> and <b>musclomega=4</b> set, there is little use
+of it due to the following problems: at extrema the TVD scheme is still only
+first order accurate (this may be cured by TVBounded schemes) and 
+none of the present time integration schemes (i.e. the default Hancock 
+predictor or the higher order Runge-Kutta schemes) seem to keep the TVD 
+property if <b>musclomega</b> is not 1. 
+
+<hr>
+<ADDRESS>
+G&aacute;bor T&oacute;th, 
+June 30 1999
+</ADDRESS>
+</BODY>
+</HTML>

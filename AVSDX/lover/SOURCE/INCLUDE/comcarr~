@@ -1,0 +1,11 @@
+*COMDECK COMCARR
+C@(#)comcarr	2.1
+      INTEGER CR
+      PARAMETER(
+#ifdef CR
+     1     CR       = 1
+#else
+     1     CR       = 0
+#endif
+     2)
+C
